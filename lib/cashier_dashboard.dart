@@ -35,14 +35,31 @@ class _CashierDashboardState extends State<CashierDashboard> {
   double _change = 0.0;
   double _total = 0.0;
 
+  // Added this to show a loading indicator while waiting for database.
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
-    _loadBusinessDetails();
-    _loadCashierName();
-    _loadCategories();
-    _loadSubCategories(); // Load sub-categories
-    _loadProductsWithDetails(); // Call the new function to load products with details
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      await _loadBusinessDetails();
+      await _loadCashierName();
+      await _loadCategories();
+      await _loadSubCategories();
+      await _loadProductsWithDetails(); // Ensure products are loaded from the database
+      print(_products); // Debugging: print the contents of _products
+    } catch (e) {
+      print('Error loading data: $e');
+      // Handle error appropriately, maybe show an error message
+    } finally {
+      setState(() {
+        _isLoading = false; // Hide loading indicator
+      });
+    }
   }
 
   Future<void> _loadBusinessDetails() async {
@@ -73,6 +90,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
   Future<void> _loadCategories() async {
     try {
       _categories = await _dbHelper.getCategories();
+      print('Categories loaded: $_categories'); // Debug statement
       setState(() {});
     } catch (e) {
       print('Error loading categories: $e');
@@ -82,6 +100,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
   Future<void> _loadSubCategories() async {
     try {
       _subCategories = await _dbHelper.getSubCategories();
+      print('SubCategories loaded: $_subCategories'); // Debug statement
       if (_subCategories.isNotEmpty) {
         _selectedSubCategoryId = _subCategories.first['id'];
       }
@@ -94,9 +113,14 @@ class _CashierDashboardState extends State<CashierDashboard> {
   Future<void> _loadProductsWithDetails() async {
     try {
       _products = await _dbHelper.getProductsWithDetails();
+      print('Products loaded: $_products'); // Debug statement
       setState(() {});
     } catch (e) {
-      print('Error loading products with details: $e');
+      if (e is UnsupportedError && e.message == 'read-only') {
+        print('Error loading products with details: Read-only operation not supported');
+      } else {
+        print('Error loading products with details: $e');
+      }
     }
   }
 
@@ -105,6 +129,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
   }
 
   List<Map<String, dynamic>> _getProductsBySubCategory(int subCategoryId) {
+    print("Selected SubCategory ID: $subCategoryId"); // Debugging: print selected sub-category ID
     return _products.where((product) => product['sub_category_id'] == subCategoryId).toList();
   }
 
@@ -189,19 +214,14 @@ class _CashierDashboardState extends State<CashierDashboard> {
                 businessLogoPath.isNotEmpty
                     ? Image.file(
                         File(businessLogoPath), // Business logo
-                        height: 40,
+                        height: 100,
                       )
                     : Container(),
-                SizedBox(width: 200),
+                SizedBox(width: 10), // Adjust spacing between logo and name
                 Text(businessName), // Business name
-              ],
-            ),
-            // Middle Part
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.40, // Adjust width to 40%
+                SizedBox(width: 40), // Adjust spacing between name and search box
+                SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.45, // Adjust width to 30%
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: 'Search product by name',
@@ -212,298 +232,301 @@ class _CashierDashboardState extends State<CashierDashboard> {
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
             // Right Corner
             Text('$cashierName'), // Cashier name
           ],
         ),
       ),
-      body: Row(
-        children: [
-          // 25% width column
-          Expanded(
-            flex: 2,
-            child: Container(
-              color: Colors.blue[50],
-              child: Column(
-                children: [
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _categories.length,
-                      itemBuilder: (context, index) {
-                        final category = _categories[index];
-                        final subCategories = _getSubCategoriesByCategory(category['id']);
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedCategoryId = category['id'];
-                              _selectedSubCategoryId = null;
-                            });
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  category['name'],
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                SizedBox(height: 10),
-                                Wrap(
-                                  spacing: 10,
-                                  runSpacing: 10,
-                                  children: subCategories.map((subCategory) {
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedSubCategoryId = subCategory['id'];
-                                        });
-                                      },
-                                      child: Container(
-                                        width: double.infinity, // Use maximum width of the left column
-                                        height: 100,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(10),
-                                          image: DecorationImage(
-                                            image: FileImage(File(subCategory['image'] ?? 'assets/logo.png')),
-                                            fit: BoxFit.cover,
-                                          ),
-                                          border: Border.all(
-                                            color: _selectedSubCategoryId == subCategory['id'] ? Colors.red : Colors.transparent,
-                                            width: 3,
-                                          ),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            subCategory['name'],
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              backgroundColor: Colors.black54,
-                                            ),
-                                          ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator()) // Show loading indicator
+          : Row(
+              children: [
+                // 25% width column
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    color: Colors.blue[50],
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: _categories.length,
+                            itemBuilder: (context, index) {
+                              final category = _categories[index];
+                              final subCategories = _getSubCategoriesByCategory(category['id']);
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedCategoryId = category['id'];
+                                    _selectedSubCategoryId = null;
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        category['name'],
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
                                         ),
                                       ),
-                                    );
-                                  }).toList(),
+                                      SizedBox(height: 10),
+                                      Wrap(
+                                        spacing: 10,
+                                        runSpacing: 10,
+                                        children: subCategories.map((subCategory) {
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                _selectedSubCategoryId = subCategory['id'];
+                                              });
+                                            },
+                                            child: Container(
+                                              width: double.infinity, // Use maximum width of the left column
+                                              height: 100,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(10),
+                                                image: DecorationImage(
+                                                  image: FileImage(File(subCategory['image'] ?? 'assets/logo.png')),
+                                                  fit: BoxFit.cover,
+                                                ),
+                                                border: Border.all(
+                                                  color: _selectedSubCategoryId == subCategory['id'] ? Colors.red : Colors.transparent,
+                                                  width: 3,
+                                                ),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  subCategory['name'],
+                                                  style: TextStyle(
+                                                    fontSize: 20, // Increase font size
+                                                    color: Colors.white,
+                                                    backgroundColor: Colors.black54,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => LoginPage()), // Navigate to login page
-                        );
-                      },
-                      child: Text('Log Out'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // 50% width column
-          Expanded(
-            flex: 11,
-            child: Container(
-              color: Colors.blue[100],
-              child: _selectedSubCategoryId != null
-                  ? _buildProductList() // Extract product list building to a separate function
-                  : Center(child: Text('Select a sub-category')),
-            ),
-          ),
-          // 25% width column
-          Expanded(
-            flex: 5,
-            child: Container(
-              color: Colors.white, // Make background color white like a receipt
-              child: Column(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        businessLogoPath.isNotEmpty
-                            ? Image.file(
-                                File(businessLogoPath), // Business logo
-                                height: 100,
-                              )
-                            : Container(),
-                        Text(businessAddress),
-                        Text(businessContact),
-                        Text('VAT Reg TIN: $businessTaxId'),
-                        Divider(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Date: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}'),
-                            Text('Time: ${DateFormat('hh:mm a').format(DateTime.now())}'),
-                          ],
                         ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Cashier Name: $cashierName'),
-                            Text('Order Number: $_orderNumber'),
-                          ],
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => LoginPage()), // Navigate to login page
+                              );
+                            },
+                            child: Text('Log Out'),
+                          ),
                         ),
-                        Divider(),
                       ],
                     ),
                   ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _orderItems.length,
-                      itemBuilder: (context, index) {
-                        final item = _orderItems[index];
-                        return ListTile(
-                          title: Text('- ${item['name']}'),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                // 75% width column
+                Expanded(
+                  flex: 8,
+                  child: Container(
+                    color: Colors.blue[100],
+                    child: _isLoading
+                        ? Center(child: CircularProgressIndicator()) // Show loading indicator
+                        : _buildProductList(), // Show all products list
+                  ),
+                ),
+                // 25% width column
+                Expanded(
+                  flex: 5,
+                  child: Container(
+                    color: Colors.white, // Make background color white like a receipt
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Text('Amount: ${item['quantity']}'),
-                              if (item['size'] != null) Text('Size: ${item['size']}'),
-                              if (item['addIns'] != null && item['addIns'].isNotEmpty)
-                                Text('Add-Ins: ${item['addIns'].join(', ')}'),
-                              Text('Price: \$${item['price']}'),
+                              businessLogoPath.isNotEmpty
+                                  ? Image.file(
+                                      File(businessLogoPath), // Business logo
+                                      height: 200,
+                                    )
+                                  : Container(),
+                              Text(businessAddress),
+                              Text(businessContact),
+                              Text('VAT Reg TIN: $businessTaxId'),
+                              Divider(),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Date: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}'),
+                                  Text('Time: ${DateFormat('hh:mm a').format(DateTime.now())}'),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Cashier Name: $cashierName'),
+                                  Text('Order Number: $_orderNumber'),
+                                ],
+                              ),
+                              Divider(),
                             ],
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  Divider(),
-                  Container(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Subtotal:'),
-                            Text('PHP ${_subtotal.toStringAsFixed(2)}'),
-                          ],
                         ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Taxes:'),
-                            Text('PHP ${_tax.toStringAsFixed(2)}'),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Total Paid:'),
-                            Text('PHP ${_totalPaid.toStringAsFixed(2)}'),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Change:'),
-                            Text('PHP ${_change.toStringAsFixed(2)}'),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Total:'),
-                            Text('PHP ${_total.toStringAsFixed(2)}'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Divider(),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            // Show calculator for cash payment
-                            showDialog(
-                              context: context,
-                              builder: (context) {
-                                TextEditingController _amountController = TextEditingController();
-                                return AlertDialog(
-                                  title: Text('Enter Amount Paid'),
-                                  content: TextField(
-                                    controller: _amountController,
-                                    keyboardType: TextInputType.number,
-                                    decoration: InputDecoration(labelText: 'Amount'),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: Text('Cancel'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        _payByCash(double.parse(_amountController.text));
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: Text('Pay'),
-                                    ),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: _orderItems.length,
+                            itemBuilder: (context, index) {
+                              final item = _orderItems[index];
+                              return ListTile(
+                                title: Text('- ${item['name']}'),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Amount: ${item['quantity']}'),
+                                    if (item['size'] != null) Text('Size: ${item['size']}'),
+                                    if (item['addIns'] != null && item['addIns'].isNotEmpty)
+                                      Text('Add-Ins: ${item['addIns'].join(', ')}'),
+                                    Text('Price: \$${item['price']}'),
                                   ],
-                                );
-                              },
-                            );
-                          },
-                          icon: Icon(Icons.attach_money),
-                          label: Text('Pay By Cash'),
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                        ElevatedButton.icon(
-                          onPressed: _payByCard,
-                          icon: Icon(Icons.credit_card),
-                          label: Text('Pay By Card'),
+                        Divider(),
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Subtotal:'),
+                                  Text('PHP ${_subtotal.toStringAsFixed(2)}'),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Taxes:'),
+                                  Text('PHP ${_tax.toStringAsFixed(2)}'),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Total Paid:'),
+                                  Text('PHP ${_totalPaid.toStringAsFixed(2)}'),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Change:'),
+                                  Text('PHP ${_change.toStringAsFixed(2)}'),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Total:'),
+                                  Text('PHP ${_total.toStringAsFixed(2)}'),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        ElevatedButton.icon(
-                          onPressed: _printInvoice,
-                          icon: Icon(Icons.print),
-                          label: Text('Invoice Printing'),
+                        Divider(),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  // Show calculator for cash payment
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      TextEditingController _amountController = TextEditingController();
+                                      return AlertDialog(
+                                        title: Text('Enter Amount Paid'),
+                                        content: TextField(
+                                          controller: _amountController,
+                                          keyboardType: TextInputType.number,
+                                          decoration: InputDecoration(labelText: 'Amount'),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () {
+                                              _payByCash(double.parse(_amountController.text));
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: Text('Pay'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                                icon: Icon(Icons.attach_money),
+                                label: Text('Pay By Cash'),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: _payByCard,
+                                icon: Icon(Icons.credit_card),
+                                label: Text('Pay By Card'),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: _printInvoice,
+                                icon: Icon(Icons.print),
+                                label: Text('Invoice Printing'),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildProductList() {
-    final productList = _getProductsBySubCategory(_selectedSubCategoryId!);
-
-    if (productList.isEmpty) {
-      return Center(child: Text('No products available for this sub-category.'));
+    if (_products.isEmpty) {
+      return Center(child: Text('No products available.'));
     }
 
+    print('Displaying products: $_products'); // Debug statement
+
     return ListView.builder(
-      itemCount: productList.length,
+      itemCount: _products.length,
       itemBuilder: (context, index) {
-        final product = productList[index];
+        final product = _products[index];
         return Card(
           margin: EdgeInsets.all(10),
           elevation: 5, // Add shadow

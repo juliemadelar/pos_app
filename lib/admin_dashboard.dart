@@ -22,57 +22,69 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Admin Dashboard'),
-      ),
-      body: Row(
+      body: Column(
         children: [
-          // Left pane menu
+          // Header
           Container(
-            width: 400,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.lightGreenAccent, Colors.greenAccent],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-            child: Column(
-              children: [
-                ListTile(
-                  title: Text('Product Management', style: TextStyle(color: Colors.black)),
-                  onTap: () => _selectPage(ProductManagement()),
-                ),
-                ListTile(
-                  title: Text('Business Details', style: TextStyle(color: Colors.black)),
-                  onTap: () => _selectPage(BusinessDetailsForm()),
-                ),
-                ListTile(
-                  title: Text('User Management', style: TextStyle(color: Colors.black)),
-                  onTap: () => _selectPage(UserManagement()),
-                ),
-                ListTile(
-                  title: Text('Sales Report', style: TextStyle(color: Colors.black)),
-                  onTap: () => _selectPage(SalesReport()),
-                ),
-                Spacer(),
-                ListTile(
-                  title: Text('Log Out', style: TextStyle(color: Colors.black)),
-                  onTap: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => LoginPage()),
-                    );
-                  },
-                ),
-              ],
+            padding: EdgeInsets.all(16.0),
+            color: Colors.greenAccent,
+            child: Text(
+              'Admin Dashboard',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
           ),
-          // Right pane content
           Expanded(
-            child: Container(
-              color: Colors.white,
-              child: _selectedPage,
+            child: Row(
+              children: [
+                // Left pane menu
+                Container(
+                  width: 400,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.lightGreenAccent, Colors.greenAccent],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        title: Text('Product Management', style: TextStyle(color: Colors.black)),
+                        onTap: () => _selectPage(ProductManagement()),
+                      ),
+                      ListTile(
+                        title: Text('Business Details', style: TextStyle(color: Colors.black)),
+                        onTap: () => _selectPage(BusinessDetailsForm()),
+                      ),
+                      ListTile(
+                        title: Text('User Management', style: TextStyle(color: Colors.black)),
+                        onTap: () => _selectPage(UserManagement()),
+                      ),
+                      ListTile(
+                        title: Text('Sales Report', style: TextStyle(color: Colors.black)),
+                        onTap: () => _selectPage(SalesReport()),
+                      ),
+                      Spacer(),
+                      ListTile(
+                        title: Text('Log Out', style: TextStyle(color: Colors.black)),
+                        onTap: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => LoginPage()),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                // Right pane content
+                Expanded(
+                  child: Container(
+                    color: Colors.white,
+                    child: _selectedPage,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

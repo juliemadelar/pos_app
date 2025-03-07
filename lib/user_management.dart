@@ -41,6 +41,7 @@ class _UserManagementState extends State<UserManagement> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+      automaticallyImplyLeading: false, // Remove the back button
         title: Text('User Management'),
       ),
       body: Padding(

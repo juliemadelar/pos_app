@@ -111,6 +111,9 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                       setState(() {
                         _imagePath = pickedFile.path;
                       });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Selected image: ${pickedFile.path}')),
+                      );
                     }
                   },
                   child: Text('Pick Image'),
@@ -269,6 +272,7 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
     return Scaffold(
       appBar: AppBar(
         title: Text('Product Management'),
+        automaticallyImplyLeading: false, // This line removes the back button
         bottom: TabBar(
           controller: _tabController,
           tabs: [

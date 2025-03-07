@@ -49,6 +49,9 @@ class _BusinessDetailsFormState extends State<BusinessDetailsForm> {
       setState(() {
         _businessLogo = pickedFile.path;
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Selected image: ${pickedFile.path}')),
+      );
     }
   }
 

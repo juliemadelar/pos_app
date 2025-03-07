@@ -17,7 +17,7 @@ class DBHelper {
 
   Future<Database> _initDatabase() async {
     sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
+    databaseFactory = databaseFactoryFfi; // Ensure this is called before using openDatabase
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'my_database.db');
 
@@ -412,13 +412,21 @@ class DBHelper {
 
   Future<List<Map<String, dynamic>>> getProductsWithDetails() async {
     Database db = await database;
+    print("Querying products table...");
     List<Map<String, dynamic>> products = await db.query('products');
+    print("Products fetched: ${products.length}"); // Check length here
 
     for (var product in products) {
       int productId = product['id'];
+      print("Product ID: $productId");
+      print("Querying sizes for product ID: $productId");
       product['sizes'] = await db.query('sizes', where: 'product_id = ?', whereArgs: [productId]);
+      print("Sizes fetched for product ID $productId: ${product['sizes'].length}"); // Check sizes length
+      print("Querying add-ins for product ID: $productId");
       product['addIns'] = await db.query('add_ins', where: 'product_id = ?', whereArgs: [productId]);
+      print("Add-ins fetched for product ID $productId: ${product['addIns'].length}"); // Check add-ins length
     }
+    print("Returning products with details.");
     return products;
   }
 }

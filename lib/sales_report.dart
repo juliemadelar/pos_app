@@ -16,6 +16,7 @@ class _SalesReportState extends State<SalesReport> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+        automaticallyImplyLeading: false, // Remove the back button
           title: Text('Sales Report'),
           bottom: TabBar(
             tabs: [
