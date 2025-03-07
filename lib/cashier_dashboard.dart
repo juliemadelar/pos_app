@@ -345,7 +345,9 @@ class _CashierDashboardState extends State<CashierDashboard> {
                     color: Colors.blue[100],
                     child: _isLoading
                         ? Center(child: CircularProgressIndicator()) // Show loading indicator
-                        : _buildProductList(), // Show all products list
+                        : _products.isEmpty
+                            ? Center(child: Text('No products available.')) // Show message if no products
+                            : _buildProductList(), // Show all products list
                   ),
                 ),
                 // 25% width column
