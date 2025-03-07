@@ -394,7 +394,8 @@ class DBHelper {
 
   Future<void> updateBusinessDetail(String detail, String value) async {
     Database db = await database;
-    await db.update('business_details', {'value': value}, where: 'detail = ?', whereArgs: [detail]);
+    int result = await db.update('business_details', {'value': value}, where: 'detail = ?', whereArgs: [detail]);
+    print('Update result for $detail: $result');
   }
 
   Future<void> createDatabase() async {

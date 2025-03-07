@@ -54,20 +54,30 @@ class _BusinessDetailsFormState extends State<BusinessDetailsForm> {
 
   void _saveBusinessDetails() async {
     try {
+      print('Saving Business Name: ${_businessNameController.text}');
       await _dbHelper.updateBusinessDetail('name', _businessNameController.text);
+      print('Saving Business Address: ${_businessAddressController.text}');
       await _dbHelper.updateBusinessDetail('address', _businessAddressController.text);
+      print('Saving Business Contact: ${_businessContactController.text}');
       await _dbHelper.updateBusinessDetail('contact', _businessContactController.text);
+      print('Saving Business Tax ID: ${_businessTaxIdController.text}');
       await _dbHelper.updateBusinessDetail('tax_id', _businessTaxIdController.text);
+      print('Saving Business Logo: ${_businessLogo ?? 'assets/logo.png'}');
       await _dbHelper.updateBusinessDetail('logo', _businessLogo ?? 'assets/logo.png');
+      print('Saving Senior Discount: ${_seniorCitizenController.text}');
       await _dbHelper.updateBusinessDetail('senior_discount', _seniorCitizenController.text);
+      print('Saving PWD Discount: ${_pwdController.text}');
       await _dbHelper.updateBusinessDetail('pwd_discount', _pwdController.text);
+      print('Saving Other Discount: ${_otherController.text}');
       await _dbHelper.updateBusinessDetail('other_discount', _otherController.text);
+      print('Saving Currency: $_selectedCurrency');
       await _dbHelper.updateBusinessDetail('currency', _selectedCurrency);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Changes Saved')),
       );
     } catch (e) {
+      print('Error saving changes: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving changes: $e')),
       );
@@ -78,6 +88,7 @@ class _BusinessDetailsFormState extends State<BusinessDetailsForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // Remove the back button
         title: Text('Business Details'),
       ),
       body: SingleChildScrollView(

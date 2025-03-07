@@ -179,6 +179,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // Remove the back button
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -200,7 +201,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.55, // Match the width of the middle container
+                  width: MediaQuery.of(context).size.width * 0.40, // Adjust width to 40%
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: 'Search product by name',
@@ -265,7 +266,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
                                         });
                                       },
                                       child: Container(
-                                        width: 150, // Make sub-category tiles wider
+                                        width: double.infinity, // Use maximum width of the left column
                                         height: 100,
                                         decoration: BoxDecoration(
                                           borderRadius: BorderRadius.circular(10),
@@ -386,7 +387,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
                     ),
                   ),
                   Divider(),
-                  Padding(
+                  Container(
                     padding: const EdgeInsets.all(8.0),
                     child: Column(
                       children: [
@@ -505,6 +506,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
         final product = productList[index];
         return Card(
           margin: EdgeInsets.all(10),
+          elevation: 5, // Add shadow
           child: Padding(
             padding: const EdgeInsets.all(10.0),
             child: Column(
@@ -513,7 +515,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
                   children: [
                     Image.file(
                       File(product['image']),
-                      width: 100,
+                      width: 80, // Reduce width by 20px
                     ),
                     SizedBox(width: 10),
                     Text(product['name']),
