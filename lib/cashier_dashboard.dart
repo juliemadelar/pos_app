@@ -102,7 +102,15 @@ class _CashierDashboardState extends State<CashierDashboard> {
       _subCategories = await _dbHelper.getSubCategories();
       print('SubCategories loaded: $_subCategories'); // Debug statement
       if (_subCategories.isNotEmpty) {
-        _selectedSubCategoryId = _subCategories.first['id'];
+        // Select the first sub-category that has products
+        for (var subCategory in _subCategories) {
+          if (_getProductsBySubCategory(subCategory['id']).isNotEmpty) {
+            _selectedSubCategoryId = subCategory['id'];
+            break;
+          }
+        }
+        // If no sub-category with products is found, select the first sub-category
+        _selectedSubCategoryId ??= _subCategories.first['id'];
       }
       setState(() {});
     } catch (e) {
@@ -519,16 +527,21 @@ class _CashierDashboardState extends State<CashierDashboard> {
   }
 
   Widget _buildProductList() {
-    if (_products.isEmpty) {
-      return Center(child: Text('No products available.'));
+    if (_selectedSubCategoryId == null) {
+      return Center(child: Text('Select a sub-category.'));
     }
 
-    print('Displaying products: $_products'); // Debug statement
+    final productList = _getProductsBySubCategory(_selectedSubCategoryId!);
 
+    if (productList.isEmpty) {
+      return Center(child: Text('No products available for this sub-category.'));
+    }
+
+    // ... rest of your _buildProductList function
     return ListView.builder(
-      itemCount: _products.length,
+      itemCount: productList.length,
       itemBuilder: (context, index) {
-        final product = _products[index];
+        final product = productList[index];
         return Card(
           margin: EdgeInsets.all(10),
           elevation: 5, // Add shadow
