@@ -124,11 +124,8 @@ class _CashierDashboardState extends State<CashierDashboard> {
       print('Products loaded: $_products'); // Debug statement
       setState(() {});
     } catch (e) {
-      if (e is UnsupportedError && e.message == 'read-only') {
-        print('Error loading products with details: Read-only operation not supported');
-      } else {
-        print('Error loading products with details: $e');
-      }
+      print('Error loading products with details: $e');
+      // Handle specific error types if needed
     }
   }
 

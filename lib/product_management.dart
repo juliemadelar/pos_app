@@ -43,8 +43,11 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
   }
 
   Future<void> _deleteCategory(int id) async {
-    await _dbHelper.deleteCategory(id);
-    _loadData();
+    bool confirmDelete = await _showDeleteConfirmationDialog('Category');
+    if (confirmDelete) {
+      await _dbHelper.deleteCategory(id);
+      _loadData();
+    }
   }
 
   Future<void> _editSubCategory(int id, String newName, String newImage) async {
@@ -53,18 +56,26 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
   }
 
   Future<void> _deleteSubCategory(int id) async {
-    await _dbHelper.deleteSubCategory(id);
-    _loadData();
+    bool confirmDelete = await _showDeleteConfirmationDialog('Sub-Category');
+    if (confirmDelete) {
+      await _dbHelper.deleteSubCategory(id);
+      _loadData();
+    }
   }
 
-  Future<void> _editProduct(int id, String newName, String newImage) async {
-    await _dbHelper.updateProduct({'id': id, 'name': newName, 'image': newImage.isNotEmpty ? newImage : 'assets/logo.png'});
+  Future<void> _editProduct(int id, String newName, String newImage, int newSubCategoryId) async {
+    await _dbHelper.updateProduct({'id': id, 'name': newName, 'image': newImage.isNotEmpty ? newImage : 'assets/logo.png', 'sub_category_id': newSubCategoryId});
     _loadData();
   }
 
   Future<void> _deleteProduct(int id) async {
-    await _dbHelper.deleteProduct(id);
-    _loadData();
+    bool confirmDelete = await _showDeleteConfirmationDialog('Product');
+    if (confirmDelete) {
+      await _dbHelper.deleteProduct(id);
+      await _dbHelper.deleteSizesByProductId(id);
+      await _dbHelper.deleteAddInsByProductId(id);
+      _loadData();
+    }
   }
 
   Future<void> _editSize(int id, String newName, double newPrice) async {
@@ -87,9 +98,11 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
     _loadData();
   }
 
-  void _showEditDialog(String title, String initialValue, Function(String, String) onSave, {bool isSubCategory = false, bool isProduct = false, String? initialImage}) {
+  void _showEditDialog(String title, String initialValue, Function(String, String, int) onSave, {bool isSubCategory = false, bool isProduct = false, String? initialImage, int? initialSubCategoryId}) {
     TextEditingController _controller = TextEditingController(text: initialValue);
     String? _imagePath = initialImage;
+    int? _selectedSubCategoryId = initialSubCategoryId;
+
     showDialog(
       context: context,
       builder: (context) {
@@ -102,6 +115,24 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                 controller: _controller,
                 decoration: InputDecoration(labelText: 'New Value'),
               ),
+              if (isProduct) ...[
+                SizedBox(height: 10),
+                DropdownButton<int>(
+                  value: _selectedSubCategoryId,
+                  hint: Text('Select Sub-Category'),
+                  onChanged: (int? newValue) {
+                    setState(() {
+                      _selectedSubCategoryId = newValue;
+                    });
+                  },
+                  items: _subCategories.map<DropdownMenuItem<int>>((subCategory) {
+                    return DropdownMenuItem<int>(
+                      value: subCategory['id'],
+                      child: Text(subCategory['name']),
+                    );
+                  }).toList(),
+                ),
+              ],
               if (isSubCategory || isProduct) ...[
                 SizedBox(height: 10),
                 ElevatedButton(
@@ -119,9 +150,19 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                   child: Text('Pick Image'),
                 ),
                 if (_imagePath != null && File(_imagePath!).existsSync())
-                  Image.file(File(_imagePath!))
+                  Image.file(
+                    File(_imagePath!),
+                    height: 100, // Adjust the height to make the preview smaller
+                    width: 100, // Adjust the width to make the preview smaller
+                    fit: BoxFit.cover,
+                  )
                 else
-                  Image.asset('assets/logo.png'),
+                  Image.asset(
+                    'assets/logo.png',
+                    height: 100, // Adjust the height to make the preview smaller
+                    width: 100, // Adjust the width to make the preview smaller
+                    fit: BoxFit.cover,
+                  ),
               ],
             ],
           ),
@@ -134,7 +175,7 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
             ),
             TextButton(
               onPressed: () {
-                onSave(_controller.text, _imagePath ?? 'assets/logo.png');
+                onSave(_controller.text, _imagePath ?? 'assets/logo.png', _selectedSubCategoryId ?? 0);
                 Navigator.of(context).pop();
               },
               child: Text('Save'),
@@ -261,6 +302,32 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
     );
   }
 
+  Future<bool> _showDeleteConfirmationDialog(String entity) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Confirm Delete'),
+          content: Text('Are you sure you want to delete this $entity? This action cannot be undone and will delete all associated data.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: Text('Delete'),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -332,7 +399,7 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                           _showEditDialog(
                             'Edit Category',
                             _categories[index]['name'],
-                            (newName, _) => _editCategory(_categories[index]['id'], newName),
+                            (newName, _, __) => _editCategory(_categories[index]['id'], newName),
                           );
                         },
                       ),
@@ -363,11 +430,24 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
     return Column(
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Use spaceBetween for spacing
           children: [
-            Expanded(flex: 2, child: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
-            Expanded(flex: 3, child: Text('Sub-Category Name', style: TextStyle(fontWeight: FontWeight.bold))),
-            Container(width: 300, child: Text('Image', style: TextStyle(fontWeight: FontWeight.bold))),
-            Expanded(flex: 2, child: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(
+              flex: 2,
+              child: Text('Category', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text('Sub-Category Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ),
+            Expanded(
+              flex: 6, // Increased flex for image to accommodate width
+              child: Text('Image', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ),
           ],
         ),
         Expanded(
@@ -375,34 +455,30 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
             itemCount: _subCategories.length,
             itemBuilder: (context, index) {
               final subCategory = _subCategories[index];
-              final category = _categories.firstWhere((category) => category['id'] == subCategory['category_id']);
+              final category = _categories.firstWhere((category) => category['id'] == subCategory['category_id'], orElse: () => {});
+              // Check for null or empty image path
+              final imagePath = subCategory['image'] ?? 'assets/logo.png';
               return Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                ),
+                decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
                 child: Row(
                   children: [
                     Expanded(
                       flex: 2,
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: Text(category['name']),
+                        child: Text(category['name'] ?? '', style: TextStyle(fontSize: 16)),
                       ),
                     ),
                     Expanded(
                       flex: 3,
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: Text(subCategory['name']),
+                        child: Text(subCategory['name'] ?? '', style: TextStyle(fontSize: 16)),
                       ),
                     ),
-                    Container(
-                      width: 300,
-                      height: 300,
-                      child: Image.file(
-                        File(subCategory['image']),
-                        fit: BoxFit.cover,
-                      ),
+                    Expanded(
+                      flex: 6, // Increased flex for image
+                      child: _displayImage(imagePath),
                     ),
                     Expanded(
                       flex: 2,
@@ -414,11 +490,8 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                             onPressed: () {
                               _showEditDialog(
                                 'Edit Sub-Category',
-                                subCategory['name'],
-                                (newName, newImage) => _editSubCategory(
-                                    subCategory['id'],
-                                    newName,
-                                    newImage),
+                                subCategory['name'] ?? '',
+                                (newName, newImage, _) => _editSubCategory(subCategory['id'], newName, newImage),
                                 isSubCategory: true,
                                 initialImage: subCategory['image'],
                               );
@@ -426,9 +499,7 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                           ),
                           IconButton(
                             icon: Icon(Icons.delete),
-                            onPressed: () {
-                              _deleteSubCategory(subCategory['id']);
-                            },
+                            onPressed: () => _deleteSubCategory(subCategory['id']),
                           ),
                         ],
                       ),
@@ -441,12 +512,20 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
         ),
         ElevatedButton(
           onPressed: () {
-            // Add sub-category logic
+            // Add sub-category logic (Implement this)
           },
           child: Text('Add Sub-Category'),
         ),
       ],
     );
+  }
+
+  Widget _displayImage(String imagePath) {
+    if (imagePath == null || imagePath.isEmpty || !File(imagePath).existsSync()) {
+      return Image.asset('assets/logo.png', fit: BoxFit.cover, height: 100); // Added height
+    } else {
+      return Image.file(File(imagePath), fit: BoxFit.cover, height: 100); // Added height
+    }
   }
 
   Widget _buildProductsTab() {
@@ -503,9 +582,11 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                               _showEditDialog(
                                 'Edit Product',
                                 _products[index]['name'],
-                                (newName, newImage) => _editProduct(_products[index]['id'], newName, newImage),
+                                (newName, newImage, newSubCategoryId) => _editProduct(
+                                    _products[index]['id'], newName, newImage, newSubCategoryId),
                                 isProduct: true,
                                 initialImage: _products[index]['image'],
+                                initialSubCategoryId: _products[index]['sub_category_id'],
                               );
                             },
                           ),
@@ -595,40 +676,76 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
   Widget _buildSizesTab() {
     return Column(
       children: [
+        Row(
+          children: [
+            Expanded(flex: 3, child: Text('Product', style: TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(flex: 3, child: Text('Size Name', style: TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(flex: 3, child: Text('Price', style: TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(flex: 1, child: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+          ],
+        ),
         Expanded(
           child: ListView.builder(
             itemCount: _sizes.length,
             itemBuilder: (context, index) {
+              final product = _products.firstWhere(
+                (product) => product['id'] == _sizes[index]['product_id'],
+                orElse: () => {},
+              );
               return Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey),
                 ),
-                child: ListTile(
-                  title: Text(_sizes[index]['name']),
-                  subtitle: Text('Product: ${_products.firstWhere((product) => product['id'] == _sizes[index]['product_id'])['name']}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.edit),
-                        onPressed: () {
-                          _showSizeDialog(
-                            'Edit Size',
-                            _sizes[index]['name'],
-                            _sizes[index]['price'],
-                            _sizes[index]['product_id'],
-                            (newName, newPrice, newProductId) => _editSize(_sizes[index]['id'], newName, newPrice),
-                          );
-                        },
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(product['name']),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () {
-                          _deleteSize(_sizes[index]['id']);
-                        },
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(_sizes[index]['name']),
                       ),
-                    ],
-                  ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text('PHP ${_sizes[index]['price'].toStringAsFixed(2)}'),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () {
+                              _showSizeDialog(
+                                'Edit Size',
+                                _sizes[index]['name'],
+                                _sizes[index]['price'],
+                                _sizes[index]['product_id'],
+                                (newName, newPrice, newProductId) => _editSize(_sizes[index]['id'], newName, newPrice),
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete),
+                            onPressed: () {
+                              _deleteSize(_sizes[index]['id']);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               );
             },

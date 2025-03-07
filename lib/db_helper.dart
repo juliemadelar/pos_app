@@ -181,6 +181,16 @@ class DBHelper {
     return await db.delete('add_ins', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<int> deleteSizesByProductId(int productId) async {
+    Database db = await database;
+    return await db.delete('sizes', where: 'product_id = ?', whereArgs: [productId]);
+  }
+
+  Future<int> deleteAddInsByProductId(int productId) async {
+    Database db = await database;
+    return await db.delete('add_ins', where: 'product_id = ?', whereArgs: [productId]);
+  }
+
   Future<List<Map<String, dynamic>>> getCategories() async {
     Database db = await database;
     return await db.query('categories');
@@ -419,12 +429,20 @@ class DBHelper {
     for (var product in products) {
       int productId = product['id'];
       print("Product ID: $productId");
-      print("Querying sizes for product ID: $productId");
-      product['sizes'] = await db.query('sizes', where: 'product_id = ?', whereArgs: [productId]);
-      print("Sizes fetched for product ID $productId: ${product['sizes'].length}"); // Check sizes length
-      print("Querying add-ins for product ID: $productId");
-      product['addIns'] = await db.query('add_ins', where: 'product_id = ?', whereArgs: [productId]);
-      print("Add-ins fetched for product ID $productId: ${product['addIns'].length}"); // Check add-ins length
+      try {
+        print("Querying sizes for product ID: $productId");
+        product['sizes'] = await db.query('sizes', where: 'product_id = ?', whereArgs: [productId]);
+        print("Sizes fetched for product ID $productId: ${product['sizes'].length}"); // Check sizes length
+      } catch (e) {
+        print("Error querying sizes for product ID $productId: $e");
+      }
+      try {
+        print("Querying add-ins for product ID: $productId");
+        product['addIns'] = await db.query('add_ins', where: 'product_id = ?', whereArgs: [productId]);
+        print("Add-ins fetched for product ID $productId: ${product['addIns'].length}"); // Check add-ins length
+      } catch (e) {
+        print("Error querying add-ins for product ID $productId: $e");
+      }
     }
     print("Returning products with details.");
     return products;
