@@ -408,8 +408,21 @@ class DBHelper {
 
   Future<void> updateBusinessDetail(String detail, String value) async {
     Database db = await database;
-    int result = await db.update('business_details', {'value': value}, where: 'detail = ?', whereArgs: [detail]);
-    print('Update result for $detail: $result');
+    try {
+      // First try to update. If it doesn't affect any rows, insert instead.
+      int updatedRows = await db.update('business_details', {'value': value},
+          where: 'detail = ?', whereArgs: [detail]);
+      if (updatedRows == 0) {
+        // Insert if no rows were updated
+        await db.insert('business_details', {'detail': detail, 'value': value});
+        print('Inserted new business detail: $detail = $value');
+      } else {
+        print('Updated business detail: $detail = $value');
+      }
+    } catch (e) {
+      print('Error updating/inserting business detail: $e');
+      rethrow; // Re-throw the exception to be handled higher up
+    }
   }
 
   Future<void> createDatabase() async {

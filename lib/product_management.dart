@@ -426,6 +426,101 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
     );
   }
 
+  void _showAddSubCategoryDialog() {
+    TextEditingController _nameController = TextEditingController();
+    String? _imagePath;
+    int? _selectedCategoryId;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add Sub-Category'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: 'Sub-Category Name'),
+              ),
+              SizedBox(height: 10),
+              DropdownButton<int>(
+                value: _selectedCategoryId,
+                hint: Text('Select Category'),
+                onChanged: (int? newValue) {
+                  setState(() {
+                    _selectedCategoryId = newValue;
+                  });
+                },
+                items: _categories.map<DropdownMenuItem<int>>((category) {
+                  return DropdownMenuItem<int>(
+                    value: category['id'],
+                    child: Text(category['name']),
+                  );
+                }).toList(),
+              ),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () async {
+                  final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+                  if (pickedFile != null) {
+                    setState(() {
+                      _imagePath = pickedFile.path;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Selected image: ${pickedFile.path}')),
+                    );
+                  }
+                },
+                child: Text('Pick Image'),
+              ),
+              if (_imagePath != null && File(_imagePath!).existsSync())
+                Image.file(
+                  File(_imagePath!),
+                  height: 100,
+                  width: 100,
+                  fit: BoxFit.cover,
+                )
+              else
+                Image.asset(
+                  'assets/logo.png',
+                  height: 100,
+                  width: 100,
+                  fit: BoxFit.cover,
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (_nameController.text.isNotEmpty && _selectedCategoryId != null) {
+                  await _dbHelper.insertSubCategory({
+                    'name': _nameController.text,
+                    'image': _imagePath ?? 'assets/logo.png',
+                    'category_id': _selectedCategoryId,
+                  });
+                  _loadData();
+                  Navigator.of(context).pop();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Please fill all fields')),
+                  );
+                }
+              },
+              child: Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildSubCategoriesTab() {
     return Column(
       children: [
@@ -511,9 +606,7 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
           ),
         ),
         ElevatedButton(
-          onPressed: () {
-            // Add sub-category logic (Implement this)
-          },
+          onPressed: _showAddSubCategoryDialog, // Call the new method
           child: Text('Add Sub-Category'),
         ),
       ],

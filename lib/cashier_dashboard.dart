@@ -22,7 +22,6 @@ class _CashierDashboardState extends State<CashierDashboard> {
   List<Map<String, dynamic>> _categories = [];
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _subCategories = [];
-  int? _selectedCategoryId;
   int? _selectedSubCategoryId;
   String? _selectedSize;
   List<String> _selectedAddIns = [];
@@ -264,7 +263,6 @@ class _CashierDashboardState extends State<CashierDashboard> {
                               return GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    _selectedCategoryId = category['id'];
                                     _selectedSubCategoryId = null;
                                   });
                                 },
@@ -565,7 +563,8 @@ class _CashierDashboardState extends State<CashierDashboard> {
                             ),
                           ),
                         ),
-                        if (product['sizes'] != null && (product['sizes'] as List).isNotEmpty) // Conditional size display
+                        if (product['sizes'] != null && (product['sizes'] as List).isNotEmpty) 
+                          // Conditional size display
                           DropdownButton<String>(
                             hint: Text('Size'),
                             value: _selectedSize,
@@ -582,7 +581,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
                               });
                             },
                           )
-                        else
+                        else 
                           Text('No sizes available'), // Indicate if sizes are missing
                       ],
                     ),
