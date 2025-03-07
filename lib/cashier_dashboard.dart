@@ -42,7 +42,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
     _loadCashierName();
     _loadCategories();
     _loadSubCategories(); // Load sub-categories
-    _loadProducts();
+    _loadProductsWithDetails(); // Call the new function to load products with details
   }
 
   Future<void> _loadBusinessDetails() async {
@@ -91,12 +91,12 @@ class _CashierDashboardState extends State<CashierDashboard> {
     }
   }
 
-  Future<void> _loadProducts() async {
+  Future<void> _loadProductsWithDetails() async {
     try {
-      _products = await _dbHelper.getProducts();
+      _products = await _dbHelper.getProductsWithDetails();
       setState(() {});
     } catch (e) {
-      print('Error loading products: $e');
+      print('Error loading products with details: $e');
     }
   }
 
@@ -579,7 +579,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
                 SizedBox(height: 10),
                 Row(
                   children: [
-                    Text('Price: \$$_totalPrice'),
+                    Text('Price: \$${_totalPrice.toStringAsFixed(2)}'), // Format price
                     Spacer(),
                     ElevatedButton(
                       onPressed: () {

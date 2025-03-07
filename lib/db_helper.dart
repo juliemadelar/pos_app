@@ -16,19 +16,23 @@ class DBHelper {
   }
 
   Future<Database> _initDatabase() async {
-    // Initialize FFI
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
-
-    // Specify the path to the sqlite3.dll file
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'my_database.db');
+
+    // Check if the database exists, if not create it.
+    bool exists = await databaseFactory.databaseExists(path);
+    if (!exists) {
+      print("Database doesn't exist. Creating...");
+      await createDatabase(); // Call the function to create it first.
+    }
 
     return await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
         version: 1,
-        onCreate: _onCreate,
+        onCreate: _onCreate, // onCreate will only be called if the database doesn't exist.
       ),
     );
   }
@@ -399,7 +403,22 @@ class DBHelper {
   }
 
   Future<void> createDatabase() async {
-    Database db = await database;
+    Database db = await databaseFactory.openDatabase(
+      join(await getDatabasesPath(), 'my_database.db'),
+      options: OpenDatabaseOptions(version: 1),
+    );
     await _onCreate(db, 1);
+  }
+
+  Future<List<Map<String, dynamic>>> getProductsWithDetails() async {
+    Database db = await database;
+    List<Map<String, dynamic>> products = await db.query('products');
+
+    for (var product in products) {
+      int productId = product['id'];
+      product['sizes'] = await db.query('sizes', where: 'product_id = ?', whereArgs: [productId]);
+      product['addIns'] = await db.query('add_ins', where: 'product_id = ?', whereArgs: [productId]);
+    }
+    return products;
   }
 }
