@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:sqflite/sqflite.dart'; // Import the Database class
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'db_helper.dart';
 import 'cashier_dashboard.dart';
 import 'admin_dashboard.dart';
