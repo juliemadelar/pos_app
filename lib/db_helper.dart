@@ -588,19 +588,19 @@ class DBHelper {
     final int hotCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Hot Coffee',
-      'path/to/hot_coffee_image.png',
+      'assets/hotcoffee_default.png',
       drinksCategoryId,
     );
     final int coldCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Cold Coffee',
-      'path/to/cold_coffee_image.png',
+      'assets/icedcoffee_default.jpg',
       drinksCategoryId,
     );
     final int milkTeaSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Milk Tea',
-      'path/to/milk_tea_image.png',
+      'assets/milktea_default.png',
       drinksCategoryId,
     );
 
@@ -608,7 +608,7 @@ class DBHelper {
     final int cappuccinoProductId = await _insertProductIfNotExists(
       db,
       'Cappuccino',
-      'path/to/cappuccino_image.png',
+      'assets/cappuccino.png',
       hotCoffeeSubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Small', 60.00, cappuccinoProductId);
@@ -620,7 +620,7 @@ class DBHelper {
     final int cafeLatteProductId = await _insertProductIfNotExists(
       db,
       'Cafe Latte',
-      'path/to/cafe_latte_image.png',
+      'assets/hot_cafe_latte.png',
       hotCoffeeSubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Small', 65.00, cafeLatteProductId);
@@ -643,7 +643,7 @@ class DBHelper {
     final int icedAmericanoProductId = await _insertProductIfNotExists(
       db,
       'Iced Americano',
-      'path/to/iced_americano_image.png',
+      'assets/iced-Coffee.png',
       coldCoffeeSubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Small', 70.00, icedAmericanoProductId);
@@ -665,7 +665,7 @@ class DBHelper {
     final int icedMochaProductId = await _insertProductIfNotExists(
       db,
       'Iced Mocha',
-      'path/to/iced_mocha_image.png',
+      'assets/iced mocha.png',
       coldCoffeeSubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Small', 80.00, icedMochaProductId);
@@ -784,7 +784,7 @@ class DBHelper {
     final int merchandiseSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Merchandise',
-      'path/to/merchandise_image.png',
+      'assets/keychain.png',
       otherCategoryId,
     );
 

@@ -17,7 +17,9 @@ class UserManagementState extends State<UserManagement> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _roleController = TextEditingController();
+  final TextEditingController _roleController = TextEditingController(
+    text: 'cashier',
+  ); // Initialize with default role
   final Logger _logger = Logger(); // Add this line
 
   @override
@@ -122,90 +124,102 @@ class UserManagementState extends State<UserManagement> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
-            // Cashier Details Row
+            // Cashier Details and List Columns
             Row(
               children: [
+                // Column 1: Cashier Details Form
                 Expanded(
-                  child: TextField(
-                    controller: _nameController,
-                    decoration: InputDecoration(labelText: 'Cashier Name'),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _nameController,
+                        decoration: InputDecoration(labelText: 'Cashier Name'),
+                      ),
+                      TextField(
+                        controller: _usernameController,
+                        decoration: InputDecoration(
+                          labelText: 'Cashier Username',
+                        ),
+                      ),
+                      TextField(
+                        controller: _passwordController,
+                        decoration: InputDecoration(
+                          labelText: 'Cashier Password',
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: _addUser,
+                        child: Text('Add User'),
+                      ),
+                    ],
                   ),
                 ),
+                SizedBox(width: 20),
+                // Column 2: Cashier List Table
                 Expanded(
-                  child: TextField(
-                    controller: _usernameController,
-                    decoration: InputDecoration(labelText: 'Cashier Username'),
-                  ),
-                ),
-                Expanded(
-                  child: TextField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(labelText: 'Cashier Password'),
+                  child: FutureBuilder<List<Map<String, dynamic>>>(
+                    future: _getCashierDetails(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return CircularProgressIndicator();
+                      } else if (snapshot.hasError) {
+                        return Text('Error: ${snapshot.error}');
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Text('No cashiers found.');
+                      } else {
+                        return DataTable(
+                          columns: [
+                            DataColumn(label: Text('Name')),
+                            DataColumn(label: Text('Username')),
+                            DataColumn(label: Text('Password')),
+                            DataColumn(label: Text('Actions')),
+                          ],
+                          rows:
+                              snapshot.data!.map((cashier) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(cashier['name'] ?? 'N/A')),
+                                    DataCell(
+                                      Text(cashier['username'] ?? 'N/A'),
+                                    ),
+                                    DataCell(Text('******')), // Masked password
+                                    DataCell(
+                                      Row(
+                                        children: [
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              _nameController.text =
+                                                  cashier['name'] ?? '';
+                                              _usernameController.text =
+                                                  cashier['username'] ?? '';
+                                              _passwordController.text =
+                                                  cashier['password'] ?? '';
+                                              _roleController.text = 'cashier';
+                                              _updateUser(); // Save changes to the database
+                                            },
+                                            child: Text('Edit'),
+                                          ),
+                                          SizedBox(width: 10),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              _deleteUser(cashier['username']);
+                                            },
+                                            child: Text('Delete'),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }).toList(),
+                        );
+                      }
+                    },
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 20),
-            // Cashier Login Details Table
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: _getCashierDetails(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return CircularProgressIndicator();
-                } else if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Text('No cashiers found.');
-                } else {
-                  return DataTable(
-                    columns: [
-                      DataColumn(label: Text('Name')),
-                      DataColumn(label: Text('Username')),
-                      DataColumn(label: Text('Password')),
-                      DataColumn(label: Text('Actions')),
-                    ],
-                    rows:
-                        snapshot.data!.map((cashier) {
-                          return DataRow(
-                            cells: [
-                              DataCell(Text(cashier['name'] ?? 'N/A')),
-                              DataCell(Text(cashier['username'] ?? 'N/A')),
-                              DataCell(Text('******')), // Masked password
-                              DataCell(
-                                Row(
-                                  children: [
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        _nameController.text =
-                                            cashier['name'] ?? '';
-                                        _usernameController.text =
-                                            cashier['username'] ?? '';
-                                        _passwordController.text =
-                                            cashier['password'] ?? '';
-                                        _roleController.text = 'cashier';
-                                        _updateUser(); // Save changes to the database
-                                      },
-                                      child: Text('Edit'),
-                                    ),
-                                    SizedBox(width: 10),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        _deleteUser(cashier['username']);
-                                      },
-                                      child: Text('Delete'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                  );
-                }
-              },
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(onPressed: _addUser, child: Text('Add User')),
             SizedBox(height: 20),
             // Save Changes Button
             ElevatedButton(
