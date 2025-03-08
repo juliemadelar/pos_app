@@ -261,7 +261,17 @@ class BusinessDetailsFormState extends State<BusinessDetailsForm> {
                       ),
                       SizedBox(height: 16.0),
                       DropdownButton<String>(
-                        value: _selectedCurrency,
+                        value:
+                            _selectedCurrency.isNotEmpty &&
+                                    [
+                                      'PHP',
+                                      'USD',
+                                      'EUR',
+                                      'GBP',
+                                      'JPY',
+                                    ].contains(_selectedCurrency)
+                                ? _selectedCurrency
+                                : null,
                         onChanged: (String? newValue) {
                           setState(() {
                             _selectedCurrency = newValue!;

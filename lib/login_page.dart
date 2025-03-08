@@ -39,42 +39,34 @@ class LoginPageState extends State<LoginPage> {
 
     if (!hasUsers || !hasProducts) {
       await _dbHelper.createAndSaveProductTables();
+      if (!mounted) return; // Check if the widget is still mounted
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Database initialized with default data.')),
       );
     }
   }
 
-  Future<void> addUser(String name, String username, String password, String role) async {
+  Future<void> addUser(
+    String name,
+    String username,
+    String password,
+    String role,
+  ) async {
     Database db = await _dbHelper.database;
-    await db.insert('users', {'username': username, 'password': password, 'role': role, 'name': name});
+    await db.insert('users', {
+      'username': username,
+      'password': password,
+      'role': role,
+      'name': name,
+    });
   }
 
   void _login() async {
     String username = _usernameController.text;
     String password = _passwordController.text;
 
-<<<<<<< HEAD
-    var user = await _dbHelper.getUser(username, password);
-    if (!mounted) return; // Check if the widget is still mounted
-    if (user != null) {
-      if (user['role'] == 'cashier') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => CashierDashboard()),
-        );
-      } else if (user['role'] == 'admin') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => AdminDashboard()),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Invalid username or password')));
-=======
     if (username.isEmpty || password.isEmpty) {
+      if (!mounted) return; // Check if the widget is still mounted
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please enter both username and password')),
       );
@@ -83,6 +75,7 @@ class LoginPageState extends State<LoginPage> {
 
     try {
       var user = await _dbHelper.getUser(username, password);
+      if (!mounted) return; // Check if the widget is still mounted
       if (user != null) {
         if (user['role'] == 'cashier') {
           Navigator.pushReplacement(
@@ -96,15 +89,15 @@ class LoginPageState extends State<LoginPage> {
           );
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invalid username or password')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Invalid username or password')));
       }
     } catch (e) {
+      if (!mounted) return; // Check if the widget is still mounted
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An error occurred during login: $e')),
       );
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
     }
   }
 

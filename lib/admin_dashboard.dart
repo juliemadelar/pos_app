@@ -1,200 +1,202 @@
 import 'package:flutter/material.dart';
-import 'product_management.dart'; // Import the ProductManagement widget
-import 'business_details.dart'; // Import BusinessDetailsForm
-import 'user_management.dart'; // Import UserManagement
-import 'sales_report.dart'; // Import SalesReport
-import 'login_page.dart'; // Import LoginPage
+import 'product_management.dart' as pm;
+import 'business_details.dart';
+import 'user_management.dart';
+import 'sales_report.dart' as sr;
+import 'login_page.dart';
 
 class AdminDashboard extends StatefulWidget {
-  const AdminDashboard({super.key}); // Convert 'key' to a super parameter
+  const AdminDashboard({super.key});
+
   @override
-  AdminDashboardState createState() => AdminDashboardState(); // Make the state class public
+  AdminDashboardState createState() => AdminDashboardState();
 }
 
 class AdminDashboardState extends State<AdminDashboard> {
-  // Rename to make it public
-  Widget _selectedPage = ProductManagement(); // Default page
-  final List<Map<String, dynamic>> _orderItems = []; // Use the field
-  final List<String> _selectedAddIns = []; // Use the field
-
-  @override
-  void initState() {
-    super.initState();
-    // Remove the incorrect usage of productList getter
-    // ProductManagement productManager = ProductManagement();
-    // print(productManager.productList); // Correct: Accessing via public getter
-  }
+  Widget _selectedPage = pm.ProductManagement();
+  final List<Map<String, dynamic>> _orderItems = [];
+  final List<String> _selectedAddIns = [];
 
   void _selectPage(Widget page) {
-    setState(() {
-      _selectedPage = page;
-    });
+    if (mounted) {
+      setState(() {
+        _selectedPage = page;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
+      body: Row(
         children: [
-          // Header
+          // Left Navigation Pane (Bootstrap-like sidebar)
           Container(
-            padding: EdgeInsets.all(16.0),
-            color: Colors.greenAccent,
-            child: Text(
-              'Admin Dashboard',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            width: 250,
+            decoration: BoxDecoration(
+              color: Colors.grey[200], // Light grey background like Bootstrap
+              border: Border(right: BorderSide(color: Colors.grey[300]!)),
             ),
-          ),
-          Expanded(
-            child: Row(
-              children: [
-                // Left pane menu
-                Container(
-                  width: 400,
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: <Widget>[
+                DrawerHeader(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.lightGreenAccent, Colors.greenAccent],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
+                    color: Colors.green, // Bootstrap primary color
                   ),
-                  child: Column(
-                    children: [
-                      ListTile(
-<<<<<<< HEAD
-                        title: Text(
-                          'Product Management',
-                          style: TextStyle(color: Colors.black),
-                        ),
-                        onTap: () => _selectPage(ProductManagement()),
-                      ),
-                      ListTile(
-                        title: Text(
-                          'Business Details',
-                          style: TextStyle(color: Colors.black),
-                        ),
-                        onTap: () => _selectPage(BusinessDetailsForm()),
-                      ),
-                      ListTile(
-                        title: Text(
-                          'User Management',
-                          style: TextStyle(color: Colors.black),
-                        ),
-                        onTap: () => _selectPage(UserManagement()),
-                      ),
-                      ListTile(
-                        title: Text(
-                          'Sales Report',
-                          style: TextStyle(color: Colors.black),
-                        ),
-=======
-                        title: Text('Product Management', style: TextStyle(color: Colors.black)),
-                        onTap: () => _selectPage(ProductManagement()),
-                      ),
-                      ListTile(
-                        title: Text('Business Details', style: TextStyle(color: Colors.black)),
-                        onTap: () => _selectPage(BusinessDetailsForm()),
-                      ),
-                      ListTile(
-                        title: Text('User Management', style: TextStyle(color: Colors.black)),
-                        onTap: () => _selectPage(UserManagement()),
-                      ),
-                      ListTile(
-                        title: Text('Sales Report', style: TextStyle(color: Colors.black)),
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
-                        onTap: () => _selectPage(SalesReport()),
-                      ),
-                      Spacer(),
-                      ListTile(
-<<<<<<< HEAD
-                        title: Text(
-                          'Log Out',
-                          style: TextStyle(color: Colors.black),
-                        ),
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LoginPage(),
-                            ),
-=======
-                        title: Text('Log Out', style: TextStyle(color: Colors.black)),
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => LoginPage()),
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
-                          );
-                        },
-                      ),
-                    ],
+                  child: Text(
+                    'Admin Panel',
+                    style: TextStyle(color: Colors.white, fontSize: 24),
                   ),
                 ),
-                // Right pane content
-                Expanded(
-                  child: Container(
-                    color: Colors.white,
-<<<<<<< HEAD
-                    child: Column(
+                ListTile(
+                  leading: Icon(Icons.shopping_cart),
+                  title: Text('Product Management'),
+                  onTap: () => _selectPage(pm.ProductManagement()),
+                ),
+                ListTile(
+                  leading: Icon(Icons.business),
+                  title: Text('Business Details'),
+                  onTap: () => _selectPage(BusinessDetailsForm()),
+                ),
+                ListTile(
+                  leading: Icon(Icons.people),
+                  title: Text('User Management'),
+                  onTap: () => _selectPage(UserManagement()),
+                ),
+                ListTile(
+                  leading: Icon(Icons.bar_chart),
+                  title: Text('Sales Report'),
+                  onTap: () => _selectPage(sr.SalesReport()),
+                ),
+                Divider(),
+                ListTile(
+                  leading: Icon(Icons.logout),
+                  title: Text('Log Out'),
+                  onTap: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          // Main Content Area (Bootstrap-like content area)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Page Title (Bootstrap-like heading)
+                  Text(
+                    _getPageTitle(_selectedPage),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 16),
+                  // Content Area
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withAlpha((0.3 * 255).toInt()),
+                            spreadRadius: 2,
+                            blurRadius: 5,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: _selectedPage,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  // Order Items and Add-Ins (Bootstrap-like panels)
+                  if (_orderItems.isNotEmpty || _selectedAddIns.isNotEmpty)
+                    Row(
                       children: [
-                        Expanded(child: _selectedPage),
-                        // Display order items
                         if (_orderItems.isNotEmpty)
-                          Container(
-                            padding: EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Order Items',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                ..._orderItems.map(
-                                  (item) => ListTile(
-                                    title: Text(item['name']),
-                                    subtitle: Text(
-                                      'Quantity: ${item['quantity']}',
+                          Expanded(
+                            child: _buildPanel(
+                              'Order Items',
+                              _orderItems
+                                  .map(
+                                    (item) => ListTile(
+                                      title: Text(item['name']),
+                                      subtitle: Text(
+                                        'Quantity: ${item['quantity']}',
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ],
+                                  )
+                                  .toList(),
                             ),
                           ),
-                        // Display selected add-ins
                         if (_selectedAddIns.isNotEmpty)
-                          Container(
-                            padding: EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Selected Add-Ins',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                ..._selectedAddIns.map(
-                                  (addIn) => ListTile(title: Text(addIn)),
-                                ),
-                              ],
+                          Expanded(
+                            child: _buildPanel(
+                              'Selected Add-Ins',
+                              _selectedAddIns
+                                  .map((addIn) => ListTile(title: Text(addIn)))
+                                  .toList(),
                             ),
                           ),
                       ],
                     ),
-=======
-                    child: _selectedPage,
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildPanel(String title, List<Widget> items) {
+    return Container(
+      margin: EdgeInsets.all(8),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withAlpha((0.3 * 255).toInt()),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          ...items,
+        ],
+      ),
+    );
+  }
+
+  String _getPageTitle(Widget page) {
+    if (page is pm.ProductManagement) {
+      return 'Product Management';
+    } else if (page is BusinessDetailsForm) {
+      return 'Business Details';
+    } else if (page is UserManagement) {
+      return 'User Management';
+    } else if (page is sr.SalesReport) {
+      return 'Sales Report';
+    } else {
+      return 'Dashboard';
+    }
   }
 }

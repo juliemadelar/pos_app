@@ -49,11 +49,7 @@ class UserManagementState extends State<UserManagement> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-<<<<<<< HEAD
         automaticallyImplyLeading: false, // Remove the back button
-=======
-      automaticallyImplyLeading: false, // Remove the back button
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
         title: Text('User Management'),
       ),
       body: Padding(
@@ -70,17 +66,10 @@ class UserManagementState extends State<UserManagement> {
             // Admin Details Row
             Row(
               children: [
-<<<<<<< HEAD
                 Expanded(child: Text('Admin Username: admin')),
-                Expanded(child: Text('Admin Password: password123')),
-=======
-                Expanded(
-                  child: Text('Admin Username: admin'),
-                ),
                 Expanded(
                   child: Text('Admin Password: ******'), // Masked password
                 ),
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
               ],
             ),
             SizedBox(height: 20),
@@ -151,13 +140,16 @@ class UserManagementState extends State<UserManagement> {
                       DataColumn(label: Text('Username')),
                       DataColumn(label: Text('Password')),
                     ],
-                    rows: snapshot.data!.map((cashier) {
-                      return DataRow(cells: [
-                        DataCell(Text(cashier['name'])),
-                        DataCell(Text(cashier['username'])),
-                        DataCell(Text('******')), // Masked password
-                      ]);
-                    }).toList(),
+                    rows:
+                        snapshot.data!.map((cashier) {
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(cashier['name'])),
+                              DataCell(Text(cashier['username'])),
+                              DataCell(Text('******')), // Masked password
+                            ],
+                          );
+                        }).toList(),
                   );
                 }
               },

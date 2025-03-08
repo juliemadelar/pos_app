@@ -1,18 +1,15 @@
+// ignore_for_file: avoid_print
+
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
-<<<<<<< HEAD
-import 'package:logging/logging.dart';
-=======
 import 'dart:developer'; // For log
 import 'package:mutex/mutex.dart'; // Add mutex dependency
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
   factory DBHelper() => _instance;
   DBHelper._internal();
 
-  static final Logger _logger = Logger('DBHelper');
   static Database? _database;
   final Mutex _dbMutex = Mutex(); // Add a mutex for thread safety
 
@@ -24,32 +21,14 @@ class DBHelper {
 
   Future<Database> _initDatabase() async {
     sqfliteFfiInit();
-<<<<<<< HEAD
     databaseFactory =
         databaseFactoryFfi; // Ensure this is called before using openDatabase
-=======
-    databaseFactory = databaseFactoryFfi; // Ensure this is called before using openDatabase
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'my_database.db');
 
     // Check if the database exists, if not create it.
     bool exists = await databaseFactory.databaseExists(path);
     if (!exists) {
-<<<<<<< HEAD
-      _logger.info("Database doesn't exist. Creating...");
-      await createDatabase(); // Call the function to create it first.
-    }
-
-    return await databaseFactory.openDatabase(
-      path,
-      options: OpenDatabaseOptions(
-        version: 1,
-        onCreate:
-            _onCreate, // onCreate will only be called if the database doesn't exist.
-      ),
-    );
-=======
       print("Database doesn't exist. Creating...");
       try {
         await createDatabase();
@@ -66,7 +45,8 @@ class DBHelper {
         path,
         options: OpenDatabaseOptions(
           version: 1,
-          onCreate: _onCreate, // onCreate will only be called if the database doesn't exist.
+          onCreate:
+              _onCreate, // onCreate will only be called if the database doesn't exist.
           readOnly: false, // Ensure the database is opened with write access
         ),
       );
@@ -78,7 +58,6 @@ class DBHelper {
       _dbMutex.release(); // Release the mutex after opening (or any error)
     }
     return db;
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -197,32 +176,31 @@ class DBHelper {
     try {
       Database db = await database;
       int id = row['id'];
-      return await db.update('categories', row, where: 'id = ?', whereArgs: [id]);
+      return await db.update(
+        'categories',
+        row,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
     } finally {
       _dbMutex.release();
     }
   }
 
   Future<int> updateSubCategory(Map<String, dynamic> row) async {
-<<<<<<< HEAD
-    Database db = await database;
-    int id = row['id'];
-    return await db.update(
-      'sub_categories',
-      row,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-=======
     await _dbMutex.acquire();
     try {
       Database db = await database;
       int id = row['id'];
-      return await db.update('sub_categories', row, where: 'id = ?', whereArgs: [id]);
+      return await db.update(
+        'sub_categories',
+        row,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
     } finally {
       _dbMutex.release();
     }
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
   }
 
   Future<int> updateProduct(Map<String, dynamic> row) async {
@@ -272,7 +250,11 @@ class DBHelper {
     await _dbMutex.acquire();
     try {
       Database db = await database;
-      return await db.delete('sub_categories', where: 'id = ?', whereArgs: [id]);
+      return await db.delete(
+        'sub_categories',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
     } finally {
       _dbMutex.release();
     }
@@ -312,7 +294,11 @@ class DBHelper {
     await _dbMutex.acquire();
     try {
       Database db = await database;
-      return await db.delete('sizes', where: 'product_id = ?', whereArgs: [productId]);
+      return await db.delete(
+        'sizes',
+        where: 'product_id = ?',
+        whereArgs: [productId],
+      );
     } finally {
       _dbMutex.release();
     }
@@ -322,7 +308,11 @@ class DBHelper {
     await _dbMutex.acquire();
     try {
       Database db = await database;
-      return await db.delete('add_ins', where: 'product_id = ?', whereArgs: [productId]);
+      return await db.delete(
+        'add_ins',
+        where: 'product_id = ?',
+        whereArgs: [productId],
+      );
     } finally {
       _dbMutex.release();
     }
@@ -388,11 +378,15 @@ class DBHelper {
     }
   }
 
-  Future<String?> getBusinessDetail(String detail) async {
+  Future<String?> fetchBusinessDetail(String detail) async {
     await _dbMutex.acquire();
     try {
       Database db = await database;
-      var result = await db.query('business_details', where: 'detail = ?', whereArgs: [detail]);
+      var result = await db.query(
+        'business_details',
+        where: 'detail = ?',
+        whereArgs: [detail],
+      );
       if (result.isNotEmpty) {
         return result.first['value'] as String?;
       }
@@ -402,11 +396,18 @@ class DBHelper {
     }
   }
 
-  Future<Map<String, dynamic>?> getUser(String username, String password) async {
+  Future<Map<String, dynamic>?> getUser(
+    String username,
+    String password,
+  ) async {
     await _dbMutex.acquire();
     try {
       Database db = await database;
-      var result = await db.query('users', where: 'username = ? AND password = ?', whereArgs: [username, password]);
+      var result = await db.query(
+        'users',
+        where: 'username = ? AND password = ?',
+        whereArgs: [username, password],
+      );
       if (result.isNotEmpty) {
         return result.first;
       }
@@ -420,7 +421,11 @@ class DBHelper {
     await _dbMutex.acquire();
     try {
       Database db = await database;
-      var result = await db.query('users', where: 'username = ?', whereArgs: [username]);
+      var result = await db.query(
+        'users',
+        where: 'username = ?',
+        whereArgs: [username],
+      );
       if (result.isNotEmpty) {
         return result.first;
       }
@@ -430,11 +435,20 @@ class DBHelper {
     }
   }
 
-  Future<void> addUser(String name, String username, String password, String role) async {
+  Future<void> addUser(
+    String name,
+    String username,
+    String password,
+    String role,
+  ) async {
     await _dbMutex.acquire();
     try {
       Database db = await database;
-      await db.insert('users', {'username': username, 'password': password, 'role': role});
+      await db.insert('users', {
+        'username': username,
+        'password': password,
+        'role': role,
+      });
     } finally {
       _dbMutex.release();
     }
@@ -444,7 +458,12 @@ class DBHelper {
     await _dbMutex.acquire();
     try {
       Database db = await database;
-      await db.update('users', values, where: 'username = ?', whereArgs: [username]);
+      await db.update(
+        'users',
+        values,
+        where: 'username = ?',
+        whereArgs: [username],
+      );
     } finally {
       _dbMutex.release();
     }
@@ -466,11 +485,18 @@ class DBHelper {
       Database db = await database;
       try {
         // First try to update. If it doesn't affect any rows, insert instead.
-        int updatedRows = await db.update('business_details', {'value': value},
-            where: 'detail = ?', whereArgs: [detail]);
+        int updatedRows = await db.update(
+          'business_details',
+          {'value': value},
+          where: 'detail = ?',
+          whereArgs: [detail],
+        );
         if (updatedRows == 0) {
           // Insert if no rows were updated
-          await db.insert('business_details', {'detail': detail, 'value': value});
+          await db.insert('business_details', {
+            'detail': detail,
+            'value': value,
+          });
           print('Inserted new business detail: $detail = $value');
         } else {
           print('Updated business detail: $detail = $value');
@@ -511,14 +537,22 @@ class DBHelper {
 
           // Fetch sizes
           try {
-            product['sizes'] = await db.query('sizes', where: 'product_id = ?', whereArgs: [productId]);
+            product['sizes'] = await db.query(
+              'sizes',
+              where: 'product_id = ?',
+              whereArgs: [productId],
+            );
           } catch (e) {
             print("Error querying sizes for product ID $productId: $e");
           }
 
           // Fetch add-ins
           try {
-            product['addIns'] = await db.query('add_ins', where: 'product_id = ?', whereArgs: [productId]);
+            product['addIns'] = await db.query(
+              'add_ins',
+              where: 'product_id = ?',
+              whereArgs: [productId],
+            );
           } catch (e) {
             print("Error querying add-ins for product ID $productId: $e");
           }
@@ -546,51 +580,6 @@ class DBHelper {
   Future<void> createAndSaveProductTables() async {
     Database db = await database;
 
-<<<<<<< HEAD
-  Future<String?> getBusinessDetail(String detail) async {
-    Database db = await database;
-    var result = await db.query(
-      'business_details',
-      where: 'detail = ?',
-      whereArgs: [detail],
-    );
-    if (result.isNotEmpty) {
-      return result.first['value'] as String?;
-    }
-    return null;
-  }
-
-  Future<Map<String, dynamic>?> getUser(
-    String username,
-    String password,
-  ) async {
-    Database db = await database;
-    var result = await db.query(
-      'users',
-      where: 'username = ? AND password = ?',
-      whereArgs: [username, password],
-    );
-    if (result.isNotEmpty) {
-      return result.first;
-    }
-    return null;
-  }
-
-  Future<Map<String, dynamic>?> getUserByUsername(String username) async {
-    Database db = await database;
-    var result = await db.query(
-      'users',
-      where: 'username = ?',
-      whereArgs: [username],
-    );
-    if (result.isNotEmpty) {
-      return result.first;
-    }
-    return null;
-  }
-
-  Future<void> addInitialData(Database db) async {
-=======
     // Clear existing data
     await db.delete('sizes');
     await db.delete('add_ins');
@@ -598,30 +587,28 @@ class DBHelper {
     await db.delete('sub_categories');
     await db.delete('categories');
 
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
     // Add categories
     final int drinksCategoryId = await _insertCategoryIfNotExists(db, 'Drinks');
     final int foodCategoryId = await _insertCategoryIfNotExists(db, 'Food');
     final int otherCategoryId = await _insertCategoryIfNotExists(db, 'Other');
 
     // Add sub-categories for Drinks
-<<<<<<< HEAD
     final int hotCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Hot Coffee',
-      'assets/logo.png',
+      'path/to/hot_coffee_image.png',
       drinksCategoryId,
     );
     final int coldCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Cold Coffee',
-      'assets/logo.png',
+      'path/to/cold_coffee_image.png',
       drinksCategoryId,
     );
     final int milkTeaSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Milk Tea',
-      'assets/logo.png',
+      'path/to/milk_tea_image.png',
       drinksCategoryId,
     );
 
@@ -629,33 +616,21 @@ class DBHelper {
     final int cappuccinoProductId = await _insertProductIfNotExists(
       db,
       'Cappuccino',
-      'assets/logo.png',
+      'path/to/cappuccino_image.png',
       hotCoffeeSubCategoryId,
     );
-=======
-    final int hotCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Hot Coffee', 'path/to/hot_coffee_image.png', drinksCategoryId);
-    final int coldCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Cold Coffee', 'path/to/cold_coffee_image.png', drinksCategoryId);
-    final int milkTeaSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Milk Tea', 'path/to/milk_tea_image.png', drinksCategoryId);
-
-    // Add products for Hot Coffee
-    final int cappuccinoProductId = await _insertProductIfNotExists(db, 'Cappuccino', 'path/to/cappuccino_image.png', hotCoffeeSubCategoryId);
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
     await _insertSizeIfNotExists(db, 'Small', 60.00, cappuccinoProductId);
     await _insertSizeIfNotExists(db, 'Medium', 80.00, cappuccinoProductId);
     await _insertSizeIfNotExists(db, 'Large', 90.00, cappuccinoProductId);
     await _insertAddInIfNotExists(db, 'Cinnamon', 5.00, cappuccinoProductId);
     await _insertAddInIfNotExists(db, 'Brown Sugar', 5.00, cappuccinoProductId);
 
-<<<<<<< HEAD
     final int cafeLatteProductId = await _insertProductIfNotExists(
       db,
       'Cafe Latte',
-      'assets/logo.png',
+      'path/to/cafe_latte_image.png',
       hotCoffeeSubCategoryId,
     );
-=======
-    final int cafeLatteProductId = await _insertProductIfNotExists(db, 'Cafe Latte', 'path/to/cafe_latte_image.png', hotCoffeeSubCategoryId);
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
     await _insertSizeIfNotExists(db, 'Small', 65.00, cafeLatteProductId);
     await _insertSizeIfNotExists(db, 'Medium', 85.00, cafeLatteProductId);
     await _insertSizeIfNotExists(db, 'Large', 95.00, cafeLatteProductId);
@@ -673,16 +648,12 @@ class DBHelper {
     );
 
     // Add products for Cold Coffee
-<<<<<<< HEAD
     final int icedAmericanoProductId = await _insertProductIfNotExists(
       db,
       'Iced Americano',
-      'assets/logo.png',
+      'path/to/iced_americano_image.png',
       coldCoffeeSubCategoryId,
     );
-=======
-    final int icedAmericanoProductId = await _insertProductIfNotExists(db, 'Iced Americano', 'path/to/iced_americano_image.png', coldCoffeeSubCategoryId);
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
     await _insertSizeIfNotExists(db, 'Small', 70.00, icedAmericanoProductId);
     await _insertSizeIfNotExists(db, 'Medium', 90.00, icedAmericanoProductId);
     await _insertSizeIfNotExists(db, 'Large', 100.00, icedAmericanoProductId);
@@ -699,16 +670,12 @@ class DBHelper {
       icedAmericanoProductId,
     );
 
-<<<<<<< HEAD
     final int icedMochaProductId = await _insertProductIfNotExists(
       db,
       'Iced Mocha',
-      'assets/logo.png',
+      'path/to/iced_mocha_image.png',
       coldCoffeeSubCategoryId,
     );
-=======
-    final int icedMochaProductId = await _insertProductIfNotExists(db, 'Iced Mocha', 'path/to/iced_mocha_image.png', coldCoffeeSubCategoryId);
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
     await _insertSizeIfNotExists(db, 'Small', 80.00, icedMochaProductId);
     await _insertSizeIfNotExists(db, 'Medium', 100.00, icedMochaProductId);
     await _insertSizeIfNotExists(db, 'Large', 110.00, icedMochaProductId);
@@ -726,16 +693,12 @@ class DBHelper {
     );
 
     // Add products for Milk Tea
-<<<<<<< HEAD
     final int classicMilkTeaProductId = await _insertProductIfNotExists(
       db,
       'Classic Milk Tea',
-      'assets/logo.png',
+      'path/to/classic_milk_tea_image.png',
       milkTeaSubCategoryId,
     );
-=======
-    final int classicMilkTeaProductId = await _insertProductIfNotExists(db, 'Classic Milk Tea', 'path/to/classic_milk_tea_image.png', milkTeaSubCategoryId);
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
     await _insertSizeIfNotExists(db, 'Regular', 85.00, classicMilkTeaProductId);
     await _insertSizeIfNotExists(db, 'Large', 105.00, classicMilkTeaProductId);
     await _insertAddInIfNotExists(db, 'Pearls', 10.00, classicMilkTeaProductId);
@@ -746,11 +709,10 @@ class DBHelper {
       classicMilkTeaProductId,
     );
 
-<<<<<<< HEAD
     final int wintermelonMilkTeaProductId = await _insertProductIfNotExists(
       db,
       'Wintermelon Milk Tea',
-      'assets/logo.png',
+      'path/to/wintermelon_milk_tea_image.png',
       milkTeaSubCategoryId,
     );
     await _insertSizeIfNotExists(
@@ -782,55 +744,55 @@ class DBHelper {
     final int pastrySubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Pastry',
-      'assets/logo.png',
+      'path/to/pastry_image.png',
       foodCategoryId,
     );
     final int sandwichesSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Sandwiches',
-      'assets/logo.png',
+      'path/to/sandwiches_image.png',
       foodCategoryId,
     );
 
     // Add products for Pastry
-    final int muffinProductId = await _insertProductIfNotExists(
+    final int chocoMuffinProductId = await _insertProductIfNotExists(
       db,
-      'Muffin',
-      'assets/logo.png',
+      'Choco Muffin',
+      'path/to/choco_muffin_image.png',
       pastrySubCategoryId,
     );
-    await _insertSizeIfNotExists(db, 'Price', 50.00, muffinProductId);
+    await _insertSizeIfNotExists(db, 'Regular', 80.00, chocoMuffinProductId);
 
     final int croissantProductId = await _insertProductIfNotExists(
       db,
       'Croissant',
-      'assets/logo.png',
+      'path/to/croissant_image.png',
       pastrySubCategoryId,
     );
-    await _insertSizeIfNotExists(db, 'Price', 70.00, croissantProductId);
+    await _insertSizeIfNotExists(db, 'Regular', 80.00, croissantProductId);
 
     // Add products for Sandwiches
     final int hamCheeseProductId = await _insertProductIfNotExists(
       db,
       'Ham and Cheese',
-      'assets/logo.png',
+      'path/to/ham_cheese_image.png',
       sandwichesSubCategoryId,
     );
-    await _insertSizeIfNotExists(db, 'Price', 90.00, hamCheeseProductId);
+    await _insertSizeIfNotExists(db, 'Regular', 90.00, hamCheeseProductId);
 
     final int tunaMeltProductId = await _insertProductIfNotExists(
       db,
       'Tuna Melt',
-      'assets/logo.png',
+      'path/to/tuna_melt_image.png',
       sandwichesSubCategoryId,
     );
-    await _insertSizeIfNotExists(db, 'Price', 100.00, tunaMeltProductId);
+    await _insertSizeIfNotExists(db, 'Regular', 100.00, tunaMeltProductId);
 
     // Add sub-categories for Other
     final int merchandiseSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Merchandise',
-      'assets/logo.png',
+      'path/to/merchandise_image.png',
       otherCategoryId,
     );
 
@@ -838,7 +800,7 @@ class DBHelper {
     final int tumblerProductId = await _insertProductIfNotExists(
       db,
       'Tumbler',
-      'assets/logo.png',
+      'path/to/tumbler_image.png',
       merchandiseSubCategoryId,
     );
     await _insertSizeIfNotExists(
@@ -863,7 +825,7 @@ class DBHelper {
     final int mugProductId = await _insertProductIfNotExists(
       db,
       'Mug',
-      'assets/logo.png',
+      'path/to/mug_image.png',
       merchandiseSubCategoryId,
     );
     await _insertSizeIfNotExists(
@@ -874,87 +836,24 @@ class DBHelper {
     );
     await _insertSizeIfNotExists(db, 'Travel Mug (16oz)', 320.00, mugProductId);
 
-    final int toteBagProductId = await _insertProductIfNotExists(
-      db,
-      'Tote Bag',
-      'assets/logo.png',
-      merchandiseSubCategoryId,
-    );
-    await _insertSizeIfNotExists(
-      db,
-      'Small Tote Bag',
-      200.00,
-      toteBagProductId,
-    );
-    await _insertSizeIfNotExists(
-      db,
-      'Large Tote Bag',
-      280.00,
-      toteBagProductId,
-    );
-
     final int keychainProductId = await _insertProductIfNotExists(
       db,
       'Keychain',
-      'assets/logo.png',
+      'path/to/keychain_image.png',
       merchandiseSubCategoryId,
     );
-=======
-    final int wintermelonMilkTeaProductId = await _insertProductIfNotExists(db, 'Wintermelon Milk Tea', 'path/to/wintermelon_milk_tea_image.png', milkTeaSubCategoryId);
-    await _insertSizeIfNotExists(db, 'Regular', 90.00, wintermelonMilkTeaProductId);
-    await _insertSizeIfNotExists(db, 'Large', 110.00, wintermelonMilkTeaProductId);
-    await _insertAddInIfNotExists(db, 'Grass Jelly', 12.00, wintermelonMilkTeaProductId);
-    await _insertAddInIfNotExists(db, 'Oreo Crumbs', 18.00, wintermelonMilkTeaProductId);
-
-    // Add sub-categories for Food
-    final int pastrySubCategoryId = await _insertSubCategoryIfNotExists(db, 'Pastry', 'path/to/pastry_image.png', foodCategoryId);
-    final int sandwichesSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Sandwiches', 'path/to/sandwiches_image.png', foodCategoryId);
-
-    // Add products for Pastry
-    final int chocoMuffinProductId = await _insertProductIfNotExists(db, 'Choco Muffin', 'path/to/choco_muffin_image.png', pastrySubCategoryId);
-    await _insertSizeIfNotExists(db, 'Regular', 80.00, chocoMuffinProductId);
-
-    final int croissantProductId = await _insertProductIfNotExists(db, 'Croissant', 'path/to/croissant_image.png', pastrySubCategoryId);
-    await _insertSizeIfNotExists(db, 'Regular', 80.00, croissantProductId);
-
-    // Add products for Sandwiches
-    final int hamCheeseProductId = await _insertProductIfNotExists(db, 'Ham and Cheese', 'path/to/ham_cheese_image.png', sandwichesSubCategoryId);
-    await _insertSizeIfNotExists(db, 'Regular', 90.00, hamCheeseProductId);
-
-    final int tunaMeltProductId = await _insertProductIfNotExists(db, 'Tuna Melt', 'path/to/tuna_melt_image.png', sandwichesSubCategoryId);
-    await _insertSizeIfNotExists(db, 'Regular', 100.00, tunaMeltProductId);
-
-    // Add sub-categories for Other
-    final int merchandiseSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Merchandise', 'path/to/merchandise_image.png', otherCategoryId);
-
-    // Add products for Merchandise
-    final int tumblerProductId = await _insertProductIfNotExists(db, 'Tumbler', 'path/to/tumbler_image.png', merchandiseSubCategoryId);
-    await _insertSizeIfNotExists(db, 'Small Tumbler (12oz)', 250.00, tumblerProductId);
-    await _insertSizeIfNotExists(db, 'Large Tumbler (16oz)', 300.00, tumblerProductId);
-    await _insertSizeIfNotExists(db, 'Stainless Steel Tumbler (20oz)', 450.00, tumblerProductId);
-
-    final int mugProductId = await _insertProductIfNotExists(db, 'Mug', 'path/to/mug_image.png', merchandiseSubCategoryId);
-    await _insertSizeIfNotExists(db, 'Ceramic Mug (12oz)', 180.00, mugProductId);
-    await _insertSizeIfNotExists(db, 'Travel Mug (16oz)', 320.00, mugProductId);
-
-    final int keychainProductId = await _insertProductIfNotExists(db, 'Keychain', 'path/to/keychain_image.png', merchandiseSubCategoryId);
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
     await _insertSizeIfNotExists(db, 'Design 1', 80.00, keychainProductId);
     await _insertSizeIfNotExists(db, 'Design 2', 80.00, keychainProductId);
 
     // Add users
-    await _insertUserIfNotExists(db, 'cashier1', 'password123', 'cashier', 'Julie');
-    await _insertUserIfNotExists(db, 'admin', 'password123', 'admin', 'Admin');
-<<<<<<< HEAD
     await _insertUserIfNotExists(
       db,
-      'cashier',
+      'cashier1',
       'password123',
       'cashier',
       'Julie',
     );
-=======
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
+    await _insertUserIfNotExists(db, 'admin', 'password123', 'admin', 'Admin');
   }
 
   Future<int> _insertCategoryIfNotExists(Database db, String name) async {
@@ -1073,181 +972,294 @@ class DBHelper {
     }
   }
 
-<<<<<<< HEAD
-  Future<void> addUser(
-    String name,
-    String username,
-    String password,
-    String role,
-  ) async {
-    Database db = await database;
-    await db.insert('users', {
-      'username': username,
-      'password': password,
-      'role': role,
-    });
-=======
   Future<bool> hasUsers() async {
     Database db = await database;
     var result = await db.query('users');
     return result.isNotEmpty;
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
   }
 
   Future<bool> hasProducts() async {
     Database db = await database;
-<<<<<<< HEAD
-    await db.update(
-      'users',
-      values,
-      where: 'username = ?',
-      whereArgs: [username],
-    );
-=======
     var result = await db.query('products');
     return result.isNotEmpty;
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
   }
 
   Future<void> insertUsersAndProducts() async {
     Database db = await database;
 
-<<<<<<< HEAD
-  Future<void> updateBusinessDetail(String detail, String value) async {
-    Database db = await database;
-    int result = await db.update(
-      'business_details',
-      {'value': value},
-      where: 'detail = ?',
-      whereArgs: [detail],
-    );
-    _logger.info('Update result for $detail: $result');
-  }
-=======
     // Insert users
-    await _insertUserIfNotExists(db, 'cashier1', 'password123', 'cashier', 'Julie');
+    await _insertUserIfNotExists(
+      db,
+      'cashier1',
+      'password123',
+      'cashier',
+      'Julie',
+    );
     await _insertUserIfNotExists(db, 'admin', 'password123', 'admin', 'Admin');
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
 
     // Insert categories
     final int drinksCategoryId = await _insertCategoryIfNotExists(db, 'Drinks');
     final int foodCategoryId = await _insertCategoryIfNotExists(db, 'Food');
     final int otherCategoryId = await _insertCategoryIfNotExists(db, 'Other');
 
-<<<<<<< HEAD
-  Future<List<Map<String, dynamic>>> getProductsWithDetails() async {
-    Database db = await database;
-    _logger.info("Querying products table...");
-    List<Map<String, dynamic>> products = await db.query('products');
-    _logger.info("Products fetched: ${products.length}"); // Check length here
-
-    for (var product in products) {
-      int productId = product['id'];
-      _logger.info("Product ID: $productId");
-      _logger.info("Querying sizes for product ID: $productId");
-      product['sizes'] = await db.query(
-        'sizes',
-        where: 'product_id = ?',
-        whereArgs: [productId],
-      );
-      _logger.info(
-        "Sizes fetched for product ID $productId: ${product['sizes'].length}",
-      ); // Check sizes length
-      _logger.info("Querying add-ins for product ID: $productId");
-      product['addIns'] = await db.query(
-        'add_ins',
-        where: 'product_id = ?',
-        whereArgs: [productId],
-      );
-      _logger.info(
-        "Add-ins fetched for product ID $productId: ${product['addIns'].length}",
-      ); // Check add-ins length
-    }
-    _logger.info("Returning products with details.");
-    return products;
-=======
     // Insert sub-categories for Drinks
-    final int hotCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Hot Coffee', 'path/to/hot_coffee_image.png', drinksCategoryId);
-    final int coldCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Cold Coffee', 'path/to/cold_coffee_image.png', drinksCategoryId);
-    final int milkTeaSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Milk Tea', 'path/to/milk_tea_image.png', drinksCategoryId);
+    final int hotCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(
+      db,
+      'Hot Coffee',
+      'path/to/hot_coffee_image.png',
+      drinksCategoryId,
+    );
+    final int coldCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(
+      db,
+      'Cold Coffee',
+      'path/to/cold_coffee_image.png',
+      drinksCategoryId,
+    );
+    final int milkTeaSubCategoryId = await _insertSubCategoryIfNotExists(
+      db,
+      'Milk Tea',
+      'path/to/milk_tea_image.png',
+      drinksCategoryId,
+    );
 
     // Insert products for Hot Coffee
-    final int cappuccinoProductId = await _insertProductIfNotExists(db, 'Cappuccino', 'path/to/cappuccino_image.png', hotCoffeeSubCategoryId);
+    final int cappuccinoProductId = await _insertProductIfNotExists(
+      db,
+      'Cappuccino',
+      'path/to/cappuccino_image.png',
+      hotCoffeeSubCategoryId,
+    );
     await _insertSizeIfNotExists(db, 'Small', 60.00, cappuccinoProductId);
     await _insertSizeIfNotExists(db, 'Medium', 80.00, cappuccinoProductId);
     await _insertSizeIfNotExists(db, 'Large', 90.00, cappuccinoProductId);
     await _insertAddInIfNotExists(db, 'Cinnamon', 5.00, cappuccinoProductId);
     await _insertAddInIfNotExists(db, 'Brown Sugar', 5.00, cappuccinoProductId);
 
-    final int cafeLatteProductId = await _insertProductIfNotExists(db, 'Cafe Latte', 'path/to/cafe_latte_image.png', hotCoffeeSubCategoryId);
+    final int cafeLatteProductId = await _insertProductIfNotExists(
+      db,
+      'Cafe Latte',
+      'path/to/cafe_latte_image.png',
+      hotCoffeeSubCategoryId,
+    );
     await _insertSizeIfNotExists(db, 'Small', 65.00, cafeLatteProductId);
     await _insertSizeIfNotExists(db, 'Medium', 85.00, cafeLatteProductId);
     await _insertSizeIfNotExists(db, 'Large', 95.00, cafeLatteProductId);
-    await _insertAddInIfNotExists(db, 'Vanilla Syrup', 10.00, cafeLatteProductId);
-    await _insertAddInIfNotExists(db, 'Caramel Syrup', 10.00, cafeLatteProductId);
+    await _insertAddInIfNotExists(
+      db,
+      'Vanilla Syrup',
+      10.00,
+      cafeLatteProductId,
+    );
+    await _insertAddInIfNotExists(
+      db,
+      'Caramel Syrup',
+      10.00,
+      cafeLatteProductId,
+    );
 
     // Insert products for Cold Coffee
-    final int icedAmericanoProductId = await _insertProductIfNotExists(db, 'Iced Americano', 'path/to/iced_americano_image.png', coldCoffeeSubCategoryId);
+    final int icedAmericanoProductId = await _insertProductIfNotExists(
+      db,
+      'Iced Americano',
+      'path/to/iced_americano_image.png',
+      coldCoffeeSubCategoryId,
+    );
     await _insertSizeIfNotExists(db, 'Small', 70.00, icedAmericanoProductId);
     await _insertSizeIfNotExists(db, 'Medium', 90.00, icedAmericanoProductId);
     await _insertSizeIfNotExists(db, 'Large', 100.00, icedAmericanoProductId);
-    await _insertAddInIfNotExists(db, 'Extra Shot', 15.00, icedAmericanoProductId);
-    await _insertAddInIfNotExists(db, 'Sweet Cream', 10.00, icedAmericanoProductId);
+    await _insertAddInIfNotExists(
+      db,
+      'Extra Shot',
+      15.00,
+      icedAmericanoProductId,
+    );
+    await _insertAddInIfNotExists(
+      db,
+      'Sweet Cream',
+      10.00,
+      icedAmericanoProductId,
+    );
 
-    final int icedMochaProductId = await _insertProductIfNotExists(db, 'Iced Mocha', 'path/to/iced_mocha_image.png', coldCoffeeSubCategoryId);
+    final int icedMochaProductId = await _insertProductIfNotExists(
+      db,
+      'Iced Mocha',
+      'path/to/iced_mocha_image.png',
+      coldCoffeeSubCategoryId,
+    );
     await _insertSizeIfNotExists(db, 'Small', 80.00, icedMochaProductId);
     await _insertSizeIfNotExists(db, 'Medium', 100.00, icedMochaProductId);
     await _insertSizeIfNotExists(db, 'Large', 110.00, icedMochaProductId);
-    await _insertAddInIfNotExists(db, 'Chocolate Drizzle', 8.00, icedMochaProductId);
-    await _insertAddInIfNotExists(db, 'Whipped Cream', 10.00, icedMochaProductId);
+    await _insertAddInIfNotExists(
+      db,
+      'Chocolate Drizzle',
+      8.00,
+      icedMochaProductId,
+    );
+    await _insertAddInIfNotExists(
+      db,
+      'Whipped Cream',
+      10.00,
+      icedMochaProductId,
+    );
 
     // Insert products for Milk Tea
-    final int classicMilkTeaProductId = await _insertProductIfNotExists(db, 'Classic Milk Tea', 'path/to/classic_milk_tea_image.png', milkTeaSubCategoryId);
+    final int classicMilkTeaProductId = await _insertProductIfNotExists(
+      db,
+      'Classic Milk Tea',
+      'path/to/classic_milk_tea_image.png',
+      milkTeaSubCategoryId,
+    );
     await _insertSizeIfNotExists(db, 'Regular', 85.00, classicMilkTeaProductId);
     await _insertSizeIfNotExists(db, 'Large', 105.00, classicMilkTeaProductId);
     await _insertAddInIfNotExists(db, 'Pearls', 10.00, classicMilkTeaProductId);
-    await _insertAddInIfNotExists(db, 'Pudding', 15.00, classicMilkTeaProductId);
+    await _insertAddInIfNotExists(
+      db,
+      'Pudding',
+      15.00,
+      classicMilkTeaProductId,
+    );
 
-    final int wintermelonMilkTeaProductId = await _insertProductIfNotExists(db, 'Wintermelon Milk Tea', 'path/to/wintermelon_milk_tea_image.png', milkTeaSubCategoryId);
-    await _insertSizeIfNotExists(db, 'Regular', 90.00, wintermelonMilkTeaProductId);
-    await _insertSizeIfNotExists(db, 'Large', 110.00, wintermelonMilkTeaProductId);
-    await _insertAddInIfNotExists(db, 'Grass Jelly', 12.00, wintermelonMilkTeaProductId);
-    await _insertAddInIfNotExists(db, 'Oreo Crumbs', 18.00, wintermelonMilkTeaProductId);
+    final int wintermelonMilkTeaProductId = await _insertProductIfNotExists(
+      db,
+      'Wintermelon Milk Tea',
+      'path/to/wintermelon_milk_tea_image.png',
+      milkTeaSubCategoryId,
+    );
+    await _insertSizeIfNotExists(
+      db,
+      'Regular',
+      90.00,
+      wintermelonMilkTeaProductId,
+    );
+    await _insertSizeIfNotExists(
+      db,
+      'Large',
+      110.00,
+      wintermelonMilkTeaProductId,
+    );
+    await _insertAddInIfNotExists(
+      db,
+      'Grass Jelly',
+      12.00,
+      wintermelonMilkTeaProductId,
+    );
+    await _insertAddInIfNotExists(
+      db,
+      'Oreo Crumbs',
+      18.00,
+      wintermelonMilkTeaProductId,
+    );
 
     // Insert sub-categories for Food
-    final int pastrySubCategoryId = await _insertSubCategoryIfNotExists(db, 'Pastry', 'path/to/pastry_image.png', foodCategoryId);
-    final int sandwichesSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Sandwiches', 'path/to/sandwiches_image.png', foodCategoryId);
+    final int pastrySubCategoryId = await _insertSubCategoryIfNotExists(
+      db,
+      'Pastry',
+      'path/to/pastry_image.png',
+      foodCategoryId,
+    );
+    final int sandwichesSubCategoryId = await _insertSubCategoryIfNotExists(
+      db,
+      'Sandwiches',
+      'path/to/sandwiches_image.png',
+      foodCategoryId,
+    );
 
     // Insert products for Pastry
-    final int chocoMuffinProductId = await _insertProductIfNotExists(db, 'Choco Muffin', 'path/to/choco_muffin_image.png', pastrySubCategoryId);
+    final int chocoMuffinProductId = await _insertProductIfNotExists(
+      db,
+      'Choco Muffin',
+      'path/to/choco_muffin_image.png',
+      pastrySubCategoryId,
+    );
     await _insertSizeIfNotExists(db, 'Regular', 80.00, chocoMuffinProductId);
 
-    final int croissantProductId = await _insertProductIfNotExists(db, 'Croissant', 'path/to/croissant_image.png', pastrySubCategoryId);
+    final int croissantProductId = await _insertProductIfNotExists(
+      db,
+      'Croissant',
+      'path/to/croissant_image.png',
+      pastrySubCategoryId,
+    );
     await _insertSizeIfNotExists(db, 'Regular', 80.00, croissantProductId);
 
     // Insert products for Sandwiches
-    final int hamCheeseProductId = await _insertProductIfNotExists(db, 'Ham and Cheese', 'path/to/ham_cheese_image.png', sandwichesSubCategoryId);
+    final int hamCheeseProductId = await _insertProductIfNotExists(
+      db,
+      'Ham and Cheese',
+      'path/to/ham_cheese_image.png',
+      sandwichesSubCategoryId,
+    );
     await _insertSizeIfNotExists(db, 'Regular', 90.00, hamCheeseProductId);
 
-    final int tunaMeltProductId = await _insertProductIfNotExists(db, 'Tuna Melt', 'path/to/tuna_melt_image.png', sandwichesSubCategoryId);
+    final int tunaMeltProductId = await _insertProductIfNotExists(
+      db,
+      'Tuna Melt',
+      'path/to/tuna_melt_image.png',
+      sandwichesSubCategoryId,
+    );
     await _insertSizeIfNotExists(db, 'Regular', 100.00, tunaMeltProductId);
 
     // Insert sub-categories for Other
-    final int merchandiseSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Merchandise', 'path/to/merchandise_image.png', otherCategoryId);
+    final int merchandiseSubCategoryId = await _insertSubCategoryIfNotExists(
+      db,
+      'Merchandise',
+      'path/to/merchandise_image.png',
+      otherCategoryId,
+    );
 
     // Insert products for Merchandise
-    final int tumblerProductId = await _insertProductIfNotExists(db, 'Tumbler', 'path/to/tumbler_image.png', merchandiseSubCategoryId);
-    await _insertSizeIfNotExists(db, 'Small Tumbler (12oz)', 250.00, tumblerProductId);
-    await _insertSizeIfNotExists(db, 'Large Tumbler (16oz)', 300.00, tumblerProductId);
-    await _insertSizeIfNotExists(db, 'Stainless Steel Tumbler (20oz)', 450.00, tumblerProductId);
+    final int tumblerProductId = await _insertProductIfNotExists(
+      db,
+      'Tumbler',
+      'path/to/tumbler_image.png',
+      merchandiseSubCategoryId,
+    );
+    await _insertSizeIfNotExists(
+      db,
+      'Small Tumbler (12oz)',
+      250.00,
+      tumblerProductId,
+    );
+    await _insertSizeIfNotExists(
+      db,
+      'Large Tumbler (16oz)',
+      300.00,
+      tumblerProductId,
+    );
+    await _insertSizeIfNotExists(
+      db,
+      'Stainless Steel Tumbler (20oz)',
+      450.00,
+      tumblerProductId,
+    );
 
-    final int mugProductId = await _insertProductIfNotExists(db, 'Mug', 'path/to/mug_image.png', merchandiseSubCategoryId);
-    await _insertSizeIfNotExists(db, 'Ceramic Mug (12oz)', 180.00, mugProductId);
+    final int mugProductId = await _insertProductIfNotExists(
+      db,
+      'Mug',
+      'path/to/mug_image.png',
+      merchandiseSubCategoryId,
+    );
+    await _insertSizeIfNotExists(
+      db,
+      'Ceramic Mug (12oz)',
+      180.00,
+      mugProductId,
+    );
     await _insertSizeIfNotExists(db, 'Travel Mug (16oz)', 320.00, mugProductId);
 
-    final int keychainProductId = await _insertProductIfNotExists(db, 'Keychain', 'path/to/keychain_image.png', merchandiseSubCategoryId);
+    final int keychainProductId = await _insertProductIfNotExists(
+      db,
+      'Keychain',
+      'path/to/keychain_image.png',
+      merchandiseSubCategoryId,
+    );
     await _insertSizeIfNotExists(db, 'Design 1', 80.00, keychainProductId);
     await _insertSizeIfNotExists(db, 'Design 2', 80.00, keychainProductId);
->>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
+  }
+
+  Future<String?> getBusinessDetail(String key) async {
+    // Implement the method to fetch business details from the database
+    // For example:
+    // return await database.query('business_details', where: 'key = ?', whereArgs: [key]);
+    return 'Mocked value for $key'; // Mocked return value for demonstration
   }
 }
