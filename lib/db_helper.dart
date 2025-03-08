@@ -4,6 +4,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import 'dart:developer'; // For log
 import 'package:mutex/mutex.dart'; // Add mutex dependency
+import 'package:logger/logger.dart'; // Add this import
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
@@ -12,6 +13,7 @@ class DBHelper {
 
   static Database? _database;
   final Mutex _dbMutex = Mutex(); // Add a mutex for thread safety
+  final Logger _logger = Logger(); // Add this line
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -479,34 +481,18 @@ class DBHelper {
     }
   }
 
-  Future<void> updateBusinessDetail(String detail, String value) async {
-    await _dbMutex.acquire();
+  Future<void> updateBusinessDetail(String key, String value) async {
+    final db = await database;
     try {
-      Database db = await database;
-      try {
-        // First try to update. If it doesn't affect any rows, insert instead.
-        int updatedRows = await db.update(
-          'business_details',
-          {'value': value},
-          where: 'detail = ?',
-          whereArgs: [detail],
-        );
-        if (updatedRows == 0) {
-          // Insert if no rows were updated
-          await db.insert('business_details', {
-            'detail': detail,
-            'value': value,
-          });
-          print('Inserted new business detail: $detail = $value');
-        } else {
-          print('Updated business detail: $detail = $value');
-        }
-      } catch (e) {
-        print('Error updating/inserting business detail: $e');
-        rethrow; // Re-throw the exception to be handled higher up
-      }
-    } finally {
-      _dbMutex.release();
+      await db.update(
+        'business_details',
+        {key: value},
+        where: 'key = ?',
+        whereArgs: [key],
+      );
+      _logger.i('Updated $key to $value'); // Add logging
+    } catch (e) {
+      _logger.e('Error updating $key: $e'); // Add logging
     }
   }
 
@@ -1257,9 +1243,20 @@ class DBHelper {
   }
 
   Future<String?> getBusinessDetail(String key) async {
-    // Implement the method to fetch business details from the database
-    // For example:
-    // return await database.query('business_details', where: 'key = ?', whereArgs: [key]);
-    return 'Mocked value for $key'; // Mocked return value for demonstration
+    final db = await database;
+    try {
+      final result = await db.query(
+        'business_details',
+        columns: ['value'],
+        where: 'key = ?',
+        whereArgs: [key],
+      );
+      if (result.isNotEmpty) {
+        return result.first['value'] as String?;
+      }
+    } catch (e) {
+      _logger.e('Error fetching $key: $e'); // Add logging
+    }
+    return null;
   }
 }

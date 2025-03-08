@@ -83,6 +83,7 @@ class BusinessDetailsFormState extends State<BusinessDetailsForm> {
 
   void _saveBusinessDetails() async {
     try {
+      _logger.i('Attempting to save business details'); // Add debug log
       _logger.i(
         'Saving Business Name: ${_businessNameController.text}',
       ); // Use logger
@@ -139,17 +140,42 @@ class BusinessDetailsFormState extends State<BusinessDetailsForm> {
 
       if (mounted) {
         // Add mounted check
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Changes Saved')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Business details saved successfully!')),
+        );
+
+        // Verify database update
+        final name = await _dbHelper.getBusinessDetail('name');
+        final address = await _dbHelper.getBusinessDetail('address');
+        final contact = await _dbHelper.getBusinessDetail('contact');
+        final taxId = await _dbHelper.getBusinessDetail('tax_id');
+        final logo = await _dbHelper.getBusinessDetail('logo');
+        final seniorDiscount = await _dbHelper.getBusinessDetail(
+          'senior_discount',
+        );
+        final pwdDiscount = await _dbHelper.getBusinessDetail('pwd_discount');
+        final otherDiscount = await _dbHelper.getBusinessDetail(
+          'other_discount',
+        );
+        final currency = await _dbHelper.getBusinessDetail('currency');
+
+        _logger.i('Verified Business Name: $name');
+        _logger.i('Verified Business Address: $address');
+        _logger.i('Verified Business Contact: $contact');
+        _logger.i('Verified Business Tax ID: $taxId');
+        _logger.i('Verified Business Logo: $logo');
+        _logger.i('Verified Senior Discount: $seniorDiscount');
+        _logger.i('Verified PWD Discount: $pwdDiscount');
+        _logger.i('Verified Other Discount: $otherDiscount');
+        _logger.i('Verified Currency: $currency');
       }
     } catch (e) {
       _logger.e('Error saving changes: $e'); // Use logger
       if (mounted) {
         // Add mounted check
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error saving changes: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving business details: $e')),
+        );
       }
     }
   }
