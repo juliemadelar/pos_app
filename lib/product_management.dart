@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'db_helper.dart';
 import 'dart:io'; // Import dart:io for File
 import 'package:image_picker/image_picker.dart'; // Add this import
+import 'package:logging/logging.dart'; // Add logging import
 
 class ProductManagement extends StatefulWidget {
+  const ProductManagement({super.key}); // Convert key to super parameter
   @override
   ProductManagementState createState() => ProductManagementState();
 }
 
-class ProductManagementState extends State<ProductManagement> with SingleTickerProviderStateMixin {
+class ProductManagementState extends State<ProductManagement>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final DBHelper _dbHelper = DBHelper();
   List<Map<String, dynamic>> _categories = [];
@@ -16,11 +19,15 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _sizes = [];
   List<Map<String, dynamic>> _addIns = [];
+  final Logger _logger = Logger('ProductManagement'); // Initialize logger
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this); // Ensure length matches the number of tabs and children
+    _tabController = TabController(
+      length: 5,
+      vsync: this,
+    ); // Ensure length matches the number of tabs and children
     _loadData();
   }
 
@@ -33,7 +40,7 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
       _addIns = await _dbHelper.getAddIns();
       setState(() {});
     } catch (e) {
-      print('Error loading data: $e');
+      _logger.severe('Error loading data: $e'); // Use logger instead of print
     }
   }
 
@@ -48,7 +55,11 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
   }
 
   Future<void> _editSubCategory(int id, String newName, String newImage) async {
-    await _dbHelper.updateSubCategory({'id': id, 'name': newName, 'image': newImage.isNotEmpty ? newImage : 'assets/logo.png'});
+    await _dbHelper.updateSubCategory({
+      'id': id,
+      'name': newName,
+      'image': newImage.isNotEmpty ? newImage : 'assets/logo.png',
+    });
     _loadData();
   }
 
@@ -58,7 +69,11 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
   }
 
   Future<void> _editProduct(int id, String newName, String newImage) async {
-    await _dbHelper.updateProduct({'id': id, 'name': newName, 'image': newImage.isNotEmpty ? newImage : 'assets/logo.png'});
+    await _dbHelper.updateProduct({
+      'id': id,
+      'name': newName,
+      'image': newImage.isNotEmpty ? newImage : 'assets/logo.png',
+    });
     _loadData();
   }
 
@@ -87,9 +102,19 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
     _loadData();
   }
 
-  void _showEditDialog(String title, String initialValue, Function(String, String) onSave, {bool isSubCategory = false, bool isProduct = false, String? initialImage}) {
-    TextEditingController _controller = TextEditingController(text: initialValue);
-    String? _imagePath = initialImage;
+  void _showEditDialog(
+    String title,
+    String initialValue,
+    Function(String, String) onSave, {
+    bool isSubCategory = false,
+    bool isProduct = false,
+    String? initialImage,
+  }) {
+    TextEditingController controller = TextEditingController(
+      // Renamed _controller to controller
+      text: initialValue,
+    );
+    String? imagePath = initialImage; // Renamed _imagePath to imagePath
     showDialog(
       context: context,
       builder: (context) {
@@ -99,24 +124,34 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _controller,
+                controller: controller, // Updated reference
                 decoration: InputDecoration(labelText: 'New Value'),
               ),
               if (isSubCategory || isProduct) ...[
                 SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: () async {
-                    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+                    final pickedFile = await ImagePicker().pickImage(
+                      source: ImageSource.gallery,
+                    );
                     if (pickedFile != null) {
                       setState(() {
-                        _imagePath = pickedFile.path;
+                        imagePath = pickedFile.path; // Updated reference
                       });
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Selected image: ${pickedFile.path}'),
+                          ),
+                        );
+                      }
                     }
                   },
                   child: Text('Pick Image'),
                 ),
-                if (_imagePath != null && File(_imagePath!).existsSync())
-                  Image.file(File(_imagePath!))
+                if (imagePath != null &&
+                    File(imagePath!).existsSync()) // Updated reference
+                  Image.file(File(imagePath!)) // Updated reference
                 else
                   Image.asset('assets/logo.png'),
               ],
@@ -131,7 +166,10 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
             ),
             TextButton(
               onPressed: () {
-                onSave(_controller.text, _imagePath ?? 'assets/logo.png');
+                onSave(
+                  controller.text,
+                  imagePath ?? 'assets/logo.png',
+                ); // Updated reference
                 Navigator.of(context).pop();
               },
               child: Text('Save'),
@@ -142,10 +180,20 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
     );
   }
 
-  void _showAddInDialog(String title, String initialName, double initialPrice, int initialProductId, Function(String, double, int) onSave) {
-    TextEditingController _nameController = TextEditingController(text: initialName);
-    TextEditingController _priceController = TextEditingController(text: initialPrice.toString());
-    int _selectedProductId = initialProductId;
+  void _showAddInDialog(
+    String title,
+    String initialName,
+    double initialPrice,
+    int initialProductId,
+    Function(String, double, int) onSave,
+  ) {
+    TextEditingController nameController = TextEditingController(
+      text: initialName,
+    );
+    TextEditingController priceController = TextEditingController(
+      text: initialPrice.toString(),
+    );
+    int selectedProductId = initialProductId;
 
     showDialog(
       context: context,
@@ -156,27 +204,28 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _nameController,
+                controller: nameController,
                 decoration: InputDecoration(labelText: 'Name'),
               ),
               TextField(
-                controller: _priceController,
+                controller: priceController,
                 decoration: InputDecoration(labelText: 'Price'),
                 keyboardType: TextInputType.number,
               ),
               DropdownButton<int>(
-                value: _selectedProductId,
+                value: selectedProductId,
                 onChanged: (int? newValue) {
                   setState(() {
-                    _selectedProductId = newValue!;
+                    selectedProductId = newValue!;
                   });
                 },
-                items: _products.map<DropdownMenuItem<int>>((product) {
-                  return DropdownMenuItem<int>(
-                    value: product['id'],
-                    child: Text(product['name']),
-                  );
-                }).toList(),
+                items:
+                    _products.map<DropdownMenuItem<int>>((product) {
+                      return DropdownMenuItem<int>(
+                        value: product['id'],
+                        child: Text(product['name']),
+                      );
+                    }).toList(),
               ),
             ],
           ),
@@ -189,7 +238,11 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
             ),
             TextButton(
               onPressed: () {
-                onSave(_nameController.text, double.parse(_priceController.text), _selectedProductId);
+                onSave(
+                  nameController.text,
+                  double.parse(priceController.text),
+                  selectedProductId,
+                );
                 Navigator.of(context).pop();
               },
               child: Text('Save'),
@@ -200,10 +253,20 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
     );
   }
 
-  void _showSizeDialog(String title, String initialName, double initialPrice, int initialProductId, Function(String, double, int) onSave) {
-    TextEditingController _nameController = TextEditingController(text: initialName);
-    TextEditingController _priceController = TextEditingController(text: initialPrice.toString());
-    int _selectedProductId = initialProductId;
+  void _showSizeDialog(
+    String title,
+    String initialName,
+    double initialPrice,
+    int initialProductId,
+    Function(String, double, int) onSave,
+  ) {
+    TextEditingController nameController = TextEditingController(
+      text: initialName,
+    );
+    TextEditingController priceController = TextEditingController(
+      text: initialPrice.toString(),
+    );
+    int selectedProductId = initialProductId;
 
     showDialog(
       context: context,
@@ -214,27 +277,28 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _nameController,
+                controller: nameController,
                 decoration: InputDecoration(labelText: 'Name'),
               ),
               TextField(
-                controller: _priceController,
+                controller: priceController,
                 decoration: InputDecoration(labelText: 'Price'),
                 keyboardType: TextInputType.number,
               ),
               DropdownButton<int>(
-                value: _selectedProductId,
+                value: selectedProductId,
                 onChanged: (int? newValue) {
                   setState(() {
-                    _selectedProductId = newValue!;
+                    selectedProductId = newValue!;
                   });
                 },
-                items: _products.map<DropdownMenuItem<int>>((product) {
-                  return DropdownMenuItem<int>(
-                    value: product['id'],
-                    child: Text(product['name']),
-                  );
-                }).toList(),
+                items:
+                    _products.map<DropdownMenuItem<int>>((product) {
+                      return DropdownMenuItem<int>(
+                        value: product['id'],
+                        child: Text(product['name']),
+                      );
+                    }).toList(),
               ),
             ],
           ),
@@ -247,7 +311,11 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
             ),
             TextButton(
               onPressed: () {
-                onSave(_nameController.text, double.parse(_priceController.text), _selectedProductId);
+                onSave(
+                  nameController.text,
+                  double.parse(priceController.text),
+                  selectedProductId,
+                );
                 Navigator.of(context).pop();
               },
               child: Text('Save'),
@@ -267,31 +335,39 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Product Management'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(text: 'Categories'),
-            Tab(text: 'Sub-Categories'), // Added Sub-Categories tab
-            Tab(text: 'Products'),
-            Tab(text: 'Sizes'),
-            Tab(text: 'Add-Ins'),
-          ],
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildCategoriesTab(),
-            _buildSubCategoriesTab(), // Added Sub-Categories tab content
-            _buildProductsTab(),
-            _buildSizesTab(),
-            _buildAddInsTab(),
-          ],
-        ),
+      body: Column(
+        children: [
+          Scaffold(
+            appBar: AppBar(
+              title: Text('Product Management'),
+              automaticallyImplyLeading:
+                  false, // This line removes the back button
+              bottom: TabBar(
+                controller: _tabController,
+                tabs: [
+                  Tab(text: 'Categories'),
+                  Tab(text: 'Sub-Categories'), // Added Sub-Categories tab
+                  Tab(text: 'Products'),
+                  Tab(text: 'Sizes'),
+                  Tab(text: 'Add-Ins'),
+                ],
+              ),
+            ),
+            body: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildCategoriesTab(),
+                  _buildSubCategoriesTab(), // Added Sub-Categories tab content
+                  _buildProductsTab(),
+                  _buildSizesTab(),
+                  _buildAddInsTab(),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -299,12 +375,22 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
   Widget _buildCategoriesTab() {
     return Column(
       children: [
-        Container(
+        SizedBox(
           width: 500,
           child: Row(
             children: [
-              Expanded(child: Text('Category Name', style: TextStyle(fontWeight: FontWeight.bold))),
-              Expanded(child: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+              Expanded(
+                child: Text(
+                  'Category Name',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  'Actions',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
           ),
         ),
@@ -328,7 +414,10 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                           _showEditDialog(
                             'Edit Category',
                             _categories[index]['name'],
-                            (newName, _) => _editCategory(_categories[index]['id'], newName),
+                            (newName, _) => _editCategory(
+                              _categories[index]['id'],
+                              newName,
+                            ),
                           );
                         },
                       ),
@@ -360,10 +449,34 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
       children: [
         Row(
           children: [
-            Expanded(flex: 2, child: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
-            Expanded(flex: 3, child: Text('Sub-Category Name', style: TextStyle(fontWeight: FontWeight.bold))),
-            Container(width: 300, child: Text('Image', style: TextStyle(fontWeight: FontWeight.bold))),
-            Expanded(flex: 2, child: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(
+              flex: 2,
+              child: Text(
+                'Category',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text(
+                'Sub-Category Name',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            SizedBox(
+              width: 300,
+              child: Text(
+                'Image',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                'Actions',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
         Expanded(
@@ -371,7 +484,9 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
             itemCount: _subCategories.length,
             itemBuilder: (context, index) {
               final subCategory = _subCategories[index];
-              final category = _categories.firstWhere((category) => category['id'] == subCategory['category_id']);
+              final category = _categories.firstWhere(
+                (category) => category['id'] == subCategory['category_id'],
+              );
               return Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey),
@@ -412,9 +527,10 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                                 'Edit Sub-Category',
                                 subCategory['name'],
                                 (newName, newImage) => _editSubCategory(
-                                    subCategory['id'],
-                                    newName,
-                                    newImage),
+                                  subCategory['id'],
+                                  newName,
+                                  newImage,
+                                ),
                                 isSubCategory: true,
                                 initialImage: subCategory['image'],
                               );
@@ -450,10 +566,34 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
       children: [
         Row(
           children: [
-            Expanded(flex: 2, child: Text('Product Name', style: TextStyle(fontWeight: FontWeight.bold))),
-            Container(width: 300, child: Text('Image', style: TextStyle(fontWeight: FontWeight.bold))),
-            Expanded(flex: 2, child: Text('Sub-Category', style: TextStyle(fontWeight: FontWeight.bold))),
-            Expanded(flex: 2, child: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(
+              flex: 2,
+              child: Text(
+                'Product Name',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            SizedBox(
+              width: 300,
+              child: Text(
+                'Image',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                'Sub-Category',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                'Actions',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
         Expanded(
@@ -485,7 +625,13 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                       flex: 2,
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: Text(_subCategories.firstWhere((subCategory) => subCategory['id'] == _products[index]['sub_category_id'])['name']),
+                        child: Text(
+                          _subCategories.firstWhere(
+                            (subCategory) =>
+                                subCategory['id'] ==
+                                _products[index]['sub_category_id'],
+                          )['name'],
+                        ),
                       ),
                     ),
                     Expanded(
@@ -499,7 +645,11 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                               _showEditDialog(
                                 'Edit Product',
                                 _products[index]['name'],
-                                (newName, newImage) => _editProduct(_products[index]['id'], newName, newImage),
+                                (newName, newImage) => _editProduct(
+                                  _products[index]['id'],
+                                  newName,
+                                  newImage,
+                                ),
                                 isProduct: true,
                                 initialImage: _products[index]['image'],
                               );
@@ -543,7 +693,9 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                 ),
                 child: ListTile(
                   title: Text(_addIns[index]['name']),
-                  subtitle: Text('Product: ${_products.firstWhere((product) => product['id'] == _addIns[index]['product_id'])['name']}'),
+                  subtitle: Text(
+                    'Product: ${_products.firstWhere((product) => product['id'] == _addIns[index]['product_id'])['name']}',
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -555,7 +707,11 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                             _addIns[index]['name'],
                             _addIns[index]['price'],
                             _addIns[index]['product_id'],
-                            (newName, newPrice, newProductId) => _editAddIn(_addIns[index]['id'], newName, newPrice),
+                            (newName, newPrice, newProductId) => _editAddIn(
+                              _addIns[index]['id'],
+                              newName,
+                              newPrice,
+                            ),
                           );
                         },
                       ),
@@ -601,7 +757,9 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                 ),
                 child: ListTile(
                   title: Text(_sizes[index]['name']),
-                  subtitle: Text('Product: ${_products.firstWhere((product) => product['id'] == _sizes[index]['product_id'])['name']}'),
+                  subtitle: Text(
+                    'Product: ${_products.firstWhere((product) => product['id'] == _sizes[index]['product_id'])['name']}',
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -613,7 +771,11 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
                             _sizes[index]['name'],
                             _sizes[index]['price'],
                             _sizes[index]['product_id'],
-                            (newName, newPrice, newProductId) => _editSize(_sizes[index]['id'], newName, newPrice),
+                            (newName, newPrice, newProductId) => _editSize(
+                              _sizes[index]['id'],
+                              newName,
+                              newPrice,
+                            ),
                           );
                         },
                       ),
@@ -647,15 +809,22 @@ class ProductManagementState extends State<ProductManagement> with SingleTickerP
   }
 
   Future<void> _addAddIn(String name, double price, int productId) async {
-    await _dbHelper.insertAddIn({'name': name, 'price': price, 'product_id': productId});
+    await _dbHelper.insertAddIn({
+      'name': name,
+      'price': price,
+      'product_id': productId,
+    });
     _loadData();
   }
 
   // Removed duplicate _editAddIn method
 
   Future<void> _addSize(String name, double price, int productId) async {
-    await _dbHelper.insertSize({'name': name, 'price': price, 'product_id': productId});
+    await _dbHelper.insertSize({
+      'name': name,
+      'price': price,
+      'product_id': productId,
+    });
     _loadData();
   }
-
 }

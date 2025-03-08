@@ -3,14 +3,20 @@ import 'db_helper.dart';
 import 'login_page.dart'; // Import login page
 import 'dart:io'; // Import dart:io for File
 import 'package:intl/intl.dart'; // Import for date and time formatting
+import 'package:logging/logging.dart'; // Import logging package
 
 class CashierDashboard extends StatefulWidget {
+  const CashierDashboard({super.key}); // Convert 'key' to a super parameter
   @override
-  _CashierDashboardState createState() => _CashierDashboardState();
+  CashierDashboardState createState() => CashierDashboardState(); // Make the type public
 }
 
-class _CashierDashboardState extends State<CashierDashboard> {
-  _CashierDashboardState(); // Add unnamed constructor
+class CashierDashboardState extends State<CashierDashboard> {
+  // Make the type public
+  // Add unnamed constructor
+  CashierDashboardState() {
+    // Initialization code if needed
+  }
 
   final DBHelper _dbHelper = DBHelper();
   String businessName = '';
@@ -25,9 +31,9 @@ class _CashierDashboardState extends State<CashierDashboard> {
   int? _selectedCategoryId;
   int? _selectedSubCategoryId;
   String? _selectedSize;
-  List<String> _selectedAddIns = [];
+  final List<String> _selectedAddIns = [];
   double _totalPrice = 0.0;
-  List<Map<String, dynamic>> _orderItems = [];
+  List<Map<String, dynamic>> orderItems = [];
   int _orderNumber = 1;
   double _subtotal = 0.0;
   double _tax = 0.0;
@@ -35,26 +41,51 @@ class _CashierDashboardState extends State<CashierDashboard> {
   double _change = 0.0;
   double _total = 0.0;
 
+  // Added this to show a loading indicator while waiting for database.
+  bool _isLoading = true;
+
+  // Initialize logger
+  final Logger _logger = Logger('CashierDashboard');
+
   @override
   void initState() {
     super.initState();
-    _loadBusinessDetails();
-    _loadCashierName();
-    _loadCategories();
-    _loadSubCategories(); // Load sub-categories
-    _loadProductsWithDetails(); // Call the new function to load products with details
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      await _loadBusinessDetails();
+      await _loadCashierName();
+      await _loadCategories();
+      await _loadSubCategories();
+      await _loadProductsWithDetails();
+      _logger.info(_products); // Use logger instead of print
+    } catch (e) {
+      _logger.severe('Error loading data: $e');
+      // Handle error appropriately, maybe show an error message
+    } finally {
+      setState(() {
+        _isLoading = false; // Hide loading indicator
+      });
+    }
   }
 
   Future<void> _loadBusinessDetails() async {
     try {
-      businessName = await _dbHelper.getBusinessDetail('name') ?? 'Demo Business';
-      businessLogoPath = await _dbHelper.getBusinessDetail('logo') ?? 'assets/logo.png';
-      businessAddress = await _dbHelper.getBusinessDetail('address') ?? '123 Demo Street';
-      businessContact = await _dbHelper.getBusinessDetail('contact') ?? '123-456-7890';
-      businessTaxId = await _dbHelper.getBusinessDetail('tax_id') ?? 'TAX123456';
+      businessName =
+          await _dbHelper.getBusinessDetail('name') ?? 'Demo Business';
+      businessLogoPath =
+          await _dbHelper.getBusinessDetail('logo') ?? 'assets/logo.png';
+      businessAddress =
+          await _dbHelper.getBusinessDetail('address') ?? '123 Demo Street';
+      businessContact =
+          await _dbHelper.getBusinessDetail('contact') ?? '123-456-7890';
+      businessTaxId =
+          await _dbHelper.getBusinessDetail('tax_id') ?? 'TAX123456';
       setState(() {});
     } catch (e) {
-      print('Error loading business details: $e');
+      _logger.severe('Error loading business details: $e');
     }
   }
 
@@ -66,7 +97,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
         setState(() {});
       }
     } catch (e) {
-      print('Error loading cashier name: $e');
+      _logger.severe('Error loading cashier name: $e');
     }
   }
 
@@ -75,7 +106,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
       _categories = await _dbHelper.getCategories();
       setState(() {});
     } catch (e) {
-      print('Error loading categories: $e');
+      _logger.severe('Error loading categories: $e');
     }
   }
 
@@ -87,7 +118,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
       }
       setState(() {});
     } catch (e) {
-      print('Error loading sub-categories: $e');
+      _logger.severe('Error loading sub-categories: $e');
     }
   }
 
@@ -96,26 +127,49 @@ class _CashierDashboardState extends State<CashierDashboard> {
       _products = await _dbHelper.getProductsWithDetails();
       setState(() {});
     } catch (e) {
-      print('Error loading products with details: $e');
+      if (e is UnsupportedError && e.message == 'read-only') {
+        _logger.severe(
+          'Error loading products with details: Read-only operation not supported',
+        );
+      } else {
+        _logger.severe('Error loading products with details: $e');
+      }
     }
   }
 
   List<Map<String, dynamic>> _getSubCategoriesByCategory(int categoryId) {
-    return _subCategories.where((subCategory) => subCategory['category_id'] == categoryId).toList();
+    return _subCategories
+        .where((subCategory) => subCategory['category_id'] == categoryId)
+        .toList();
+  }
+
+  List<Map<String, dynamic>> _getProductsByCategory(int categoryId) {
+    return _products
+        .where((product) => product['category_id'] == categoryId)
+        .toList();
   }
 
   List<Map<String, dynamic>> _getProductsBySubCategory(int subCategoryId) {
-    return _products.where((product) => product['sub_category_id'] == subCategoryId).toList();
+    _logger.info(
+      "Selected SubCategory ID: $subCategoryId",
+    ); // Debugging: log selected sub-category ID
+    return _products
+        .where((product) => product['sub_category_id'] == subCategoryId)
+        .toList();
   }
 
   void _updateTotalPrice(Map<String, dynamic> product) {
     double basePrice = 0.0;
     if (_selectedSize != null) {
-      final size = (product['sizes'] as List).firstWhere((size) => size['name'] == _selectedSize);
+      final size = (product['sizes'] as List).firstWhere(
+        (size) => size['name'] == _selectedSize,
+      );
       basePrice = size['price'];
     }
     double addInsPrice = _selectedAddIns.fold(0.0, (sum, addInName) {
-      final addIn = (product['addIns'] as List).firstWhere((addIn) => addIn['name'] == addInName);
+      final addIn = (product['addIns'] as List).firstWhere(
+        (addIn) => addIn['name'] == addInName,
+      );
       return sum + addIn['price'];
     });
     setState(() {
@@ -125,7 +179,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
 
   void _addToOrder(Map<String, dynamic> product) {
     setState(() {
-      _orderItems.add({
+      orderItems.add({
         'name': product['name'],
         'quantity': 1,
         'size': _selectedSize,
@@ -140,7 +194,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
   }
 
   void _calculateTotals() {
-    _subtotal = _orderItems.fold(0.0, (sum, item) => sum + item['price']);
+    _subtotal = orderItems.fold(0.0, (sum, item) => sum + item['price']);
     _tax = _subtotal * 0.12; // Assuming 12% tax rate
     _total = _subtotal + _tax;
     _change = _totalPaid - _total;
@@ -165,7 +219,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
     // Handle invoice printing and sales recording
     // For now, just reset the order
     setState(() {
-      _orderItems.clear();
+      orderItems.clear();
       _orderNumber++;
       _subtotal = 0.0;
       _tax = 0.0;
@@ -188,20 +242,19 @@ class _CashierDashboardState extends State<CashierDashboard> {
               children: [
                 businessLogoPath.isNotEmpty
                     ? Image.file(
-                        File(businessLogoPath), // Business logo
-                        height: 40,
-                      )
+                      File(businessLogoPath), // Business logo
+                      height: 100,
+                    )
                     : Container(),
-                SizedBox(width: 200),
+                SizedBox(width: 10), // Adjust spacing between logo and name
                 Text(businessName), // Business name
-              ],
-            ),
-            // Middle Part
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.40, // Adjust width to 40%
+                SizedBox(
+                  width: 40,
+                ), // Adjust spacing between name and search box
+                SizedBox(
+                  width:
+                      MediaQuery.of(context).size.width *
+                      0.45, // Adjust width to 30%
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: 'Search product by name',
@@ -212,292 +265,356 @@ class _CashierDashboardState extends State<CashierDashboard> {
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
             // Right Corner
-            Text('$cashierName'), // Cashier name
+            Text(cashierName), // Cashier name
           ],
         ),
       ),
-      body: Row(
-        children: [
-          // 25% width column
-          Expanded(
-            flex: 2,
-            child: Container(
-              color: Colors.blue[50],
-              child: Column(
+      body:
+          _isLoading
+              ? Center(
+                child: CircularProgressIndicator(),
+              ) // Show loading indicator
+              : Row(
                 children: [
+                  // 25% width column
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: _categories.length,
-                      itemBuilder: (context, index) {
-                        final category = _categories[index];
-                        final subCategories = _getSubCategoriesByCategory(category['id']);
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedCategoryId = category['id'];
-                              _selectedSubCategoryId = null;
-                            });
-                          },
-                          child: Padding(
+                    flex: 2,
+                    child: Container(
+                      color: Colors.blue[50],
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: _categories.length,
+                              itemBuilder: (context, index) {
+                                final category = _categories[index];
+                                final subCategories =
+                                    _getSubCategoriesByCategory(category['id']);
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedCategoryId = category['id'];
+                                      _selectedSubCategoryId = null;
+                                    });
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          category['name'],
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        SizedBox(height: 10),
+                                        Wrap(
+                                          spacing: 10,
+                                          runSpacing: 10,
+                                          children:
+                                              subCategories.map((subCategory) {
+                                                return GestureDetector(
+                                                  onTap: () {
+                                                    setState(() {
+                                                      _selectedSubCategoryId =
+                                                          subCategory['id'];
+                                                    });
+                                                  },
+                                                  child: Container(
+                                                    width:
+                                                        double
+                                                            .infinity, // Use maximum width of the left column
+                                                    height: 100,
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            10,
+                                                          ),
+                                                      image: DecorationImage(
+                                                        image: FileImage(
+                                                          File(
+                                                            subCategory['image'] ??
+                                                                'assets/logo.png',
+                                                          ),
+                                                        ),
+                                                        fit: BoxFit.cover,
+                                                      ),
+                                                      border: Border.all(
+                                                        color:
+                                                            _selectedSubCategoryId ==
+                                                                    subCategory['id']
+                                                                ? Colors.red
+                                                                : Colors
+                                                                    .transparent,
+                                                        width: 3,
+                                                      ),
+                                                    ),
+                                                    child: Center(
+                                                      child: Text(
+                                                        subCategory['name'],
+                                                        style: TextStyle(
+                                                          fontSize:
+                                                              20, // Increase font size
+                                                          color: Colors.white,
+                                                          backgroundColor:
+                                                              Colors.black54,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              }).toList(),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) =>
+                                            LoginPage(), // Navigate to login page
+                                  ),
+                                );
+                              },
+                              child: Text('Log Out'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // 75% width column
+                  Expanded(
+                    flex: 8,
+                    child: Container(
+                      color: Colors.blue[100],
+                      child:
+                          _selectedSubCategoryId != null
+                              ? _buildProductList() // Ensure this is only called after loading completes
+                              : Center(child: Text('Select a sub-category')),
+                    ),
+                  ),
+                  // 25% width column
+                  Expanded(
+                    flex: 5,
+                    child: Container(
+                      color:
+                          Colors
+                              .white, // Make background color white like a receipt
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                businessLogoPath.isNotEmpty
+                                    ? Image.file(
+                                      File(businessLogoPath), // Business logo
+                                      height: 200,
+                                    )
+                                    : Container(),
+                                Text(businessAddress),
+                                Text(businessContact),
+                                Text('VAT Reg TIN: $businessTaxId'),
+                                Divider(),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Date: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
+                                    ),
+                                    Text(
+                                      'Time: ${DateFormat('hh:mm a').format(DateTime.now())}',
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Cashier Name: $cashierName'),
+                                    Text('Order Number: $_orderNumber'),
+                                  ],
+                                ),
+                                Divider(),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: orderItems.length,
+                              itemBuilder: (context, index) {
+                                final item = orderItems[index];
+                                return ListTile(
+                                  title: Text('- ${item['name']}'),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Amount: ${item['quantity']}'),
+                                      if (item['size'] != null)
+                                        Text('Size: ${item['size']}'),
+                                      if (item['addIns'] != null &&
+                                          item['addIns'].isNotEmpty)
+                                        Text(
+                                          'Add-Ins: ${item['addIns'].join(', ')}',
+                                        ),
+                                      Text('Price: \$${item['price']}'),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          Divider(),
+                          Container(
                             padding: const EdgeInsets.all(8.0),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  category['name'],
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                  ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Subtotal:'),
+                                    Text('PHP ${_subtotal.toStringAsFixed(2)}'),
+                                  ],
                                 ),
-                                SizedBox(height: 10),
-                                Wrap(
-                                  spacing: 10,
-                                  runSpacing: 10,
-                                  children: subCategories.map((subCategory) {
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedSubCategoryId = subCategory['id'];
-                                        });
-                                      },
-                                      child: Container(
-                                        width: double.infinity, // Use maximum width of the left column
-                                        height: 100,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(10),
-                                          image: DecorationImage(
-                                            image: FileImage(File(subCategory['image'] ?? 'assets/logo.png')),
-                                            fit: BoxFit.cover,
-                                          ),
-                                          border: Border.all(
-                                            color: _selectedSubCategoryId == subCategory['id'] ? Colors.red : Colors.transparent,
-                                            width: 3,
-                                          ),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            subCategory['name'],
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              backgroundColor: Colors.black54,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Taxes:'),
+                                    Text('PHP ${_tax.toStringAsFixed(2)}'),
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Total Paid:'),
+                                    Text(
+                                      'PHP ${_totalPaid.toStringAsFixed(2)}',
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Change:'),
+                                    Text('PHP ${_change.toStringAsFixed(2)}'),
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Total:'),
+                                    Text('PHP ${_total.toStringAsFixed(2)}'),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => LoginPage()), // Navigate to login page
-                        );
-                      },
-                      child: Text('Log Out'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // 50% width column
-          Expanded(
-            flex: 11,
-            child: Container(
-              color: Colors.blue[100],
-              child: _selectedSubCategoryId != null
-                  ? _buildProductList() // Extract product list building to a separate function
-                  : Center(child: Text('Select a sub-category')),
-            ),
-          ),
-          // 25% width column
-          Expanded(
-            flex: 5,
-            child: Container(
-              color: Colors.white, // Make background color white like a receipt
-              child: Column(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        businessLogoPath.isNotEmpty
-                            ? Image.file(
-                                File(businessLogoPath), // Business logo
-                                height: 100,
-                              )
-                            : Container(),
-                        Text(businessAddress),
-                        Text(businessContact),
-                        Text('VAT Reg TIN: $businessTaxId'),
-                        Divider(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Date: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}'),
-                            Text('Time: ${DateFormat('hh:mm a').format(DateTime.now())}'),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Cashier Name: $cashierName'),
-                            Text('Order Number: $_orderNumber'),
-                          ],
-                        ),
-                        Divider(),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _orderItems.length,
-                      itemBuilder: (context, index) {
-                        final item = _orderItems[index];
-                        return ListTile(
-                          title: Text('- ${item['name']}'),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Amount: ${item['quantity']}'),
-                              if (item['size'] != null) Text('Size: ${item['size']}'),
-                              if (item['addIns'] != null && item['addIns'].isNotEmpty)
-                                Text('Add-Ins: ${item['addIns'].join(', ')}'),
-                              Text('Price: \$${item['price']}'),
-                            ],
+                          Divider(),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    // Show calculator for cash payment
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        TextEditingController amountController =
+                                            TextEditingController();
+                                        return AlertDialog(
+                                          title: Text('Enter Amount Paid'),
+                                          content: TextField(
+                                            controller: amountController,
+                                            keyboardType: TextInputType.number,
+                                            decoration: InputDecoration(
+                                              labelText: 'Amount',
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                _payByCash(
+                                                  double.parse(
+                                                    amountController.text,
+                                                  ),
+                                                );
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: Text('Pay'),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                  icon: Icon(Icons.attach_money),
+                                  label: Text('Pay By Cash'),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: _payByCard,
+                                  icon: Icon(Icons.credit_card),
+                                  label: Text('Pay By Card'),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: _printInvoice,
+                                  icon: Icon(Icons.print),
+                                  label: Text('Invoice Printing'),
+                                ),
+                              ],
+                            ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  Divider(),
-                  Container(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Subtotal:'),
-                            Text('PHP ${_subtotal.toStringAsFixed(2)}'),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Taxes:'),
-                            Text('PHP ${_tax.toStringAsFixed(2)}'),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Total Paid:'),
-                            Text('PHP ${_totalPaid.toStringAsFixed(2)}'),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Change:'),
-                            Text('PHP ${_change.toStringAsFixed(2)}'),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Total:'),
-                            Text('PHP ${_total.toStringAsFixed(2)}'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Divider(),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            // Show calculator for cash payment
-                            showDialog(
-                              context: context,
-                              builder: (context) {
-                                TextEditingController _amountController = TextEditingController();
-                                return AlertDialog(
-                                  title: Text('Enter Amount Paid'),
-                                  content: TextField(
-                                    controller: _amountController,
-                                    keyboardType: TextInputType.number,
-                                    decoration: InputDecoration(labelText: 'Amount'),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: Text('Cancel'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        _payByCash(double.parse(_amountController.text));
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: Text('Pay'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                          icon: Icon(Icons.attach_money),
-                          label: Text('Pay By Cash'),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: _payByCard,
-                          icon: Icon(Icons.credit_card),
-                          label: Text('Pay By Card'),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: _printInvoice,
-                          icon: Icon(Icons.print),
-                          label: Text('Invoice Printing'),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildProductList() {
-    final productList = _getProductsBySubCategory(_selectedSubCategoryId!);
+    final productList =
+        _selectedCategoryId != null
+            ? _getProductsByCategory(_selectedCategoryId!)
+            : _getProductsBySubCategory(_selectedSubCategoryId!);
 
     if (productList.isEmpty) {
-      return Center(child: Text('No products available for this sub-category.'));
+      return Center(
+        child: Text('No products available for this category or sub-category.'),
+      );
     }
 
     return ListView.builder(
@@ -525,21 +642,24 @@ class _CashierDashboardState extends State<CashierDashboard> {
                         SizedBox(
                           width: 100, // Provide a finite width constraint
                           child: TextField(
-                            decoration: InputDecoration(
-                              labelText: 'Quantity',
-                            ),
+                            decoration: InputDecoration(labelText: 'Quantity'),
                           ),
                         ),
-                        if (product['sizes'] != null && (product['sizes'] as List).isNotEmpty) // Conditional size display
+                        if (product['sizes'] != null &&
+                            (product['sizes'] as List)
+                                .isNotEmpty) // Conditional size display
                           DropdownButton<String>(
                             hint: Text('Size'),
                             value: _selectedSize,
-                            items: (product['sizes'] as List).map<DropdownMenuItem<String>>((size) {
-                              return DropdownMenuItem<String>(
-                                value: size['name'],
-                                child: Text(size['name']),
-                              );
-                            }).toList(),
+                            items:
+                                (product['sizes'] as List)
+                                    .map<DropdownMenuItem<String>>((size) {
+                                      return DropdownMenuItem<String>(
+                                        value: size['name'],
+                                        child: Text(size['name']),
+                                      );
+                                    })
+                                    .toList(),
                             onChanged: (value) {
                               setState(() {
                                 _selectedSize = value;
@@ -548,38 +668,47 @@ class _CashierDashboardState extends State<CashierDashboard> {
                             },
                           )
                         else
-                          Text('No sizes available'), // Indicate if sizes are missing
+                          Text(
+                            'No sizes available',
+                          ), // Indicate if sizes are missing
                       ],
                     ),
                   ],
                 ),
                 SizedBox(height: 10),
-                if (product['addIns'] != null && (product['addIns'] as List).isNotEmpty) // Conditional add-in display
+                if (product['addIns'] != null &&
+                    (product['addIns'] as List)
+                        .isNotEmpty) // Conditional add-in display
                   Wrap(
                     spacing: 10,
-                    children: (product['addIns'] as List).map<Widget>((addIn) {
-                      return FilterChip(
-                        label: Text(addIn['name']),
-                        selected: _selectedAddIns.contains(addIn['name']),
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _selectedAddIns.add(addIn['name']);
-                            } else {
-                              _selectedAddIns.remove(addIn['name']);
-                            }
-                            _updateTotalPrice(product);
-                          });
-                        },
-                      );
-                    }).toList(),
+                    children:
+                        (product['addIns'] as List).map<Widget>((addIn) {
+                          return FilterChip(
+                            label: Text(addIn['name']),
+                            selected: _selectedAddIns.contains(addIn['name']),
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
+                                  _selectedAddIns.add(addIn['name']);
+                                } else {
+                                  _selectedAddIns.remove(addIn['name']);
+                                }
+                                _updateTotalPrice(product);
+                              });
+                            },
+                          );
+                        }).toList(),
                   )
                 else
-                  Text('No add-ins available'), // Indicate if add-ins are missing
+                  Text(
+                    'No add-ins available',
+                  ), // Indicate if add-ins are missing
                 SizedBox(height: 10),
                 Row(
                   children: [
-                    Text('Price: \$${_totalPrice.toStringAsFixed(2)}'), // Format price
+                    Text(
+                      'Price: \$${_totalPrice.toStringAsFixed(2)}',
+                    ), // Format price
                     Spacer(),
                     ElevatedButton(
                       onPressed: () {

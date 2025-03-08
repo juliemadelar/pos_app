@@ -2,23 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'db_helper.dart';
+import 'package:logger/logger.dart'; // Add this import
 
 class BusinessDetailsForm extends StatefulWidget {
+  const BusinessDetailsForm({super.key}); // Convert 'key' to a super parameter
   @override
-  _BusinessDetailsFormState createState() => _BusinessDetailsFormState();
+  BusinessDetailsFormState createState() => BusinessDetailsFormState(); // Make the type public
 }
 
-class _BusinessDetailsFormState extends State<BusinessDetailsForm> {
-  final TextEditingController _businessNameController = TextEditingController(text: 'Demo Business');
-  final TextEditingController _businessAddressController = TextEditingController(text: '123 Demo Street');
-  final TextEditingController _businessContactController = TextEditingController(text: '123-456-7890');
-  final TextEditingController _businessTaxIdController = TextEditingController(text: 'TAX123456');
-  final TextEditingController _seniorCitizenController = TextEditingController(text: '5');
+class BusinessDetailsFormState extends State<BusinessDetailsForm> {
+  // Make the type public
+  final TextEditingController _businessNameController = TextEditingController(
+    text: 'Demo Business',
+  );
+  final TextEditingController _businessAddressController =
+      TextEditingController(text: '123 Demo Street');
+  final TextEditingController _businessContactController =
+      TextEditingController(text: '123-456-7890');
+  final TextEditingController _businessTaxIdController = TextEditingController(
+    text: 'TAX123456',
+  );
+  final TextEditingController _seniorCitizenController = TextEditingController(
+    text: '5',
+  );
   final TextEditingController _pwdController = TextEditingController(text: '5');
-  final TextEditingController _otherController = TextEditingController(text: '2');
+  final TextEditingController _otherController = TextEditingController(
+    text: '2',
+  );
   final DBHelper _dbHelper = DBHelper();
   String? _businessLogo;
   String _selectedCurrency = 'PHP';
+  final Logger _logger = Logger(); // Add this line
 
   @override
   void initState() {
@@ -28,59 +42,115 @@ class _BusinessDetailsFormState extends State<BusinessDetailsForm> {
 
   Future<void> _loadBusinessDetails() async {
     try {
-      _businessNameController.text = await _dbHelper.getBusinessDetail('name') ?? 'Demo Business';
-      _businessAddressController.text = await _dbHelper.getBusinessDetail('address') ?? '123 Demo Street';
-      _businessContactController.text = await _dbHelper.getBusinessDetail('contact') ?? '123-456-7890';
-      _businessTaxIdController.text = await _dbHelper.getBusinessDetail('tax_id') ?? 'TAX123456';
-      _businessLogo = await _dbHelper.getBusinessDetail('logo') ?? 'assets/logo.png';
-      _seniorCitizenController.text = await _dbHelper.getBusinessDetail('senior_discount') ?? '5';
-      _pwdController.text = await _dbHelper.getBusinessDetail('pwd_discount') ?? '5';
-      _otherController.text = await _dbHelper.getBusinessDetail('other_discount') ?? '2';
-      _selectedCurrency = await _dbHelper.getBusinessDetail('currency') ?? 'PHP';
+      _businessNameController.text =
+          await _dbHelper.getBusinessDetail('name') ?? 'Demo Business';
+      _businessAddressController.text =
+          await _dbHelper.getBusinessDetail('address') ?? '123 Demo Street';
+      _businessContactController.text =
+          await _dbHelper.getBusinessDetail('contact') ?? '123-456-7890';
+      _businessTaxIdController.text =
+          await _dbHelper.getBusinessDetail('tax_id') ?? 'TAX123456';
+      _businessLogo =
+          await _dbHelper.getBusinessDetail('logo') ?? 'assets/logo.png';
+      _seniorCitizenController.text =
+          await _dbHelper.getBusinessDetail('senior_discount') ?? '5';
+      _pwdController.text =
+          await _dbHelper.getBusinessDetail('pwd_discount') ?? '5';
+      _otherController.text =
+          await _dbHelper.getBusinessDetail('other_discount') ?? '2';
+      _selectedCurrency =
+          await _dbHelper.getBusinessDetail('currency') ?? 'PHP';
       setState(() {});
     } catch (e) {
-      print('Error loading business details: $e');
+      _logger.e('Error loading business details: $e'); // Use logger
     }
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedFile != null && mounted) {
+      // Add mounted check
       setState(() {
         _businessLogo = pickedFile.path;
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Selected image: ${pickedFile.path}')),
+      );
     }
   }
 
   void _saveBusinessDetails() async {
     try {
-      print('Saving Business Name: ${_businessNameController.text}');
-      await _dbHelper.updateBusinessDetail('name', _businessNameController.text);
-      print('Saving Business Address: ${_businessAddressController.text}');
-      await _dbHelper.updateBusinessDetail('address', _businessAddressController.text);
-      print('Saving Business Contact: ${_businessContactController.text}');
-      await _dbHelper.updateBusinessDetail('contact', _businessContactController.text);
-      print('Saving Business Tax ID: ${_businessTaxIdController.text}');
-      await _dbHelper.updateBusinessDetail('tax_id', _businessTaxIdController.text);
-      print('Saving Business Logo: ${_businessLogo ?? 'assets/logo.png'}');
-      await _dbHelper.updateBusinessDetail('logo', _businessLogo ?? 'assets/logo.png');
-      print('Saving Senior Discount: ${_seniorCitizenController.text}');
-      await _dbHelper.updateBusinessDetail('senior_discount', _seniorCitizenController.text);
-      print('Saving PWD Discount: ${_pwdController.text}');
+      _logger.i(
+        'Saving Business Name: ${_businessNameController.text}',
+      ); // Use logger
+      await _dbHelper.updateBusinessDetail(
+        'name',
+        _businessNameController.text,
+      );
+      _logger.i(
+        'Saving Business Address: ${_businessAddressController.text}',
+      ); // Use logger
+      await _dbHelper.updateBusinessDetail(
+        'address',
+        _businessAddressController.text,
+      );
+      _logger.i(
+        'Saving Business Contact: ${_businessContactController.text}',
+      ); // Use logger
+      await _dbHelper.updateBusinessDetail(
+        'contact',
+        _businessContactController.text,
+      );
+      _logger.i(
+        'Saving Business Tax ID: ${_businessTaxIdController.text}',
+      ); // Use logger
+      await _dbHelper.updateBusinessDetail(
+        'tax_id',
+        _businessTaxIdController.text,
+      );
+      _logger.i(
+        'Saving Business Logo: ${_businessLogo ?? 'assets/logo.png'}',
+      ); // Use logger
+      await _dbHelper.updateBusinessDetail(
+        'logo',
+        _businessLogo ?? 'assets/logo.png',
+      );
+      _logger.i(
+        'Saving Senior Discount: ${_seniorCitizenController.text}',
+      ); // Use logger
+      await _dbHelper.updateBusinessDetail(
+        'senior_discount',
+        _seniorCitizenController.text,
+      );
+      _logger.i('Saving PWD Discount: ${_pwdController.text}'); // Use logger
       await _dbHelper.updateBusinessDetail('pwd_discount', _pwdController.text);
-      print('Saving Other Discount: ${_otherController.text}');
-      await _dbHelper.updateBusinessDetail('other_discount', _otherController.text);
-      print('Saving Currency: $_selectedCurrency');
+      _logger.i(
+        'Saving Other Discount: ${_otherController.text}',
+      ); // Use logger
+      await _dbHelper.updateBusinessDetail(
+        'other_discount',
+        _otherController.text,
+      );
+      _logger.i('Saving Currency: $_selectedCurrency'); // Use logger
       await _dbHelper.updateBusinessDetail('currency', _selectedCurrency);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Changes Saved')),
-      );
+      if (mounted) {
+        // Add mounted check
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Changes Saved')));
+      }
     } catch (e) {
-      print('Error saving changes: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving changes: $e')),
-      );
+      _logger.e('Error saving changes: $e'); // Use logger
+      if (mounted) {
+        // Add mounted check
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving changes: $e')));
+      }
     }
   }
 
@@ -106,7 +176,7 @@ class _BusinessDetailsFormState extends State<BusinessDetailsForm> {
                     borderRadius: BorderRadius.circular(8.0),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.5),
+                        color: Colors.grey.withAlpha((0.5 * 255).toInt()),
                         spreadRadius: 2,
                         blurRadius: 5,
                         offset: Offset(0, 3),
@@ -122,15 +192,21 @@ class _BusinessDetailsFormState extends State<BusinessDetailsForm> {
                       ),
                       TextField(
                         controller: _businessAddressController,
-                        decoration: InputDecoration(labelText: 'Business Address'),
+                        decoration: InputDecoration(
+                          labelText: 'Business Address',
+                        ),
                       ),
                       TextField(
                         controller: _businessContactController,
-                        decoration: InputDecoration(labelText: 'Business Contact Number'),
+                        decoration: InputDecoration(
+                          labelText: 'Business Contact Number',
+                        ),
                       ),
                       TextField(
                         controller: _businessTaxIdController,
-                        decoration: InputDecoration(labelText: 'Business Tax ID Number'),
+                        decoration: InputDecoration(
+                          labelText: 'Business Tax ID Number',
+                        ),
                       ),
                       SizedBox(height: 16.0),
                       _businessLogo != null
@@ -151,7 +227,7 @@ class _BusinessDetailsFormState extends State<BusinessDetailsForm> {
                     borderRadius: BorderRadius.circular(8.0),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.5),
+                        color: Colors.grey.withAlpha((0.5 * 255).toInt()),
                         spreadRadius: 2,
                         blurRadius: 5,
                         offset: Offset(0, 3),
@@ -171,7 +247,9 @@ class _BusinessDetailsFormState extends State<BusinessDetailsForm> {
                       SizedBox(height: 16.0),
                       TextField(
                         controller: _seniorCitizenController,
-                        decoration: InputDecoration(labelText: 'Senior Citizen (%)'),
+                        decoration: InputDecoration(
+                          labelText: 'Senior Citizen (%)',
+                        ),
                       ),
                       TextField(
                         controller: _pwdController,
@@ -189,13 +267,19 @@ class _BusinessDetailsFormState extends State<BusinessDetailsForm> {
                             _selectedCurrency = newValue!;
                           });
                         },
-                        items: <String>['PHP', 'USD', 'EUR', 'GBP', 'JPY']
-                            .map<DropdownMenuItem<String>>((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
+                        items:
+                            <String>[
+                              'PHP',
+                              'USD',
+                              'EUR',
+                              'GBP',
+                              'JPY',
+                            ].map<DropdownMenuItem<String>>((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
                       ),
                     ],
                   ),

@@ -5,11 +5,13 @@ import 'cashier_dashboard.dart';
 import 'admin_dashboard.dart';
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
-  _LoginPageState createState() => _LoginPageState();
+  LoginPageState createState() => LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final DBHelper _dbHelper = DBHelper();
@@ -34,6 +36,7 @@ class _LoginPageState extends State<LoginPage> {
     String password = _passwordController.text;
 
     var user = await _dbHelper.getUser(username, password);
+    if (!mounted) return; // Check if the widget is still mounted
     if (user != null) {
       if (user['role'] == 'cashier') {
         Navigator.pushReplacement(
@@ -47,19 +50,23 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid username or password')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Invalid username or password')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView( // Added SingleChildScrollView
+      body: SingleChildScrollView(
+        // Added SingleChildScrollView
         child: Container(
           width: double.infinity,
-          height: MediaQuery.of(context).size.height, // Adjust height to screen size
+          height:
+              MediaQuery.of(
+                context,
+              ).size.height, // Adjust height to screen size
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [Colors.lightBlueAccent, Colors.blueAccent],
@@ -72,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
               width: 500,
               padding: EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withAlpha(25), // Replaced withAlpha
                 borderRadius: BorderRadius.circular(8.0),
               ),
               child: Column(
@@ -92,10 +99,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         Text(
                           currentDate,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                          ),
+                          style: TextStyle(color: Colors.white, fontSize: 20),
                         ),
                       ],
                     ),
@@ -115,10 +119,7 @@ class _LoginPageState extends State<LoginPage> {
                           obscureText: true,
                         ),
                         SizedBox(height: 16.0),
-                        ElevatedButton(
-                          onPressed: _login,
-                          child: Text('Login'),
-                        ),
+                        ElevatedButton(onPressed: _login, child: Text('Login')),
                       ],
                     ),
                   ),
