@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable, unused_element
+
 import 'package:flutter/material.dart';
 import 'db_helper.dart';
 import 'login_page.dart'; // Import login page
@@ -28,7 +30,6 @@ class CashierDashboardState extends State<CashierDashboard> {
   List<Map<String, dynamic>> _categories = [];
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _subCategories = [];
-  int? _selectedCategoryId;
   int? _selectedSubCategoryId;
   String? _selectedSize;
   final List<String> _selectedAddIns = [];
@@ -44,9 +45,12 @@ class CashierDashboardState extends State<CashierDashboard> {
   // Added this to show a loading indicator while waiting for database.
   bool _isLoading = true;
 
+<<<<<<< HEAD
   // Initialize logger
   final Logger _logger = Logger('CashierDashboard');
 
+=======
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
   @override
   void initState() {
     super.initState();
@@ -59,10 +63,17 @@ class CashierDashboardState extends State<CashierDashboard> {
       await _loadCashierName();
       await _loadCategories();
       await _loadSubCategories();
+<<<<<<< HEAD
       await _loadProductsWithDetails();
       _logger.info(_products); // Use logger instead of print
     } catch (e) {
       _logger.severe('Error loading data: $e');
+=======
+      await _loadProductsWithDetails(); // Ensure products are loaded from the database
+      print(_products); // Debugging: print the contents of _products
+    } catch (e) {
+      print('Error loading data: $e');
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
       // Handle error appropriately, maybe show an error message
     } finally {
       setState(() {
@@ -104,6 +115,7 @@ class CashierDashboardState extends State<CashierDashboard> {
   Future<void> _loadCategories() async {
     try {
       _categories = await _dbHelper.getCategories();
+      print('Categories loaded: $_categories'); // Debug statement
       setState(() {});
     } catch (e) {
       _logger.severe('Error loading categories: $e');
@@ -113,8 +125,17 @@ class CashierDashboardState extends State<CashierDashboard> {
   Future<void> _loadSubCategories() async {
     try {
       _subCategories = await _dbHelper.getSubCategories();
+      print('SubCategories loaded: $_subCategories'); // Debug statement
       if (_subCategories.isNotEmpty) {
-        _selectedSubCategoryId = _subCategories.first['id'];
+        // Select the first sub-category that has products
+        for (var subCategory in _subCategories) {
+          if (_getProductsBySubCategory(subCategory['id']).isNotEmpty) {
+            _selectedSubCategoryId = subCategory['id'];
+            break;
+          }
+        }
+        // If no sub-category with products is found, select the first sub-category
+        _selectedSubCategoryId ??= _subCategories.first['id'];
       }
       setState(() {});
     } catch (e) {
@@ -125,8 +146,28 @@ class CashierDashboardState extends State<CashierDashboard> {
   Future<void> _loadProductsWithDetails() async {
     try {
       _products = await _dbHelper.getProductsWithDetails();
+
+      for (var product in _products) {
+        int productId = product['id'];
+
+        // Log sizes
+        if (product['sizes'] != null && product['sizes'] is List && (product['sizes'] as List).isNotEmpty) {
+          // Sizes fetched successfully
+        } else {
+          print("Product ${product['name']} has no sizes");
+        }
+
+        // Log add-ins
+        if (product['addIns'] != null && product['addIns'] is List && (product['addIns'] as List).isNotEmpty) {
+          // Add-ins fetched successfully
+        } else {
+          print("Product ${product['name']} has no add-ins");
+        }
+      }
+
       setState(() {});
     } catch (e) {
+<<<<<<< HEAD
       if (e is UnsupportedError && e.message == 'read-only') {
         _logger.severe(
           'Error loading products with details: Read-only operation not supported',
@@ -134,6 +175,10 @@ class CashierDashboardState extends State<CashierDashboard> {
       } else {
         _logger.severe('Error loading products with details: $e');
       }
+=======
+      print('Error loading products with details: $e');
+      // Handle specific error types if needed
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
     }
   }
 
@@ -150,26 +195,42 @@ class CashierDashboardState extends State<CashierDashboard> {
   }
 
   List<Map<String, dynamic>> _getProductsBySubCategory(int subCategoryId) {
+<<<<<<< HEAD
     _logger.info(
       "Selected SubCategory ID: $subCategoryId",
     ); // Debugging: log selected sub-category ID
     return _products
         .where((product) => product['sub_category_id'] == subCategoryId)
         .toList();
+=======
+    print("Selected SubCategory ID: $subCategoryId"); // Debugging: print selected sub-category ID
+    return _products.where((product) => product['sub_category_id'] == subCategoryId).toList();
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
   }
 
-  void _updateTotalPrice(Map<String, dynamic> product) {
+  void _updateTotalPrice(Map<String, dynamic> product, String? size) {
     double basePrice = 0.0;
+<<<<<<< HEAD
     if (_selectedSize != null) {
       final size = (product['sizes'] as List).firstWhere(
         (size) => size['name'] == _selectedSize,
       );
       basePrice = size['price'];
+=======
+    if (size != null) {
+      final sizeData = product['sizes'].firstWhere((s) => s['name'] == size);
+      basePrice = sizeData['price'];
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
     }
+
     double addInsPrice = _selectedAddIns.fold(0.0, (sum, addInName) {
+<<<<<<< HEAD
       final addIn = (product['addIns'] as List).firstWhere(
         (addIn) => addIn['name'] == addInName,
       );
+=======
+      final addIn = product['addIns'].firstWhere((addIn) => addIn['name'] == addInName);
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
       return sum + addIn['price'];
     });
     setState(() {
@@ -242,6 +303,7 @@ class CashierDashboardState extends State<CashierDashboard> {
               children: [
                 businessLogoPath.isNotEmpty
                     ? Image.file(
+<<<<<<< HEAD
                       File(businessLogoPath), // Business logo
                       height: 100,
                     )
@@ -255,6 +317,17 @@ class CashierDashboardState extends State<CashierDashboard> {
                   width:
                       MediaQuery.of(context).size.width *
                       0.45, // Adjust width to 30%
+=======
+                        File(businessLogoPath), // Business logo
+                        height: 100,
+                      )
+                    : Container(),
+                SizedBox(width: 10), // Adjust spacing between logo and name
+                Text(businessName), // Business name
+                SizedBox(width: 40), // Adjust spacing between name and search box
+                SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.45, // Adjust width to 30%
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: 'Search product by name',
@@ -272,6 +345,7 @@ class CashierDashboardState extends State<CashierDashboard> {
           ],
         ),
       ),
+<<<<<<< HEAD
       body:
           _isLoading
               ? Center(
@@ -530,10 +604,90 @@ class CashierDashboardState extends State<CashierDashboard> {
                                     Text('Total:'),
                                     Text('PHP ${_total.toStringAsFixed(2)}'),
                                   ],
+=======
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator()) // Show loading indicator
+          : Row(
+              children: [
+                // 25% width column
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    color: Colors.blue[50],
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: _categories.length,
+                            itemBuilder: (context, index) {
+                              final category = _categories[index];
+                              final subCategories = _getSubCategoriesByCategory(category['id']);
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedSubCategoryId = null;
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        category['name'],
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      SizedBox(height: 10),
+                                      Wrap(
+                                        spacing: 10,
+                                        runSpacing: 10,
+                                        children: subCategories.map((subCategory) {
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                _selectedSubCategoryId = subCategory['id'];
+                                              });
+                                            },
+                                            child: Container(
+                                              width: double.infinity, // Use maximum width of the left column
+                                              height: 100,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(10),
+                                                image: DecorationImage(
+                                                  image: FileImage(File(subCategory['image'] ?? 'assets/logo.png')),
+                                                  fit: BoxFit.cover,
+                                                ),
+                                                border: Border.all(
+                                                  color: _selectedSubCategoryId == subCategory['id'] ? Colors.red : Colors.transparent,
+                                                  width: 3,
+                                                ),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  subCategory['name'],
+                                                  style: TextStyle(
+                                                    fontSize: 20, // Increase font size
+                                                    color: Colors.white,
+                                                    backgroundColor: Colors.black54,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
+                                  ),
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
+<<<<<<< HEAD
                           Divider(),
                           Padding(
                             padding: const EdgeInsets.all(8.0),
@@ -717,12 +871,198 @@ class CashierDashboardState extends State<CashierDashboard> {
                       child: Text('Add to Cart'),
                     ),
                   ],
+=======
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => LoginPage()), // Navigate to login page
+                              );
+                            },
+                            child: Text('Log Out'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // 75% width column
+                Expanded(
+                  flex: 8,
+                  child: Container(
+                    color: Colors.blue[100],
+                    child: Center(child: Text('No content available.')), // Placeholder for middle column
+                  ),
+                ),
+                // 25% width column
+                Expanded(
+                  flex: 5,
+                  child: Container(
+                    color: Colors.white, // Make background color white like a receipt
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              businessLogoPath.isNotEmpty
+                                  ? Image.file(
+                                      File(businessLogoPath), // Business logo
+                                      height: 200,
+                                    )
+                                  : Container(),
+                              Text(businessAddress),
+                              Text(businessContact),
+                              Text('VAT Reg TIN: $businessTaxId'),
+                              Divider(),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Date: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}'),
+                                  Text('Time: ${DateFormat('hh:mm a').format(DateTime.now())}'),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Cashier Name: $cashierName'),
+                                  Text('Order Number: $_orderNumber'),
+                                ],
+                              ),
+                              Divider(),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: _orderItems.length,
+                            itemBuilder: (context, index) {
+                              final item = _orderItems[index];
+                              return ListTile(
+                                title: Text('- ${item['name']}'),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Amount: ${item['quantity']}'),
+                                    if (item['size'] != null) Text('Size: ${item['size']}'),
+                                    if (item['addIns'] != null && item['addIns'].isNotEmpty)
+                                      Text('Add-Ins: ${item['addIns'].join(', ')}'),
+                                    Text('Price: \$${item['price']}'),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        Divider(),
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Subtotal:'),
+                                  Text('PHP ${_subtotal.toStringAsFixed(2)}'),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Taxes:'),
+                                  Text('PHP ${_tax.toStringAsFixed(2)}'),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Total Paid:'),
+                                  Text('PHP ${_totalPaid.toStringAsFixed(2)}'),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Change:'),
+                                  Text('PHP ${_change.toStringAsFixed(2)}'),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Total:'),
+                                  Text('PHP ${_total.toStringAsFixed(2)}'),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Divider(),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  // Show calculator for cash payment
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      TextEditingController _amountController = TextEditingController();
+                                      return AlertDialog(
+                                        title: Text('Enter Amount Paid'),
+                                        content: TextField(
+                                          controller: _amountController,
+                                          keyboardType: TextInputType.number,
+                                          decoration: InputDecoration(labelText: 'Amount'),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () {
+                                              _payByCash(double.parse(_amountController.text));
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: Text('Pay'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                                icon: Icon(Icons.attach_money),
+                                label: Text('Pay By Cash'),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: _payByCard,
+                                icon: Icon(Icons.credit_card),
+                                label: Text('Pay By Card'),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: _printInvoice,
+                                icon: Icon(Icons.print),
+                                label: Text('Invoice Printing'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
                 ),
               ],
             ),
-          ),
-        );
-      },
     );
   }
 }

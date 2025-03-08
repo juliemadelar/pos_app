@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'db_helper.dart';
+<<<<<<< HEAD
 import 'dart:io'; // Import dart:io for File
 import 'package:image_picker/image_picker.dart'; // Add this import
 import 'package:logging/logging.dart'; // Add logging import
+=======
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
 
 class ProductManagement extends StatefulWidget {
   const ProductManagement({super.key}); // Convert key to super parameter
@@ -10,6 +13,7 @@ class ProductManagement extends StatefulWidget {
   ProductManagementState createState() => ProductManagementState();
 }
 
+<<<<<<< HEAD
 class ProductManagementState extends State<ProductManagement>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
@@ -20,10 +24,19 @@ class ProductManagementState extends State<ProductManagement>
   List<Map<String, dynamic>> _sizes = [];
   List<Map<String, dynamic>> _addIns = [];
   final Logger _logger = Logger('ProductManagement'); // Initialize logger
+=======
+class ProductManagementState extends State<ProductManagement> with SingleTickerProviderStateMixin {
+  final dbHelper = DBHelper();
+  List<Map<String, dynamic>> _products = [];
+  List<Map<String, dynamic>> _categories = [];
+  bool _isLoading = true;
+  late TabController _tabController;
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _tabController = TabController(
       length: 5,
       vsync: this,
@@ -337,11 +350,26 @@ class ProductManagementState extends State<ProductManagement>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+=======
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    final List<Map<String, dynamic>> products = await dbHelper.getProductsWithDetails();
+    final List<Map<String, dynamic>> categories = await dbHelper.getCategories();
+    setState(() {
+      _products = products;
+      _categories = categories;
+      _tabController = TabController(length: _categories.length, vsync: this);
+      _isLoading = false;
+    });
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+<<<<<<< HEAD
       body: Column(
         children: [
           Scaffold(
@@ -375,10 +403,60 @@ class ProductManagementState extends State<ProductManagement>
             ),
           ),
         ],
+=======
+      appBar: AppBar(
+        title: Text('Product Management'),
+        automaticallyImplyLeading: false,
+        bottom: _isLoading
+            ? null
+            : TabBar(
+                controller: _tabController,
+                tabs: _categories.map((category) => Tab(text: category['name'])).toList(),
+              ),
       ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _products.isEmpty
+              ? Center(child: Text('No products available'))
+              : TabBarView(
+                  controller: _tabController,
+                  children: _categories.map((category) => _buildProductTable(category['name'])).toList(),
+                ),
     );
   }
 
+  Widget _buildProductTable(String category) {
+    List<Map<String, dynamic>> filteredProducts = _products.where((product) => product['category'] == category).toList();
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columns: [
+          DataColumn(label: Text('Sub-Category')),
+          DataColumn(label: Text('Product')),
+          DataColumn(label: Text('Size')),
+          DataColumn(label: Text('Price')),
+          DataColumn(label: Text('Image')), // Added Image column
+        ],
+        rows: filteredProducts.expand((product) {
+          List<Map<String, dynamic>> sizes = product['sizes'] ?? [];
+          return sizes.map((size) {
+            return DataRow(cells: [
+              DataCell(Text(product['sub_category_id'].toString())),
+              DataCell(Text(product['name'])),
+              DataCell(Text(size['name'])),
+              DataCell(Text('\$${size['price']}')),
+              DataCell(Image.asset(product['image'] ?? 'assets/logo.png')), // Use default image if none provided
+            ]);
+          }).toList();
+        }).toList(),
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
+      ),
+    );
+  }
+}
+
+<<<<<<< HEAD
   Widget _buildCategoriesTab() {
     return Column(
       children: [
@@ -835,3 +913,5 @@ class ProductManagementState extends State<ProductManagement>
     _loadData();
   }
 }
+=======
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea

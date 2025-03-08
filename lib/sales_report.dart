@@ -18,7 +18,11 @@ class SalesReportState extends State<SalesReport> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+<<<<<<< HEAD
           automaticallyImplyLeading: false, // Remove the back button
+=======
+        automaticallyImplyLeading: false, // Remove the back button
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
           title: Text('Sales Report'),
           bottom: TabBar(
             tabs: [Tab(text: 'By Date Range'), Tab(text: 'By Username')],

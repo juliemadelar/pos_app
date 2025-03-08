@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart'; // Import the Database class
 import 'db_helper.dart'; // Import DBHelper
 
 class UserManagement extends StatefulWidget {
@@ -39,11 +40,20 @@ class UserManagementState extends State<UserManagement> {
     setState(() {});
   }
 
+  Future<List<Map<String, dynamic>>> _getCashierDetails() async {
+    Database db = await _dbHelper.database;
+    return await db.query('users', where: 'role = ?', whereArgs: ['cashier']);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+<<<<<<< HEAD
         automaticallyImplyLeading: false, // Remove the back button
+=======
+      automaticallyImplyLeading: false, // Remove the back button
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
         title: Text('User Management'),
       ),
       body: Padding(
@@ -60,8 +70,17 @@ class UserManagementState extends State<UserManagement> {
             // Admin Details Row
             Row(
               children: [
+<<<<<<< HEAD
                 Expanded(child: Text('Admin Username: admin')),
                 Expanded(child: Text('Admin Password: password123')),
+=======
+                Expanded(
+                  child: Text('Admin Username: admin'),
+                ),
+                Expanded(
+                  child: Text('Admin Password: ******'), // Masked password
+                ),
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
               ],
             ),
             SizedBox(height: 20),
@@ -113,6 +132,35 @@ class UserManagementState extends State<UserManagement> {
                   ),
                 ),
               ],
+            ),
+            SizedBox(height: 20),
+            // Cashier Login Details Table
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _getCashierDetails(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator();
+                } else if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Text('No cashiers found.');
+                } else {
+                  return DataTable(
+                    columns: [
+                      DataColumn(label: Text('Name')),
+                      DataColumn(label: Text('Username')),
+                      DataColumn(label: Text('Password')),
+                    ],
+                    rows: snapshot.data!.map((cashier) {
+                      return DataRow(cells: [
+                        DataCell(Text(cashier['name'])),
+                        DataCell(Text(cashier['username'])),
+                        DataCell(Text('******')), // Masked password
+                      ]);
+                    }).toList(),
+                  );
+                }
+              },
             ),
           ],
         ),

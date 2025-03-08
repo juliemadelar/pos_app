@@ -61,6 +61,7 @@ class AdminDashboardState extends State<AdminDashboard> {
                   child: Column(
                     children: [
                       ListTile(
+<<<<<<< HEAD
                         title: Text(
                           'Product Management',
                           style: TextStyle(color: Colors.black),
@@ -86,10 +87,26 @@ class AdminDashboardState extends State<AdminDashboard> {
                           'Sales Report',
                           style: TextStyle(color: Colors.black),
                         ),
+=======
+                        title: Text('Product Management', style: TextStyle(color: Colors.black)),
+                        onTap: () => _selectPage(ProductManagement()),
+                      ),
+                      ListTile(
+                        title: Text('Business Details', style: TextStyle(color: Colors.black)),
+                        onTap: () => _selectPage(BusinessDetailsForm()),
+                      ),
+                      ListTile(
+                        title: Text('User Management', style: TextStyle(color: Colors.black)),
+                        onTap: () => _selectPage(UserManagement()),
+                      ),
+                      ListTile(
+                        title: Text('Sales Report', style: TextStyle(color: Colors.black)),
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
                         onTap: () => _selectPage(SalesReport()),
                       ),
                       Spacer(),
                       ListTile(
+<<<<<<< HEAD
                         title: Text(
                           'Log Out',
                           style: TextStyle(color: Colors.black),
@@ -100,6 +117,13 @@ class AdminDashboardState extends State<AdminDashboard> {
                             MaterialPageRoute(
                               builder: (context) => LoginPage(),
                             ),
+=======
+                        title: Text('Log Out', style: TextStyle(color: Colors.black)),
+                        onTap: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => LoginPage()),
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
                           );
                         },
                       ),
@@ -110,6 +134,7 @@ class AdminDashboardState extends State<AdminDashboard> {
                 Expanded(
                   child: Container(
                     color: Colors.white,
+<<<<<<< HEAD
                     child: Column(
                       children: [
                         Expanded(child: _selectedPage),
@@ -160,6 +185,9 @@ class AdminDashboardState extends State<AdminDashboard> {
                           ),
                       ],
                     ),
+=======
+                    child: _selectedPage,
+>>>>>>> 1965fe9401bb27d4ae63f0637ac354a6032385ea
                   ),
                 ),
               ],
