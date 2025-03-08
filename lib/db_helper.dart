@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_print
 
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:developer'; // For log
 import 'package:mutex/mutex.dart'; // Add mutex dependency
@@ -15,6 +15,51 @@ class DBHelper {
   final Mutex _dbMutex = Mutex(); // Add a mutex for thread safety
   final Logger _logger = Logger(); // Add this line
 
+  Future<void> initializeDatabase() async {
+    if (_database != null) return;
+
+    _database = await openDatabase(
+      join(await getDatabasesPath(), 'product_database.db'),
+      onCreate: (db, version) async {
+        await db.execute(
+          'CREATE TABLE categories(id INTEGER PRIMARY KEY, name TEXT)',
+        );
+        await db.execute(
+          'CREATE TABLE sub_categories(id INTEGER PRIMARY KEY, name TEXT, category TEXT)',
+        );
+        await db.execute(
+          'CREATE TABLE products(id INTEGER PRIMARY KEY, name TEXT, category TEXT, sub_category TEXT)',
+        );
+      },
+      version: 1,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> fetchCategories() async {
+    return await _database!.query('categories');
+  }
+
+  Future<List<Map<String, dynamic>>> getSubCategoriesByCategory(
+    String category,
+  ) async {
+    return await _database!.query(
+      'sub_categories',
+      where: 'category = ?',
+      whereArgs: [category],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getProducts(
+    String category,
+    String subCategory,
+  ) async {
+    return await _database!.query(
+      'products',
+      where: 'category = ? AND sub_category = ?',
+      whereArgs: [category, subCategory],
+    );
+  }
+
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
@@ -22,9 +67,6 @@ class DBHelper {
   }
 
   Future<Database> _initDatabase() async {
-    sqfliteFfiInit();
-    databaseFactory =
-        databaseFactoryFfi; // Ensure this is called before using openDatabase
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'my_database.db');
 
@@ -340,7 +382,7 @@ class DBHelper {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getProducts() async {
+  Future<List<Map<String, dynamic>>> fetchAllProducts() async {
     await _dbMutex.acquire();
     try {
       Database db = await database;
