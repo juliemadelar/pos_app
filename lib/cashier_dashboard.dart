@@ -612,25 +612,35 @@ class CashierDashboardState extends State<CashierDashboard> {
         int productId = product['id'];
 
         // Log sizes
-        if (product['sizes'] != null &&
-            product['sizes'] is List &&
-            (product['sizes'] as List).isNotEmpty) {
-          // Sizes fetched successfully
-        } else {
-          _logger.info(
-            "Product ${product['name']} has no sizes",
-          ); // Use logger instead of print
+        try {
+          if (product['sizes'] != null &&
+              product['sizes'] is List &&
+              (product['sizes'] as List).isNotEmpty) {
+            // Sizes fetched successfully
+          } else {
+            _logger.info(
+              "Product ${product['name']} has no sizes",
+            ); // Use logger instead of print
+          }
+        } catch (e) {
+          _logger.severe('Error querying sizes for product ID $productId: $e');
         }
 
         // Log add-ins
-        if (product['addIns'] != null &&
-            product['addIns'] is List &&
-            (product['addIns'] as List).isNotEmpty) {
-          // Add-ins fetched successfully
-        } else {
-          _logger.info(
-            "Product ${product['name']} has no add-ins",
-          ); // Use logger instead of print
+        try {
+          if (product['addIns'] != null &&
+              product['addIns'] is List &&
+              (product['addIns'] as List).isNotEmpty) {
+            // Add-ins fetched successfully
+          } else {
+            _logger.info(
+              "Product ${product['name']} has no add-ins",
+            ); // Use logger instead of print
+          }
+        } catch (e) {
+          _logger.severe(
+            'Error querying add-ins for product ID $productId: $e',
+          );
         }
       }
 

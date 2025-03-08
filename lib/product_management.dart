@@ -12,6 +12,8 @@ class ProductManagement extends StatefulWidget {
 
 class ProductManagementState extends State<ProductManagement> {
   List<String> categories = [];
+  Map<String, List<String>> subCategories = {};
+  Map<String, List<String>> products = {};
   Database? _database;
   final Logger _logger = Logger('ProductManagement');
 
@@ -48,6 +50,10 @@ class ProductManagementState extends State<ProductManagement> {
       setState(() {
         categories = fetchedCategories;
       });
+
+      for (String category in categories) {
+        fetchSubCategories(category);
+      }
     } catch (e) {
       if (e is UnsupportedError) {
         _logger.severe('Error querying categories: ${e.message}');
@@ -57,13 +63,30 @@ class ProductManagementState extends State<ProductManagement> {
     }
   }
 
-  Future<void> fetchSizesForProduct(int productId) async {
+  Future<void> fetchSubCategories(String category) async {
     try {
-      // Query sizes for the product
+      // Query sub-categories for the category
+      final List<Map<String, dynamic>> maps = await _database!.query(
+        'sub_categories',
+        where: 'category = ?',
+        whereArgs: [category],
+      );
+
+      List<String> fetchedSubCategories = List.generate(maps.length, (i) {
+        return maps[i]['name'];
+      });
+
+      setState(() {
+        subCategories[category] = fetchedSubCategories;
+      });
+
+      for (String subCategory in fetchedSubCategories) {
+        fetchProducts(subCategory);
+      }
     } catch (e) {
       if (e is UnsupportedError) {
         _logger.severe(
-          'Error querying sizes for product ID $productId: ${e.message}',
+          'Error querying sub-categories for category $category: ${e.message}',
         );
       } else {
         rethrow;
@@ -71,13 +94,26 @@ class ProductManagementState extends State<ProductManagement> {
     }
   }
 
-  Future<void> fetchAddInsForProduct(int productId) async {
+  Future<void> fetchProducts(String subCategory) async {
     try {
-      // Query add-ins for the product
+      // Query products for the sub-category
+      final List<Map<String, dynamic>> maps = await _database!.query(
+        'products',
+        where: 'sub_category = ?',
+        whereArgs: [subCategory],
+      );
+
+      List<String> fetchedProducts = List.generate(maps.length, (i) {
+        return maps[i]['name'];
+      });
+
+      setState(() {
+        products[subCategory] = fetchedProducts;
+      });
     } catch (e) {
       if (e is UnsupportedError) {
         _logger.severe(
-          'Error querying add-ins for product ID $productId: ${e.message}',
+          'Error querying products for sub-category $subCategory: ${e.message}',
         );
       } else {
         rethrow;
@@ -94,12 +130,30 @@ class ProductManagementState extends State<ProductManagement> {
             categories.isNotEmpty
                 ? TabBarView(
                   children:
-                      categories
-                          .map(
-                            (category) =>
-                                Center(child: Text('$category Content')),
-                          )
-                          .toList(),
+                      categories.map((category) {
+                        return Column(
+                          children: [
+                            Text('$category Content'),
+                            Expanded(
+                              child: ListView.builder(
+                                itemCount: subCategories[category]?.length ?? 0,
+                                itemBuilder: (context, index) {
+                                  String subCategory =
+                                      subCategories[category]![index];
+                                  return ExpansionTile(
+                                    title: Text(subCategory),
+                                    children:
+                                        products[subCategory]?.map((product) {
+                                          return ListTile(title: Text(product));
+                                        }).toList() ??
+                                        [],
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
                 )
                 : Center(child: CircularProgressIndicator()),
       ),
