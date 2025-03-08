@@ -19,177 +19,128 @@ class UserManagementState extends State<UserManagement> {
   final Logger _logger = Logger();
   final TextEditingController _roleController =
       TextEditingController(); // Add this line
+  bool _userAdded = false; // Add this line
+  bool _isAddingUser = false; // Add this line
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // Remove the AppBar
-      body: SingleChildScrollView(
-        // Wrap content in SingleChildScrollView
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey, // Wrap with Form widget
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Admin Details Header
-              Text(
-                'Admin Details',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              // Admin Details Row
-              Row(
-                children: [
-                  Expanded(child: Text('Admin Username: admin')),
-                  Expanded(
-                    child: Text('Admin Password: ******'), // Masked password
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-              // Cashier Details Header
-              Text(
-                'Cashier Details',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              // Cashier Details and List Columns
-              Row(
-                children: [
-                  // Column 1: Cashier Details Form
-                  Expanded(
-                    child: Column(
-                      children: [
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Cashier Name',
-                          ),
-                          validator:
-                              (value) =>
-                                  value == null || value.isEmpty
-                                      ? 'Please enter a name'
-                                      : null,
-                        ),
-                        TextFormField(
-                          controller: _usernameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Cashier Username',
-                          ),
-                          validator:
-                              (value) =>
-                                  value == null || value.isEmpty
-                                      ? 'Please enter a username'
-                                      : null,
-                        ),
-                        TextFormField(
-                          controller: _passwordController,
-                          decoration: const InputDecoration(
-                            labelText: 'Cashier Password',
-                          ),
-                          obscureText: true,
-                          validator:
-                              (value) =>
-                                  value == null || value.isEmpty
-                                      ? 'Please enter a password'
-                                      : null,
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            ElevatedButton(
-                              onPressed: _addUser,
-                              child: const Text('Add User'),
-                            ),
-                            const SizedBox(width: 10),
-                            ElevatedButton(
-                              onPressed: _editCashier,
-                              child: const Text('Edit'),
-                            ),
-                            const SizedBox(width: 10),
-                            ElevatedButton(
-                              onPressed: _deleteCashier,
-                              child: const Text('Delete'),
-                            ),
-                          ],
-                        ),
-                      ],
+    if (_userAdded) {
+      return Scaffold(body: Center(child: Text('User added successfully!')));
+    } else if (_isAddingUser) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ); // Show loading indicator
+    } else {
+      return Scaffold(
+        // Remove the AppBar
+        body: SingleChildScrollView(
+          // Wrap content in SingleChildScrollView
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey, // Wrap with Form widget
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Admin Details Header
+                Text(
+                  'Admin Details',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 10),
+                // Admin Details Row
+                Row(
+                  children: [
+                    Expanded(child: Text('Admin Username: admin')),
+                    Expanded(
+                      child: Text('Admin Password: ******'), // Masked password
                     ),
-                  ),
-                  SizedBox(width: 20),
-                  // Column 2: Cashier List Table
-                  Expanded(
-                    child: FutureBuilder<List<Map<String, dynamic>>>(
-                      future: _getCashierDetails(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return CircularProgressIndicator();
-                        } else if (snapshot.hasError) {
-                          return Text('Error: ${snapshot.error}');
-                        } else if (!snapshot.hasData ||
-                            snapshot.data!.isEmpty) {
-                          return Text('No cashiers found.');
-                        } else {
-                          return DataTable(
-                            columns: [
-                              DataColumn(label: Text('Name')),
-                              DataColumn(label: Text('Username')),
-                              DataColumn(label: Text('Password')),
-                              DataColumn(label: Text('Actions')),
-                            ],
-                            rows:
-                                snapshot.data!.map((cashier) {
-                                  return DataRow(
-                                    cells: [
-                                      DataCell(Text(cashier['name'] ?? 'N/A')),
-                                      DataCell(
-                                        Text(cashier['username'] ?? 'N/A'),
-                                      ),
-                                      DataCell(
-                                        Text('******'),
-                                      ), // Masked password
-                                      DataCell(
-                                        Row(
-                                          children: [
-                                            ElevatedButton(
-                                              onPressed:
-                                                  () => _updateUser(cashier),
-                                              child: Text('Edit'),
-                                            ),
-                                            SizedBox(width: 10),
-                                            ElevatedButton(
-                                              onPressed:
-                                                  () => _deleteUser(
-                                                    cashier['username'],
-                                                  ),
-                                              child: Text('Delete'),
-                                            ),
-                                          ],
+                  ],
+                ),
+                SizedBox(height: 20),
+                // Cashier Details Header
+                Text(
+                  'Cashier Details',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 10),
+                // Cashier Details and List Columns
+                Row(
+                  children: [
+                    // Column 2: Cashier List Table
+                    Expanded(
+                      child: FutureBuilder<List<Map<String, dynamic>>>(
+                        future: _getCashierDetails(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return CircularProgressIndicator();
+                          } else if (snapshot.hasError) {
+                            return Text('Error: ${snapshot.error}');
+                          } else if (!snapshot.hasData ||
+                              snapshot.data!.isEmpty) {
+                            return Text('No cashiers found.');
+                          } else {
+                            return DataTable(
+                              columns: [
+                                DataColumn(label: Text('Name')),
+                                DataColumn(label: Text('Username')),
+                                DataColumn(label: Text('Password')),
+                                DataColumn(label: Text('Actions')),
+                              ],
+                              rows:
+                                  snapshot.data!.map((cashier) {
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(
+                                          Text(cashier['name'] ?? 'N/A'),
                                         ),
-                                      ),
-                                    ],
-                                  );
-                                }).toList(),
-                          );
-                        }
-                      },
+                                        DataCell(
+                                          Text(cashier['username'] ?? 'N/A'),
+                                        ),
+                                        DataCell(
+                                          Text('******'),
+                                        ), // Masked password
+                                        DataCell(
+                                          Row(
+                                            children: [
+                                              ElevatedButton(
+                                                onPressed:
+                                                    () => _updateUser(cashier),
+                                                child: Text('Edit'),
+                                              ),
+                                              SizedBox(width: 10),
+                                              ElevatedButton(
+                                                onPressed:
+                                                    () => _deleteUser(
+                                                      cashier['username'],
+                                                    ),
+                                                child: Text('Delete'),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                            );
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-              // Save Changes Button
-              ElevatedButton(
-                onPressed: _saveChanges,
-                child: Text('Save Changes'),
-              ),
-            ],
+                  ],
+                ),
+                SizedBox(height: 20),
+                // Add User Button
+                ElevatedButton(
+                  onPressed: _showAddUserDialog,
+                  child: Text('Add User'),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   @override
@@ -215,6 +166,9 @@ class UserManagementState extends State<UserManagement> {
     if (_formKey.currentState!.validate()) {
       // Validate form
       try {
+        setState(() {
+          _isAddingUser = true; // Set loading state
+        });
         await _dbHelper.addUser(
           _nameController.text,
           _usernameController.text,
@@ -224,52 +178,20 @@ class UserManagementState extends State<UserManagement> {
         _logger.i('User added: ${_usernameController.text}');
         _clearControllers();
         if (mounted) {
-          setState(() {}); // Refresh the UI after adding the user.
+          setState(() {
+            _userAdded = true; // Set user added to true
+            _isAddingUser = false; // Reset loading state
+          });
         }
       } catch (e) {
         _logger.e('Error adding user: $e');
         if (mounted) {
+          setState(() {
+            _isAddingUser = false; // Reset loading state
+          });
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Error adding user: $e')));
-        }
-      }
-    }
-  }
-
-  Future<void> _deleteCashier() async {
-    try {
-      await _dbHelper.deleteUser(_usernameController.text);
-      _logger.i('User deleted: ${_usernameController.text}');
-      _clearControllers();
-      if (mounted) {
-        setState(() {});
-      }
-    } catch (e) {
-      _logger.e('Error deleting user: $e');
-      if (mounted) {
-        _showErrorSnackBar(context, 'Error deleting user: $e');
-      }
-    }
-  }
-
-  Future<void> _editCashier() async {
-    if (_formKey.currentState!.validate()) {
-      // Validate form
-      try {
-        await _dbHelper.updateUser(_usernameController.text, {
-          'name': _nameController.text,
-          'password': _passwordController.text,
-        });
-        _logger.i('User updated: ${_usernameController.text}');
-        _clearControllers();
-        if (mounted) {
-          setState(() {});
-        }
-      } catch (e) {
-        _logger.e('Error updating user: $e');
-        if (mounted) {
-          _showErrorSnackBar(context, 'Error updating user: $e');
         }
       }
     }
@@ -353,17 +275,30 @@ class UserManagementState extends State<UserManagement> {
     return await db.query('users', where: 'role = ?', whereArgs: ['cashier']);
   }
 
-  void _saveChanges() {
-    // Implement the save changes functionality
-    _logger.i('Changes saved');
-  }
-
-  void _showErrorSnackBar(BuildContext context, String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
-    }
+  void _showAddUserDialog() {
+    if (!mounted) return; // Check if mounted
+    showDialog(
+      context: context,
+      builder: (context) {
+        return _UserFormDialog(
+          nameController: _nameController,
+          usernameController: _usernameController,
+          passwordController: _passwordController,
+          roleController: _roleController..text = 'cashier', // Default role
+          onSave: () async {
+            Navigator.of(
+              context,
+            ).pop(); // Close the dialog before starting async operation
+            await _addUser();
+          },
+          onCancel: () {
+            if (mounted) {
+              Navigator.of(context).pop();
+            }
+          },
+        );
+      },
+    );
   }
 }
 

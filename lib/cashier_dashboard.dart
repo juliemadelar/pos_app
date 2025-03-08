@@ -46,7 +46,18 @@ class CashierDashboardState extends State<CashierDashboard> {
                       height: 100,
                     ),
                 SizedBox(width: 10), // Adjust spacing between logo and name
-                Text(businessName), // Business name
+                Text(
+                  businessName, // Business name
+                  style: TextStyle(
+                    shadows: [
+                      Shadow(
+                        offset: Offset(2.0, 2.0),
+                        blurRadius: 3.0,
+                        color: Color.fromARGB(128, 0, 0, 0),
+                      ),
+                    ],
+                  ),
+                ),
                 SizedBox(
                   width: 40,
                 ), // Adjust spacing between name and search box
@@ -130,7 +141,7 @@ class CashierDashboardState extends State<CashierDashboard> {
                                                     width:
                                                         double
                                                             .infinity, // Use maximum width of the left column
-                                                    height: 100,
+                                                    height: 120,
                                                     decoration: BoxDecoration(
                                                       borderRadius:
                                                           BorderRadius.circular(
@@ -169,11 +180,25 @@ class CashierDashboardState extends State<CashierDashboard> {
                                                       child: Text(
                                                         subCategory['name'],
                                                         style: TextStyle(
-                                                          fontSize:
-                                                              20, // Increase font size
+                                                          fontSize: 24, //
+                                                          color: Colors.white,
                                                           overflow:
                                                               TextOverflow
                                                                   .ellipsis, // Prevent overflow
+                                                          shadows: [
+                                                            Shadow(
+                                                              offset: Offset(
+                                                                2.0,
+                                                                2.0,
+                                                              ),
+                                                              blurRadius: 3.0,
+                                                              color: Colors
+                                                                  .black
+                                                                  .withAlpha(
+                                                                    128,
+                                                                  ),
+                                                            ),
+                                                          ],
                                                         ),
                                                       ),
                                                     ),

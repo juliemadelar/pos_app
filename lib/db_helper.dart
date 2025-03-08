@@ -450,6 +450,7 @@ class DBHelper {
         'username': username,
         'password': password,
         'role': role,
+        'name': name, // Add this line to save the name
       });
     } finally {
       _dbMutex.release();
@@ -484,15 +485,28 @@ class DBHelper {
   Future<void> updateBusinessDetail(String detail, String value) async {
     final db = await database;
     try {
-      await db.update(
+      var result = await db.query(
         'business_details',
-        {'value': value},
         where: 'detail = ?',
         whereArgs: [detail],
       );
-      _logger.i('Updated $detail to $value'); // Add logging
+
+      if (result.isEmpty) {
+        // Insert if the row doesn't exist
+        await db.insert('business_details', {'detail': detail, 'value': value});
+        _logger.i('Inserted new business detail: $detail = $value');
+      } else {
+        // Update if the row exists
+        await db.update(
+          'business_details',
+          {'value': value},
+          where: 'detail = ?',
+          whereArgs: [detail],
+        );
+        _logger.i('Updated business detail: $detail = $value');
+      }
     } catch (e) {
-      _logger.e('Error updating $detail: $e'); // Add logging
+      _logger.e('Error updating/inserting $detail: $e');
     }
   }
 
@@ -594,7 +608,7 @@ class DBHelper {
     final int coldCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Cold Coffee',
-      'assets/icedcoffee_default.jpg',
+      'assets/cold_brew.jpg',
       drinksCategoryId,
     );
     final int milkTeaSubCategoryId = await _insertSubCategoryIfNotExists(
@@ -643,7 +657,7 @@ class DBHelper {
     final int icedAmericanoProductId = await _insertProductIfNotExists(
       db,
       'Iced Americano',
-      'assets/iced-Coffee.png',
+      'assets/iced_coffee.jpg',
       coldCoffeeSubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Small', 70.00, icedAmericanoProductId);
@@ -665,7 +679,7 @@ class DBHelper {
     final int icedMochaProductId = await _insertProductIfNotExists(
       db,
       'Iced Mocha',
-      'assets/iced mocha.png',
+      'assets/iced_mocha.png',
       coldCoffeeSubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Small', 80.00, icedMochaProductId);
@@ -688,7 +702,7 @@ class DBHelper {
     final int classicMilkTeaProductId = await _insertProductIfNotExists(
       db,
       'Classic Milk Tea',
-      'path/to/classic_milk_tea_image.png',
+      'assets/classic_milktea.jpg',
       milkTeaSubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Regular', 85.00, classicMilkTeaProductId);
@@ -742,7 +756,7 @@ class DBHelper {
     final int sandwichesSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Sandwiches',
-      'assets/sandwich_default.png',
+      'assets/sandwich_default.jpg',
       foodCategoryId,
     );
 
@@ -784,7 +798,7 @@ class DBHelper {
     final int merchandiseSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Merchandise',
-      'assets/keychain.png',
+      'assets/keychain.jpg',
       otherCategoryId,
     );
 
@@ -959,7 +973,7 @@ class DBHelper {
         'username': username,
         'password': password,
         'role': role,
-        'name': name,
+        'name': name, // Add this line to save the name
       });
     }
   }

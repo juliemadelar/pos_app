@@ -84,96 +84,39 @@ class BusinessDetailsFormState extends State<BusinessDetailsForm> {
 
   void _saveBusinessDetails() async {
     try {
-      _logger.i('Attempting to save business details'); // Add debug log
-      _logger.i(
-        'Saving Business Name: ${_businessNameController.text}',
-      ); // Use logger
-      await _dbHelper.updateBusinessDetail(
-        'name',
-        _businessNameController.text,
-      );
-      _logger.i(
-        'Saving Business Address: ${_businessAddressController.text}',
-      ); // Use logger
-      await _dbHelper.updateBusinessDetail(
-        'address',
-        _businessAddressController.text,
-      );
-      _logger.i(
-        'Saving Business Contact: ${_businessContactController.text}',
-      ); // Use logger
-      await _dbHelper.updateBusinessDetail(
-        'contact',
-        _businessContactController.text,
-      );
-      _logger.i(
-        'Saving Business Tax ID: ${_businessTaxIdController.text}',
-      ); // Use logger
-      await _dbHelper.updateBusinessDetail(
-        'tax_id',
-        _businessTaxIdController.text,
-      );
-      _logger.i(
-        'Saving Business Logo: ${_businessLogo ?? 'assets/logo.png'}',
-      ); // Use logger
-      await _dbHelper.updateBusinessDetail(
-        'logo',
-        _businessLogo ?? 'assets/logo.png',
-      );
-      _logger.i(
-        'Saving Senior Discount: ${_seniorCitizenController.text}',
-      ); // Use logger
-      await _dbHelper.updateBusinessDetail(
-        'senior_discount',
-        _seniorCitizenController.text,
-      );
-      _logger.i('Saving PWD Discount: ${_pwdController.text}'); // Use logger
-      await _dbHelper.updateBusinessDetail('pwd_discount', _pwdController.text);
-      _logger.i(
-        'Saving Other Discount: ${_otherController.text}',
-      ); // Use logger
-      await _dbHelper.updateBusinessDetail(
-        'other_discount',
-        _otherController.text,
-      );
-      _logger.i('Saving Currency: $_selectedCurrency'); // Use logger
-      await _dbHelper.updateBusinessDetail('currency', _selectedCurrency);
+      _logger.i('Attempting to save business details');
+      await Future.wait([
+        _dbHelper.updateBusinessDetail('name', _businessNameController.text),
+        _dbHelper.updateBusinessDetail(
+          'address',
+          _businessAddressController.text,
+        ),
+        _dbHelper.updateBusinessDetail(
+          'contact',
+          _businessContactController.text,
+        ),
+        _dbHelper.updateBusinessDetail('tax_id', _businessTaxIdController.text),
+        _dbHelper.updateBusinessDetail(
+          'logo',
+          _businessLogo ?? 'assets/logo.png',
+        ),
+        _dbHelper.updateBusinessDetail(
+          'senior_discount',
+          _seniorCitizenController.text,
+        ),
+        _dbHelper.updateBusinessDetail('pwd_discount', _pwdController.text),
+        _dbHelper.updateBusinessDetail('other_discount', _otherController.text),
+        _dbHelper.updateBusinessDetail('currency', _selectedCurrency),
+      ]);
 
       if (mounted) {
-        // Add mounted check
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Business details saved successfully!')),
         );
-
-        // Verify database update
-        final name = await _dbHelper.getBusinessDetail('name');
-        final address = await _dbHelper.getBusinessDetail('address');
-        final contact = await _dbHelper.getBusinessDetail('contact');
-        final taxId = await _dbHelper.getBusinessDetail('tax_id');
-        final logo = await _dbHelper.getBusinessDetail('logo');
-        final seniorDiscount = await _dbHelper.getBusinessDetail(
-          'senior_discount',
-        );
-        final pwdDiscount = await _dbHelper.getBusinessDetail('pwd_discount');
-        final otherDiscount = await _dbHelper.getBusinessDetail(
-          'other_discount',
-        );
-        final currency = await _dbHelper.getBusinessDetail('currency');
-
-        _logger.i('Verified Business Name: $name');
-        _logger.i('Verified Business Address: $address');
-        _logger.i('Verified Business Contact: $contact');
-        _logger.i('Verified Business Tax ID: $taxId');
-        _logger.i('Verified Business Logo: $logo');
-        _logger.i('Verified Senior Discount: $seniorDiscount');
-        _logger.i('Verified PWD Discount: $pwdDiscount');
-        _logger.i('Verified Other Discount: $otherDiscount');
-        _logger.i('Verified Currency: $currency');
       }
     } catch (e) {
-      _logger.e('Error saving changes: $e'); // Use logger
+      _logger.e('Error saving changes: $e');
       if (mounted) {
-        // Add mounted check
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error saving business details: $e')),
         );
