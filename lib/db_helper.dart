@@ -548,6 +548,12 @@ class DBHelper {
       }
 
       return products;
+    } catch (e) {
+      if (e is UnsupportedError && e.message == 'read-only') {
+        throw Exception('Database is in read-only mode');
+      } else {
+        rethrow; // Re-throw to let the calling function handle the error.
+      }
     } finally {
       _dbMutex.release(); // Release mutex after operation
     }
@@ -698,7 +704,7 @@ class DBHelper {
     final int wintermelonMilkTeaProductId = await _insertProductIfNotExists(
       db,
       'Wintermelon Milk Tea',
-      'path/to/wintermelon_milk_tea_image.png',
+      'assets/cold_milktea_wintermelon.png',
       milkTeaSubCategoryId,
     );
     await _insertSizeIfNotExists(
@@ -730,13 +736,13 @@ class DBHelper {
     final int pastrySubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Pastry',
-      'path/to/pastry_image.png',
+      'assets/pastry_default.png',
       foodCategoryId,
     );
     final int sandwichesSubCategoryId = await _insertSubCategoryIfNotExists(
       db,
       'Sandwiches',
-      'path/to/sandwiches_image.png',
+      'assets/sandwich_default.png',
       foodCategoryId,
     );
 

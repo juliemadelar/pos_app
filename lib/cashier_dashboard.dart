@@ -67,7 +67,7 @@ class CashierDashboardState extends State<CashierDashboard> {
               ],
             ),
             // Right Corner
-            Text(cashierName), // Cashier name
+            Text(cashierName), // Display cashier name
           ],
         ),
       ),
@@ -140,7 +140,9 @@ class CashierDashboardState extends State<CashierDashboard> {
                                                         image: FileImage(
                                                           File(
                                                             subCategory['image'] ??
-                                                                'assets/logo.png',
+                                                                _getDefaultImage(
+                                                                  subCategory['id'],
+                                                                ),
                                                           ),
                                                         ),
                                                         onError: (
@@ -169,9 +171,9 @@ class CashierDashboardState extends State<CashierDashboard> {
                                                         style: TextStyle(
                                                           fontSize:
                                                               20, // Increase font size
-                                                          color: Colors.white,
-                                                          backgroundColor:
-                                                              Colors.black54,
+                                                          overflow:
+                                                              TextOverflow
+                                                                  .ellipsis, // Prevent overflow
                                                         ),
                                                       ),
                                                     ),
@@ -427,7 +429,7 @@ class CashierDashboardState extends State<CashierDashboard> {
   String businessAddress = '';
   String businessContact = '';
   String businessTaxId = '';
-  String cashierName = '';
+  String cashierName = ''; // Initialize cashierName
   List<Map<String, dynamic>> _categories = [];
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _subCategories = [];
@@ -494,10 +496,13 @@ class CashierDashboardState extends State<CashierDashboard> {
 
   Future<void> _loadCashierName() async {
     try {
-      var user = await _dbHelper.getUserByUsername('cashier');
+      var user = await _dbHelper.getUserByUsername(
+        'cashier',
+      ); // Fetch cashier details
       if (user != null) {
-        cashierName = user['name'];
-        setState(() {});
+        setState(() {
+          cashierName = user['name']; // Set cashier name
+        });
       }
     } catch (e) {
       _logger.severe('Error loading cashier name: $e');
@@ -933,5 +938,22 @@ class CashierDashboardState extends State<CashierDashboard> {
         );
       },
     );
+  }
+
+  String _getDefaultImage(int subCategoryId) {
+    switch (subCategoryId) {
+      case 1:
+        return 'assets/hotcoffee_default.png';
+      case 2:
+        return 'assets/icedcoffee_default.jpg';
+      case 3:
+        return 'assets/pastry_default.png';
+      case 4:
+        return 'assets/sandwich_default.png';
+      case 5:
+        return 'assets/merchandise_default.png';
+      default:
+        return 'assets/logo.png';
+    }
   }
 }
