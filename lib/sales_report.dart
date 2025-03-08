@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'sales_data.dart'; // Import sales data
 
 class SalesReport extends StatefulWidget {
+  const SalesReport({super.key});
+
   @override
-  _SalesReportState createState() => _SalesReportState();
+  SalesReportState createState() => SalesReportState();
 }
 
-class _SalesReportState extends State<SalesReport> {
+class SalesReportState extends State<SalesReport> {
   DateTimeRange? dateRange;
   String? selectedUsername;
 
@@ -16,13 +18,10 @@ class _SalesReportState extends State<SalesReport> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-        automaticallyImplyLeading: false, // Remove the back button
+          automaticallyImplyLeading: false, // Remove the back button
           title: Text('Sales Report'),
           bottom: TabBar(
-            tabs: [
-              Tab(text: 'By Date Range'),
-              Tab(text: 'By Username'),
-            ],
+            tabs: [Tab(text: 'By Date Range'), Tab(text: 'By Username')],
           ),
         ),
         body: TabBarView(
@@ -48,14 +47,20 @@ class _SalesReportState extends State<SalesReport> {
                     child: Text('Select Date Range'),
                   ),
                   if (dateRange != null)
-                    Text('Selected range: ${dateRange!.start} - ${dateRange!.end}'),
+                    Text(
+                      'Selected range: ${dateRange!.start} - ${dateRange!.end}',
+                    ),
                   Expanded(
                     child: ListView.builder(
-                      itemCount: SalesData.getSalesByDateRange(dateRange).length,
+                      itemCount:
+                          SalesData.getSalesByDateRange(dateRange).length,
                       itemBuilder: (context, index) {
-                        final sale = SalesData.getSalesByDateRange(dateRange)[index];
+                        final sale =
+                            SalesData.getSalesByDateRange(dateRange)[index];
                         return ListTile(
-                          title: Text('Date: ${sale.date}, Amount: \$${sale.amount}'),
+                          title: Text(
+                            'Date: ${sale.date}, Amount: \$${sale.amount}',
+                          ),
                         );
                       },
                     ),
@@ -71,12 +76,13 @@ class _SalesReportState extends State<SalesReport> {
                   DropdownButton<String>(
                     hint: Text('Select Username'),
                     value: selectedUsername,
-                    items: SalesData.usernames.map((username) {
-                      return DropdownMenuItem<String>(
-                        value: username,
-                        child: Text(username),
-                      );
-                    }).toList(),
+                    items:
+                        SalesData.usernames.map((username) {
+                          return DropdownMenuItem<String>(
+                            value: username,
+                            child: Text(username),
+                          );
+                        }).toList(),
                     onChanged: (value) {
                       setState(() {
                         selectedUsername = value;
@@ -100,14 +106,26 @@ class _SalesReportState extends State<SalesReport> {
                       child: Text('Select Date Range'),
                     ),
                   if (dateRange != null)
-                    Text('Selected range: ${dateRange!.start} - ${dateRange!.end}'),
+                    Text(
+                      'Selected range: ${dateRange!.start} - ${dateRange!.end}',
+                    ),
                   Expanded(
                     child: ListView.builder(
-                      itemCount: SalesData.getSalesByUsernameAndDateRange(selectedUsername, dateRange).length,
+                      itemCount:
+                          SalesData.getSalesByUsernameAndDateRange(
+                            selectedUsername,
+                            dateRange,
+                          ).length,
                       itemBuilder: (context, index) {
-                        final sale = SalesData.getSalesByUsernameAndDateRange(selectedUsername, dateRange)[index];
+                        final sale =
+                            SalesData.getSalesByUsernameAndDateRange(
+                              selectedUsername,
+                              dateRange,
+                            )[index];
                         return ListTile(
-                          title: Text('Date: ${sale.date}, Amount: \$${sale.amount}'),
+                          title: Text(
+                            'Date: ${sale.date}, Amount: \$${sale.amount}',
+                          ),
                         );
                       },
                     ),

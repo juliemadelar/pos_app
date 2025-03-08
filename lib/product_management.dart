@@ -120,42 +120,49 @@ class ProductManagementState extends State<ProductManagement>
       builder: (context) {
         return AlertDialog(
           title: Text(title),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller, // Updated reference
-                decoration: InputDecoration(labelText: 'New Value'),
-              ),
-              if (isSubCategory || isProduct) ...[
-                SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: () async {
-                    final pickedFile = await ImagePicker().pickImage(
-                      source: ImageSource.gallery,
-                    );
-                    if (pickedFile != null) {
-                      setState(() {
-                        imagePath = pickedFile.path; // Updated reference
-                      });
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Selected image: ${pickedFile.path}'),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  child: Text('Pick Image'),
+          content: SingleChildScrollView(
+            // Wrap with SingleChildScrollView
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller, // Updated reference
+                  decoration: InputDecoration(labelText: 'New Value'),
                 ),
-                if (imagePath != null &&
-                    File(imagePath!).existsSync()) // Updated reference
-                  Image.file(File(imagePath!)) // Updated reference
-                else
-                  Image.asset('assets/logo.png'),
+                if (isSubCategory || isProduct) ...[
+                  SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final pickedFile = await ImagePicker().pickImage(
+                        source: ImageSource.gallery,
+                      );
+                      if (pickedFile != null) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          setState(() {
+                            imagePath = pickedFile.path; // Updated reference
+                          });
+                        });
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Selected image: ${pickedFile.path}',
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: Text('Pick Image'),
+                  ),
+                  if (imagePath != null &&
+                      File(imagePath!).existsSync()) // Updated reference
+                    Image.file(File(imagePath!)) // Updated reference
+                  else
+                    Image.asset('assets/logo.png'),
+                ],
               ],
-            ],
+            ),
           ),
           actions: [
             TextButton(
@@ -507,7 +514,7 @@ class ProductManagementState extends State<ProductManagement>
                         child: Text(subCategory['name']),
                       ),
                     ),
-                    Container(
+                    SizedBox(
                       width: 300,
                       height: 300,
                       child: Image.file(
@@ -613,7 +620,7 @@ class ProductManagementState extends State<ProductManagement>
                         child: Text(_products[index]['name']),
                       ),
                     ),
-                    Container(
+                    SizedBox(
                       width: 300,
                       height: 300,
                       child: Image.file(

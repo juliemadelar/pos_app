@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'db_helper.dart'; // Import DBHelper
 
 class UserManagement extends StatefulWidget {
+  const UserManagement({super.key});
+
   @override
-  _UserManagementState createState() => _UserManagementState();
+  UserManagementState createState() => UserManagementState();
 }
 
-class _UserManagementState extends State<UserManagement> {
+class UserManagementState extends State<UserManagement> {
   final DBHelper _dbHelper = DBHelper();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
@@ -41,7 +43,7 @@ class _UserManagementState extends State<UserManagement> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-      automaticallyImplyLeading: false, // Remove the back button
+        automaticallyImplyLeading: false, // Remove the back button
         title: Text('User Management'),
       ),
       body: Padding(
@@ -52,31 +54,21 @@ class _UserManagementState extends State<UserManagement> {
             // Admin Details Header
             Text(
               'Admin Details',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
             // Admin Details Row
             Row(
               children: [
-                Expanded(
-                  child: Text('Admin Username: admin'),
-                ),
-                Expanded(
-                  child: Text('Admin Password: password123'),
-                ),
+                Expanded(child: Text('Admin Username: admin')),
+                Expanded(child: Text('Admin Password: password123')),
               ],
             ),
             SizedBox(height: 20),
             // Cashier Details Header
             Text(
               'Cashier Details',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
             // Cashier Details Row
