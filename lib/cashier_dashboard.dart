@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable, unused_element
+
 import 'package:flutter/material.dart';
 import 'db_helper.dart';
 import 'login_page.dart'; // Import login page
@@ -120,7 +122,25 @@ class _CashierDashboardState extends State<CashierDashboard> {
   Future<void> _loadProductsWithDetails() async {
     try {
       _products = await _dbHelper.getProductsWithDetails();
-      print('Products loaded: $_products'); // Debug statement
+
+      for (var product in _products) {
+        int productId = product['id'];
+
+        // Log sizes
+        if (product['sizes'] != null && product['sizes'] is List && (product['sizes'] as List).isNotEmpty) {
+          // Sizes fetched successfully
+        } else {
+          print("Product ${product['name']} has no sizes");
+        }
+
+        // Log add-ins
+        if (product['addIns'] != null && product['addIns'] is List && (product['addIns'] as List).isNotEmpty) {
+          // Add-ins fetched successfully
+        } else {
+          print("Product ${product['name']} has no add-ins");
+        }
+      }
+
       setState(() {});
     } catch (e) {
       print('Error loading products with details: $e');
@@ -137,14 +157,15 @@ class _CashierDashboardState extends State<CashierDashboard> {
     return _products.where((product) => product['sub_category_id'] == subCategoryId).toList();
   }
 
-  void _updateTotalPrice(Map<String, dynamic> product) {
+  void _updateTotalPrice(Map<String, dynamic> product, String? size) {
     double basePrice = 0.0;
-    if (_selectedSize != null) {
-      final size = (product['sizes'] as List).firstWhere((size) => size['name'] == _selectedSize);
-      basePrice = size['price'];
+    if (size != null) {
+      final sizeData = product['sizes'].firstWhere((s) => s['name'] == size);
+      basePrice = sizeData['price'];
     }
+
     double addInsPrice = _selectedAddIns.fold(0.0, (sum, addInName) {
-      final addIn = (product['addIns'] as List).firstWhere((addIn) => addIn['name'] == addInName);
+      final addIn = product['addIns'].firstWhere((addIn) => addIn['name'] == addInName);
       return sum + addIn['price'];
     });
     setState(() {
@@ -346,11 +367,7 @@ class _CashierDashboardState extends State<CashierDashboard> {
                   flex: 8,
                   child: Container(
                     color: Colors.blue[100],
-                    child: _isLoading
-                        ? Center(child: CircularProgressIndicator()) // Show loading indicator
-                        : _products.isEmpty
-                            ? Center(child: Text('No products available.')) // Show message if no products
-                            : _buildProductList(), // Show all products list
+                    child: Center(child: Text('No content available.')), // Placeholder for middle column
                   ),
                 ),
                 // 25% width column
@@ -518,116 +535,6 @@ class _CashierDashboardState extends State<CashierDashboard> {
                 ),
               ],
             ),
-    );
-  }
-
-  Widget _buildProductList() {
-    if (_selectedSubCategoryId == null) {
-      return Center(child: Text('Select a sub-category.'));
-    }
-
-    final productList = _getProductsBySubCategory(_selectedSubCategoryId!);
-
-    if (productList.isEmpty) {
-      return Center(child: Text('No products available for this sub-category.'));
-    }
-
-    // ... rest of your _buildProductList function
-    return ListView.builder(
-      itemCount: productList.length,
-      itemBuilder: (context, index) {
-        final product = productList[index];
-        return Card(
-          margin: EdgeInsets.all(10),
-          elevation: 5, // Add shadow
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Image.file(
-                      File(product['image']),
-                      width: 80, // Reduce width by 20px
-                    ),
-                    SizedBox(width: 10),
-                    Text(product['name']),
-                    Spacer(),
-                    Column(
-                      children: [
-                        SizedBox(
-                          width: 100, // Provide a finite width constraint
-                          child: TextField(
-                            decoration: InputDecoration(
-                              labelText: 'Quantity',
-                            ),
-                          ),
-                        ),
-                        if (product['sizes'] != null && (product['sizes'] as List).isNotEmpty) 
-                          // Conditional size display
-                          DropdownButton<String>(
-                            hint: Text('Size'),
-                            value: _selectedSize,
-                            items: (product['sizes'] as List).map<DropdownMenuItem<String>>((size) {
-                              return DropdownMenuItem<String>(
-                                value: size['name'],
-                                child: Text(size['name']),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedSize = value;
-                                _updateTotalPrice(product);
-                              });
-                            },
-                          )
-                        else 
-                          Text('No sizes available'), // Indicate if sizes are missing
-                      ],
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10),
-                if (product['addIns'] != null && (product['addIns'] as List).isNotEmpty) // Conditional add-in display
-                  Wrap(
-                    spacing: 10,
-                    children: (product['addIns'] as List).map<Widget>((addIn) {
-                      return FilterChip(
-                        label: Text(addIn['name']),
-                        selected: _selectedAddIns.contains(addIn['name']),
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _selectedAddIns.add(addIn['name']);
-                            } else {
-                              _selectedAddIns.remove(addIn['name']);
-                            }
-                            _updateTotalPrice(product);
-                          });
-                        },
-                      );
-                    }).toList(),
-                  )
-                else
-                  Text('No add-ins available'), // Indicate if add-ins are missing
-                SizedBox(height: 10),
-                Row(
-                  children: [
-                    Text('Price: \$${_totalPrice.toStringAsFixed(2)}'), // Format price
-                    Spacer(),
-                    ElevatedButton(
-                      onPressed: () {
-                        _addToOrder(product);
-                      },
-                      child: Text('Add to Cart'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

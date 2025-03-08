@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sqflite/sqflite.dart'; // Import the Database class
 import 'db_helper.dart';
 import 'cashier_dashboard.dart';
 import 'admin_dashboard.dart';
@@ -20,6 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _updateDateTime();
+    _initializeDatabase();
   }
 
   void _updateDateTime() {
@@ -29,26 +31,56 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
+  void _initializeDatabase() async {
+    bool hasUsers = await _dbHelper.hasUsers();
+    bool hasProducts = await _dbHelper.hasProducts();
+
+    if (!hasUsers || !hasProducts) {
+      await _dbHelper.createAndSaveProductTables();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Database initialized with default data.')),
+      );
+    }
+  }
+
+  Future<void> addUser(String name, String username, String password, String role) async {
+    Database db = await _dbHelper.database;
+    await db.insert('users', {'username': username, 'password': password, 'role': role, 'name': name});
+  }
+
   void _login() async {
     String username = _usernameController.text;
     String password = _passwordController.text;
 
-    var user = await _dbHelper.getUser(username, password);
-    if (user != null) {
-      if (user['role'] == 'cashier') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => CashierDashboard()),
-        );
-      } else if (user['role'] == 'admin') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => AdminDashboard()),
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter both username and password')),
+      );
+      return;
+    }
+
+    try {
+      var user = await _dbHelper.getUser(username, password);
+      if (user != null) {
+        if (user['role'] == 'cashier') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => CashierDashboard()),
+          );
+        } else if (user['role'] == 'admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => AdminDashboard()),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Invalid username or password')),
         );
       }
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid username or password')),
+        SnackBar(content: Text('An error occurred during login: $e')),
       );
     }
   }

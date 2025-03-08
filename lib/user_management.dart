@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart'; // Import the Database class
 import 'db_helper.dart'; // Import DBHelper
 
 class UserManagement extends StatefulWidget {
@@ -37,6 +38,11 @@ class _UserManagementState extends State<UserManagement> {
     setState(() {});
   }
 
+  Future<List<Map<String, dynamic>>> _getCashierDetails() async {
+    Database db = await _dbHelper.database;
+    return await db.query('users', where: 'role = ?', whereArgs: ['cashier']);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -65,7 +71,7 @@ class _UserManagementState extends State<UserManagement> {
                   child: Text('Admin Username: admin'),
                 ),
                 Expanded(
-                  child: Text('Admin Password: password123'),
+                  child: Text('Admin Password: ******'), // Masked password
                 ),
               ],
             ),
@@ -121,6 +127,35 @@ class _UserManagementState extends State<UserManagement> {
                   ),
                 ),
               ],
+            ),
+            SizedBox(height: 20),
+            // Cashier Login Details Table
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _getCashierDetails(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator();
+                } else if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Text('No cashiers found.');
+                } else {
+                  return DataTable(
+                    columns: [
+                      DataColumn(label: Text('Name')),
+                      DataColumn(label: Text('Username')),
+                      DataColumn(label: Text('Password')),
+                    ],
+                    rows: snapshot.data!.map((cashier) {
+                      return DataRow(cells: [
+                        DataCell(Text(cashier['name'])),
+                        DataCell(Text(cashier['username'])),
+                        DataCell(Text('******')), // Masked password
+                      ]);
+                    }).toList(),
+                  );
+                }
+              },
             ),
           ],
         ),

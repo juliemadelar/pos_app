@@ -3,7 +3,6 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'admin_dashboard.dart';
 import 'login_page.dart';
 import 'db_helper.dart';
-import 'cashier_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

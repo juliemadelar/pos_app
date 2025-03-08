@@ -1,6 +1,8 @@
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'dart:developer'; // For log
+import 'package:mutex/mutex.dart'; // Add mutex dependency
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
@@ -8,6 +10,7 @@ class DBHelper {
   DBHelper._internal();
 
   static Database? _database;
+  final Mutex _dbMutex = Mutex(); // Add a mutex for thread safety
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -25,16 +28,33 @@ class DBHelper {
     bool exists = await databaseFactory.databaseExists(path);
     if (!exists) {
       print("Database doesn't exist. Creating...");
-      await createDatabase(); // Call the function to create it first.
+      try {
+        await createDatabase();
+        await createAndSaveProductTables();
+      } catch (e, stack) {
+        log('Error creating or populating database: $e', stackTrace: stack);
+      }
     }
 
-    return await databaseFactory.openDatabase(
-      path,
-      options: OpenDatabaseOptions(
-        version: 1,
-        onCreate: _onCreate, // onCreate will only be called if the database doesn't exist.
-      ),
-    );
+    Database db;
+    try {
+      await _dbMutex.acquire(); // Acquire the mutex before opening the database
+      db = await databaseFactory.openDatabase(
+        path,
+        options: OpenDatabaseOptions(
+          version: 1,
+          onCreate: _onCreate, // onCreate will only be called if the database doesn't exist.
+          readOnly: false, // Ensure the database is opened with write access
+        ),
+      );
+      print("Database opened successfully.");
+    } catch (e, stack) {
+      log('Error opening database: $e', stackTrace: stack);
+      rethrow; // Re-throw to let the calling function handle the error.
+    } finally {
+      _dbMutex.release(); // Release the mutex after opening (or any error)
+    }
+    return db;
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -96,178 +116,427 @@ class DBHelper {
         name TEXT
       )
     ''');
-
-    // Add initial data
-    await addInitialData(db);
   }
 
   Future<int> insertCategory(Map<String, dynamic> row) async {
-    Database db = await database;
-    return await db.insert('categories', row);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.insert('categories', row);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> insertSubCategory(Map<String, dynamic> row) async {
-    Database db = await database;
-    return await db.insert('sub_categories', row);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.insert('sub_categories', row);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> insertProduct(Map<String, dynamic> row) async {
-    Database db = await database;
-    return await db.insert('products', row);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.insert('products', row);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> insertSize(Map<String, dynamic> row) async {
-    Database db = await database;
-    return await db.insert('sizes', row);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.insert('sizes', row);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> insertAddIn(Map<String, dynamic> row) async {
-    Database db = await database;
-    return await db.insert('add_ins', row);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.insert('add_ins', row);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> updateCategory(Map<String, dynamic> row) async {
-    Database db = await database;
-    int id = row['id'];
-    return await db.update('categories', row, where: 'id = ?', whereArgs: [id]);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      int id = row['id'];
+      return await db.update('categories', row, where: 'id = ?', whereArgs: [id]);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> updateSubCategory(Map<String, dynamic> row) async {
-    Database db = await database;
-    int id = row['id'];
-    return await db.update('sub_categories', row, where: 'id = ?', whereArgs: [id]);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      int id = row['id'];
+      return await db.update('sub_categories', row, where: 'id = ?', whereArgs: [id]);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> updateProduct(Map<String, dynamic> row) async {
-    Database db = await database;
-    int id = row['id'];
-    return await db.update('products', row, where: 'id = ?', whereArgs: [id]);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      int id = row['id'];
+      return await db.update('products', row, where: 'id = ?', whereArgs: [id]);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> updateSize(Map<String, dynamic> row) async {
-    Database db = await database;
-    int id = row['id'];
-    return await db.update('sizes', row, where: 'id = ?', whereArgs: [id]);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      int id = row['id'];
+      return await db.update('sizes', row, where: 'id = ?', whereArgs: [id]);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> updateAddIn(Map<String, dynamic> row) async {
-    Database db = await database;
-    int id = row['id'];
-    return await db.update('add_ins', row, where: 'id = ?', whereArgs: [id]);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      int id = row['id'];
+      return await db.update('add_ins', row, where: 'id = ?', whereArgs: [id]);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> deleteCategory(int id) async {
-    Database db = await database;
-    return await db.delete('categories', where: 'id = ?', whereArgs: [id]);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.delete('categories', where: 'id = ?', whereArgs: [id]);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> deleteSubCategory(int id) async {
-    Database db = await database;
-    return await db.delete('sub_categories', where: 'id = ?', whereArgs: [id]);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.delete('sub_categories', where: 'id = ?', whereArgs: [id]);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> deleteProduct(int id) async {
-    Database db = await database;
-    return await db.delete('products', where: 'id = ?', whereArgs: [id]);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.delete('products', where: 'id = ?', whereArgs: [id]);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> deleteSize(int id) async {
-    Database db = await database;
-    return await db.delete('sizes', where: 'id = ?', whereArgs: [id]);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.delete('sizes', where: 'id = ?', whereArgs: [id]);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> deleteAddIn(int id) async {
-    Database db = await database;
-    return await db.delete('add_ins', where: 'id = ?', whereArgs: [id]);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.delete('add_ins', where: 'id = ?', whereArgs: [id]);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> deleteSizesByProductId(int productId) async {
-    Database db = await database;
-    return await db.delete('sizes', where: 'product_id = ?', whereArgs: [productId]);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.delete('sizes', where: 'product_id = ?', whereArgs: [productId]);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> deleteAddInsByProductId(int productId) async {
-    Database db = await database;
-    return await db.delete('add_ins', where: 'product_id = ?', whereArgs: [productId]);
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.delete('add_ins', where: 'product_id = ?', whereArgs: [productId]);
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<List<Map<String, dynamic>>> getCategories() async {
-    Database db = await database;
-    return await db.query('categories');
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.query('categories');
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<void> addCategory(String name) async {
-    Database db = await database;
-    await db.insert('categories', {'name': name});
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      await db.insert('categories', {'name': name});
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<List<Map<String, dynamic>>> getProducts() async {
-    Database db = await database;
-    return await db.query('products');
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.query('products');
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<List<Map<String, dynamic>>> getSizes() async {
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.query('sizes');
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAddIns() async {
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.query('add_ins');
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSubCategories() async {
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      return await db.query('sub_categories');
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<String?> getBusinessDetail(String detail) async {
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      var result = await db.query('business_details', where: 'detail = ?', whereArgs: [detail]);
+      if (result.isNotEmpty) {
+        return result.first['value'] as String?;
+      }
+      return null;
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<Map<String, dynamic>?> getUser(String username, String password) async {
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      var result = await db.query('users', where: 'username = ? AND password = ?', whereArgs: [username, password]);
+      if (result.isNotEmpty) {
+        return result.first;
+      }
+      return null;
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<Map<String, dynamic>?> getUserByUsername(String username) async {
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      var result = await db.query('users', where: 'username = ?', whereArgs: [username]);
+      if (result.isNotEmpty) {
+        return result.first;
+      }
+      return null;
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<void> addUser(String name, String username, String password, String role) async {
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      await db.insert('users', {'username': username, 'password': password, 'role': role});
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<void> updateUser(String username, Map<String, dynamic> values) async {
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      await db.update('users', values, where: 'username = ?', whereArgs: [username]);
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<void> deleteUser(String username) async {
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      await db.delete('users', where: 'username = ?', whereArgs: [username]);
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<void> updateBusinessDetail(String detail, String value) async {
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      try {
+        // First try to update. If it doesn't affect any rows, insert instead.
+        int updatedRows = await db.update('business_details', {'value': value},
+            where: 'detail = ?', whereArgs: [detail]);
+        if (updatedRows == 0) {
+          // Insert if no rows were updated
+          await db.insert('business_details', {'detail': detail, 'value': value});
+          print('Inserted new business detail: $detail = $value');
+        } else {
+          print('Updated business detail: $detail = $value');
+        }
+      } catch (e) {
+        print('Error updating/inserting business detail: $e');
+        rethrow; // Re-throw the exception to be handled higher up
+      }
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<void> createDatabase() async {
+    await _dbMutex.acquire();
+    try {
+      Database db = await databaseFactory.openDatabase(
+        join(await getDatabasesPath(), 'my_database.db'),
+        options: OpenDatabaseOptions(version: 1),
+      );
+      await _onCreate(db, 1);
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getProductsWithDetails() async {
+    await _dbMutex.acquire(); // Acquire mutex before database operation
+    try {
+      Database db = await database;
+      List<Map<String, dynamic>> products = [];
+
+      try {
+        products = await db.query('products');
+
+        for (var product in products) {
+          int productId = product['id'];
+
+          // Fetch sizes
+          try {
+            product['sizes'] = await db.query('sizes', where: 'product_id = ?', whereArgs: [productId]);
+          } catch (e) {
+            print("Error querying sizes for product ID $productId: $e");
+          }
+
+          // Fetch add-ins
+          try {
+            product['addIns'] = await db.query('add_ins', where: 'product_id = ?', whereArgs: [productId]);
+          } catch (e) {
+            print("Error querying add-ins for product ID $productId: $e");
+          }
+        }
+      } catch (e) {
+        print("Error loading products with details: $e");
+      }
+
+      return products;
+    } finally {
+      _dbMutex.release(); // Release mutex after operation
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllSizes() async {
     Database db = await database;
     return await db.query('sizes');
   }
 
-  Future<List<Map<String, dynamic>>> getAddIns() async {
+  Future<List<Map<String, dynamic>>> getAllAddIns() async {
     Database db = await database;
     return await db.query('add_ins');
   }
 
-  Future<List<Map<String, dynamic>>> getSubCategories() async {
+  Future<void> createAndSaveProductTables() async {
     Database db = await database;
-    return await db.query('sub_categories');
-  }
 
-  Future<String?> getBusinessDetail(String detail) async {
-    Database db = await database;
-    var result = await db.query('business_details', where: 'detail = ?', whereArgs: [detail]);
-    if (result.isNotEmpty) {
-      return result.first['value'] as String?;
-    }
-    return null;
-  }
+    // Clear existing data
+    await db.delete('sizes');
+    await db.delete('add_ins');
+    await db.delete('products');
+    await db.delete('sub_categories');
+    await db.delete('categories');
 
-  Future<Map<String, dynamic>?> getUser(String username, String password) async {
-    Database db = await database;
-    var result = await db.query('users', where: 'username = ? AND password = ?', whereArgs: [username, password]);
-    if (result.isNotEmpty) {
-      return result.first;
-    }
-    return null;
-  }
-
-  Future<Map<String, dynamic>?> getUserByUsername(String username) async {
-    Database db = await database;
-    var result = await db.query('users', where: 'username = ?', whereArgs: [username]);
-    if (result.isNotEmpty) {
-      return result.first;
-    }
-    return null;
-  }
-
-  Future<void> addInitialData(Database db) async {
     // Add categories
     final int drinksCategoryId = await _insertCategoryIfNotExists(db, 'Drinks');
     final int foodCategoryId = await _insertCategoryIfNotExists(db, 'Food');
     final int otherCategoryId = await _insertCategoryIfNotExists(db, 'Other');
 
     // Add sub-categories for Drinks
-    final int hotCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Hot Coffee', 'assets/logo.png', drinksCategoryId);
-    final int coldCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Cold Coffee', 'assets/logo.png', drinksCategoryId);
-    final int milkTeaSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Milk Tea', 'assets/logo.png', drinksCategoryId);
+    final int hotCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Hot Coffee', 'path/to/hot_coffee_image.png', drinksCategoryId);
+    final int coldCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Cold Coffee', 'path/to/cold_coffee_image.png', drinksCategoryId);
+    final int milkTeaSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Milk Tea', 'path/to/milk_tea_image.png', drinksCategoryId);
 
     // Add products for Hot Coffee
-    final int cappuccinoProductId = await _insertProductIfNotExists(db, 'Cappuccino', 'assets/logo.png', hotCoffeeSubCategoryId);
+    final int cappuccinoProductId = await _insertProductIfNotExists(db, 'Cappuccino', 'path/to/cappuccino_image.png', hotCoffeeSubCategoryId);
     await _insertSizeIfNotExists(db, 'Small', 60.00, cappuccinoProductId);
     await _insertSizeIfNotExists(db, 'Medium', 80.00, cappuccinoProductId);
     await _insertSizeIfNotExists(db, 'Large', 90.00, cappuccinoProductId);
     await _insertAddInIfNotExists(db, 'Cinnamon', 5.00, cappuccinoProductId);
     await _insertAddInIfNotExists(db, 'Brown Sugar', 5.00, cappuccinoProductId);
 
-    final int cafeLatteProductId = await _insertProductIfNotExists(db, 'Cafe Latte', 'assets/logo.png', hotCoffeeSubCategoryId);
+    final int cafeLatteProductId = await _insertProductIfNotExists(db, 'Cafe Latte', 'path/to/cafe_latte_image.png', hotCoffeeSubCategoryId);
     await _insertSizeIfNotExists(db, 'Small', 65.00, cafeLatteProductId);
     await _insertSizeIfNotExists(db, 'Medium', 85.00, cafeLatteProductId);
     await _insertSizeIfNotExists(db, 'Large', 95.00, cafeLatteProductId);
@@ -275,14 +544,14 @@ class DBHelper {
     await _insertAddInIfNotExists(db, 'Caramel Syrup', 10.00, cafeLatteProductId);
 
     // Add products for Cold Coffee
-    final int icedAmericanoProductId = await _insertProductIfNotExists(db, 'Iced Americano', 'assets/logo.png', coldCoffeeSubCategoryId);
+    final int icedAmericanoProductId = await _insertProductIfNotExists(db, 'Iced Americano', 'path/to/iced_americano_image.png', coldCoffeeSubCategoryId);
     await _insertSizeIfNotExists(db, 'Small', 70.00, icedAmericanoProductId);
     await _insertSizeIfNotExists(db, 'Medium', 90.00, icedAmericanoProductId);
     await _insertSizeIfNotExists(db, 'Large', 100.00, icedAmericanoProductId);
     await _insertAddInIfNotExists(db, 'Extra Shot', 15.00, icedAmericanoProductId);
     await _insertAddInIfNotExists(db, 'Sweet Cream', 10.00, icedAmericanoProductId);
 
-    final int icedMochaProductId = await _insertProductIfNotExists(db, 'Iced Mocha', 'assets/logo.png', coldCoffeeSubCategoryId);
+    final int icedMochaProductId = await _insertProductIfNotExists(db, 'Iced Mocha', 'path/to/iced_mocha_image.png', coldCoffeeSubCategoryId);
     await _insertSizeIfNotExists(db, 'Small', 80.00, icedMochaProductId);
     await _insertSizeIfNotExists(db, 'Medium', 100.00, icedMochaProductId);
     await _insertSizeIfNotExists(db, 'Large', 110.00, icedMochaProductId);
@@ -290,60 +559,56 @@ class DBHelper {
     await _insertAddInIfNotExists(db, 'Whipped Cream', 10.00, icedMochaProductId);
 
     // Add products for Milk Tea
-    final int classicMilkTeaProductId = await _insertProductIfNotExists(db, 'Classic Milk Tea', 'assets/logo.png', milkTeaSubCategoryId);
+    final int classicMilkTeaProductId = await _insertProductIfNotExists(db, 'Classic Milk Tea', 'path/to/classic_milk_tea_image.png', milkTeaSubCategoryId);
     await _insertSizeIfNotExists(db, 'Regular', 85.00, classicMilkTeaProductId);
     await _insertSizeIfNotExists(db, 'Large', 105.00, classicMilkTeaProductId);
     await _insertAddInIfNotExists(db, 'Pearls', 10.00, classicMilkTeaProductId);
     await _insertAddInIfNotExists(db, 'Pudding', 15.00, classicMilkTeaProductId);
 
-    final int wintermelonMilkTeaProductId = await _insertProductIfNotExists(db, 'Wintermelon Milk Tea', 'assets/logo.png', milkTeaSubCategoryId);
+    final int wintermelonMilkTeaProductId = await _insertProductIfNotExists(db, 'Wintermelon Milk Tea', 'path/to/wintermelon_milk_tea_image.png', milkTeaSubCategoryId);
     await _insertSizeIfNotExists(db, 'Regular', 90.00, wintermelonMilkTeaProductId);
     await _insertSizeIfNotExists(db, 'Large', 110.00, wintermelonMilkTeaProductId);
     await _insertAddInIfNotExists(db, 'Grass Jelly', 12.00, wintermelonMilkTeaProductId);
     await _insertAddInIfNotExists(db, 'Oreo Crumbs', 18.00, wintermelonMilkTeaProductId);
 
     // Add sub-categories for Food
-    final int pastrySubCategoryId = await _insertSubCategoryIfNotExists(db, 'Pastry', 'assets/logo.png', foodCategoryId);
-    final int sandwichesSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Sandwiches', 'assets/logo.png', foodCategoryId);
+    final int pastrySubCategoryId = await _insertSubCategoryIfNotExists(db, 'Pastry', 'path/to/pastry_image.png', foodCategoryId);
+    final int sandwichesSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Sandwiches', 'path/to/sandwiches_image.png', foodCategoryId);
 
     // Add products for Pastry
-    final int muffinProductId = await _insertProductIfNotExists(db, 'Muffin', 'assets/logo.png', pastrySubCategoryId);
-    await _insertSizeIfNotExists(db, 'Price', 50.00, muffinProductId);
+    final int chocoMuffinProductId = await _insertProductIfNotExists(db, 'Choco Muffin', 'path/to/choco_muffin_image.png', pastrySubCategoryId);
+    await _insertSizeIfNotExists(db, 'Regular', 80.00, chocoMuffinProductId);
 
-    final int croissantProductId = await _insertProductIfNotExists(db, 'Croissant', 'assets/logo.png', pastrySubCategoryId);
-    await _insertSizeIfNotExists(db, 'Price', 70.00, croissantProductId);
+    final int croissantProductId = await _insertProductIfNotExists(db, 'Croissant', 'path/to/croissant_image.png', pastrySubCategoryId);
+    await _insertSizeIfNotExists(db, 'Regular', 80.00, croissantProductId);
 
     // Add products for Sandwiches
-    final int hamCheeseProductId = await _insertProductIfNotExists(db, 'Ham and Cheese', 'assets/logo.png', sandwichesSubCategoryId);
-    await _insertSizeIfNotExists(db, 'Price', 90.00, hamCheeseProductId);
+    final int hamCheeseProductId = await _insertProductIfNotExists(db, 'Ham and Cheese', 'path/to/ham_cheese_image.png', sandwichesSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Regular', 90.00, hamCheeseProductId);
 
-    final int tunaMeltProductId = await _insertProductIfNotExists(db, 'Tuna Melt', 'assets/logo.png', sandwichesSubCategoryId);
-    await _insertSizeIfNotExists(db, 'Price', 100.00, tunaMeltProductId);
+    final int tunaMeltProductId = await _insertProductIfNotExists(db, 'Tuna Melt', 'path/to/tuna_melt_image.png', sandwichesSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Regular', 100.00, tunaMeltProductId);
 
     // Add sub-categories for Other
-    final int merchandiseSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Merchandise', 'assets/logo.png', otherCategoryId);
+    final int merchandiseSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Merchandise', 'path/to/merchandise_image.png', otherCategoryId);
 
     // Add products for Merchandise
-    final int tumblerProductId = await _insertProductIfNotExists(db, 'Tumbler', 'assets/logo.png', merchandiseSubCategoryId);
+    final int tumblerProductId = await _insertProductIfNotExists(db, 'Tumbler', 'path/to/tumbler_image.png', merchandiseSubCategoryId);
     await _insertSizeIfNotExists(db, 'Small Tumbler (12oz)', 250.00, tumblerProductId);
     await _insertSizeIfNotExists(db, 'Large Tumbler (16oz)', 300.00, tumblerProductId);
     await _insertSizeIfNotExists(db, 'Stainless Steel Tumbler (20oz)', 450.00, tumblerProductId);
 
-    final int mugProductId = await _insertProductIfNotExists(db, 'Mug', 'assets/logo.png', merchandiseSubCategoryId);
+    final int mugProductId = await _insertProductIfNotExists(db, 'Mug', 'path/to/mug_image.png', merchandiseSubCategoryId);
     await _insertSizeIfNotExists(db, 'Ceramic Mug (12oz)', 180.00, mugProductId);
     await _insertSizeIfNotExists(db, 'Travel Mug (16oz)', 320.00, mugProductId);
 
-    final int toteBagProductId = await _insertProductIfNotExists(db, 'Tote Bag', 'assets/logo.png', merchandiseSubCategoryId);
-    await _insertSizeIfNotExists(db, 'Small Tote Bag', 200.00, toteBagProductId);
-    await _insertSizeIfNotExists(db, 'Large Tote Bag', 280.00, toteBagProductId);
-
-    final int keychainProductId = await _insertProductIfNotExists(db, 'Keychain', 'assets/logo.png', merchandiseSubCategoryId);
+    final int keychainProductId = await _insertProductIfNotExists(db, 'Keychain', 'path/to/keychain_image.png', merchandiseSubCategoryId);
     await _insertSizeIfNotExists(db, 'Design 1', 80.00, keychainProductId);
     await _insertSizeIfNotExists(db, 'Design 2', 80.00, keychainProductId);
 
-    // Add initial users
+    // Add users
+    await _insertUserIfNotExists(db, 'cashier1', 'password123', 'cashier', 'Julie');
     await _insertUserIfNotExists(db, 'admin', 'password123', 'admin', 'Admin');
-    await _insertUserIfNotExists(db, 'cashier', 'password123', 'cashier', 'Julie');
   }
 
   Future<int> _insertCategoryIfNotExists(Database db, String name) async {
@@ -391,73 +656,111 @@ class DBHelper {
     }
   }
 
-  Future<void> addUser(String name, String username, String password, String role) async {
+  Future<bool> hasUsers() async {
     Database db = await database;
-    await db.insert('users', {'username': username, 'password': password, 'role': role});
+    var result = await db.query('users');
+    return result.isNotEmpty;
   }
 
-  Future<void> updateUser(String username, Map<String, dynamic> values) async {
+  Future<bool> hasProducts() async {
     Database db = await database;
-    await db.update('users', values, where: 'username = ?', whereArgs: [username]);
+    var result = await db.query('products');
+    return result.isNotEmpty;
   }
 
-  Future<void> deleteUser(String username) async {
+  Future<void> insertUsersAndProducts() async {
     Database db = await database;
-    await db.delete('users', where: 'username = ?', whereArgs: [username]);
-  }
 
-  Future<void> updateBusinessDetail(String detail, String value) async {
-    Database db = await database;
-    try {
-      // First try to update. If it doesn't affect any rows, insert instead.
-      int updatedRows = await db.update('business_details', {'value': value},
-          where: 'detail = ?', whereArgs: [detail]);
-      if (updatedRows == 0) {
-        // Insert if no rows were updated
-        await db.insert('business_details', {'detail': detail, 'value': value});
-        print('Inserted new business detail: $detail = $value');
-      } else {
-        print('Updated business detail: $detail = $value');
-      }
-    } catch (e) {
-      print('Error updating/inserting business detail: $e');
-      rethrow; // Re-throw the exception to be handled higher up
-    }
-  }
+    // Insert users
+    await _insertUserIfNotExists(db, 'cashier1', 'password123', 'cashier', 'Julie');
+    await _insertUserIfNotExists(db, 'admin', 'password123', 'admin', 'Admin');
 
-  Future<void> createDatabase() async {
-    Database db = await databaseFactory.openDatabase(
-      join(await getDatabasesPath(), 'my_database.db'),
-      options: OpenDatabaseOptions(version: 1),
-    );
-    await _onCreate(db, 1);
-  }
+    // Insert categories
+    final int drinksCategoryId = await _insertCategoryIfNotExists(db, 'Drinks');
+    final int foodCategoryId = await _insertCategoryIfNotExists(db, 'Food');
+    final int otherCategoryId = await _insertCategoryIfNotExists(db, 'Other');
 
-  Future<List<Map<String, dynamic>>> getProductsWithDetails() async {
-    Database db = await database;
-    print("Querying products table...");
-    List<Map<String, dynamic>> products = await db.query('products');
-    print("Products fetched: ${products.length}"); // Check length here
+    // Insert sub-categories for Drinks
+    final int hotCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Hot Coffee', 'path/to/hot_coffee_image.png', drinksCategoryId);
+    final int coldCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Cold Coffee', 'path/to/cold_coffee_image.png', drinksCategoryId);
+    final int milkTeaSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Milk Tea', 'path/to/milk_tea_image.png', drinksCategoryId);
 
-    for (var product in products) {
-      int productId = product['id'];
-      print("Product ID: $productId");
-      try {
-        print("Querying sizes for product ID: $productId");
-        product['sizes'] = await db.query('sizes', where: 'product_id = ?', whereArgs: [productId]);
-        print("Sizes fetched for product ID $productId: ${product['sizes'].length}"); // Check sizes length
-      } catch (e) {
-        print("Error querying sizes for product ID $productId: $e");
-      }
-      try {
-        print("Querying add-ins for product ID: $productId");
-        product['addIns'] = await db.query('add_ins', where: 'product_id = ?', whereArgs: [productId]);
-        print("Add-ins fetched for product ID $productId: ${product['addIns'].length}"); // Check add-ins length
-      } catch (e) {
-        print("Error querying add-ins for product ID $productId: $e");
-      }
-    }
-    print("Returning products with details.");
-    return products;
+    // Insert products for Hot Coffee
+    final int cappuccinoProductId = await _insertProductIfNotExists(db, 'Cappuccino', 'path/to/cappuccino_image.png', hotCoffeeSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Small', 60.00, cappuccinoProductId);
+    await _insertSizeIfNotExists(db, 'Medium', 80.00, cappuccinoProductId);
+    await _insertSizeIfNotExists(db, 'Large', 90.00, cappuccinoProductId);
+    await _insertAddInIfNotExists(db, 'Cinnamon', 5.00, cappuccinoProductId);
+    await _insertAddInIfNotExists(db, 'Brown Sugar', 5.00, cappuccinoProductId);
+
+    final int cafeLatteProductId = await _insertProductIfNotExists(db, 'Cafe Latte', 'path/to/cafe_latte_image.png', hotCoffeeSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Small', 65.00, cafeLatteProductId);
+    await _insertSizeIfNotExists(db, 'Medium', 85.00, cafeLatteProductId);
+    await _insertSizeIfNotExists(db, 'Large', 95.00, cafeLatteProductId);
+    await _insertAddInIfNotExists(db, 'Vanilla Syrup', 10.00, cafeLatteProductId);
+    await _insertAddInIfNotExists(db, 'Caramel Syrup', 10.00, cafeLatteProductId);
+
+    // Insert products for Cold Coffee
+    final int icedAmericanoProductId = await _insertProductIfNotExists(db, 'Iced Americano', 'path/to/iced_americano_image.png', coldCoffeeSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Small', 70.00, icedAmericanoProductId);
+    await _insertSizeIfNotExists(db, 'Medium', 90.00, icedAmericanoProductId);
+    await _insertSizeIfNotExists(db, 'Large', 100.00, icedAmericanoProductId);
+    await _insertAddInIfNotExists(db, 'Extra Shot', 15.00, icedAmericanoProductId);
+    await _insertAddInIfNotExists(db, 'Sweet Cream', 10.00, icedAmericanoProductId);
+
+    final int icedMochaProductId = await _insertProductIfNotExists(db, 'Iced Mocha', 'path/to/iced_mocha_image.png', coldCoffeeSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Small', 80.00, icedMochaProductId);
+    await _insertSizeIfNotExists(db, 'Medium', 100.00, icedMochaProductId);
+    await _insertSizeIfNotExists(db, 'Large', 110.00, icedMochaProductId);
+    await _insertAddInIfNotExists(db, 'Chocolate Drizzle', 8.00, icedMochaProductId);
+    await _insertAddInIfNotExists(db, 'Whipped Cream', 10.00, icedMochaProductId);
+
+    // Insert products for Milk Tea
+    final int classicMilkTeaProductId = await _insertProductIfNotExists(db, 'Classic Milk Tea', 'path/to/classic_milk_tea_image.png', milkTeaSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Regular', 85.00, classicMilkTeaProductId);
+    await _insertSizeIfNotExists(db, 'Large', 105.00, classicMilkTeaProductId);
+    await _insertAddInIfNotExists(db, 'Pearls', 10.00, classicMilkTeaProductId);
+    await _insertAddInIfNotExists(db, 'Pudding', 15.00, classicMilkTeaProductId);
+
+    final int wintermelonMilkTeaProductId = await _insertProductIfNotExists(db, 'Wintermelon Milk Tea', 'path/to/wintermelon_milk_tea_image.png', milkTeaSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Regular', 90.00, wintermelonMilkTeaProductId);
+    await _insertSizeIfNotExists(db, 'Large', 110.00, wintermelonMilkTeaProductId);
+    await _insertAddInIfNotExists(db, 'Grass Jelly', 12.00, wintermelonMilkTeaProductId);
+    await _insertAddInIfNotExists(db, 'Oreo Crumbs', 18.00, wintermelonMilkTeaProductId);
+
+    // Insert sub-categories for Food
+    final int pastrySubCategoryId = await _insertSubCategoryIfNotExists(db, 'Pastry', 'path/to/pastry_image.png', foodCategoryId);
+    final int sandwichesSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Sandwiches', 'path/to/sandwiches_image.png', foodCategoryId);
+
+    // Insert products for Pastry
+    final int chocoMuffinProductId = await _insertProductIfNotExists(db, 'Choco Muffin', 'path/to/choco_muffin_image.png', pastrySubCategoryId);
+    await _insertSizeIfNotExists(db, 'Regular', 80.00, chocoMuffinProductId);
+
+    final int croissantProductId = await _insertProductIfNotExists(db, 'Croissant', 'path/to/croissant_image.png', pastrySubCategoryId);
+    await _insertSizeIfNotExists(db, 'Regular', 80.00, croissantProductId);
+
+    // Insert products for Sandwiches
+    final int hamCheeseProductId = await _insertProductIfNotExists(db, 'Ham and Cheese', 'path/to/ham_cheese_image.png', sandwichesSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Regular', 90.00, hamCheeseProductId);
+
+    final int tunaMeltProductId = await _insertProductIfNotExists(db, 'Tuna Melt', 'path/to/tuna_melt_image.png', sandwichesSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Regular', 100.00, tunaMeltProductId);
+
+    // Insert sub-categories for Other
+    final int merchandiseSubCategoryId = await _insertSubCategoryIfNotExists(db, 'Merchandise', 'path/to/merchandise_image.png', otherCategoryId);
+
+    // Insert products for Merchandise
+    final int tumblerProductId = await _insertProductIfNotExists(db, 'Tumbler', 'path/to/tumbler_image.png', merchandiseSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Small Tumbler (12oz)', 250.00, tumblerProductId);
+    await _insertSizeIfNotExists(db, 'Large Tumbler (16oz)', 300.00, tumblerProductId);
+    await _insertSizeIfNotExists(db, 'Stainless Steel Tumbler (20oz)', 450.00, tumblerProductId);
+
+    final int mugProductId = await _insertProductIfNotExists(db, 'Mug', 'path/to/mug_image.png', merchandiseSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Ceramic Mug (12oz)', 180.00, mugProductId);
+    await _insertSizeIfNotExists(db, 'Travel Mug (16oz)', 320.00, mugProductId);
+
+    final int keychainProductId = await _insertProductIfNotExists(db, 'Keychain', 'path/to/keychain_image.png', merchandiseSubCategoryId);
+    await _insertSizeIfNotExists(db, 'Design 1', 80.00, keychainProductId);
+    await _insertSizeIfNotExists(db, 'Design 2', 80.00, keychainProductId);
   }
 }
