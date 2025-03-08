@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:logging/logging.dart';
 
 class ProductManagement extends StatefulWidget {
   const ProductManagement({super.key});
@@ -12,6 +13,7 @@ class ProductManagement extends StatefulWidget {
 class ProductManagementState extends State<ProductManagement> {
   List<String> categories = [];
   Database? _database;
+  final Logger _logger = Logger('ProductManagement');
 
   @override
   void initState() {
@@ -48,7 +50,7 @@ class ProductManagementState extends State<ProductManagement> {
       });
     } catch (e) {
       if (e is UnsupportedError) {
-        print('Error querying categories: ${e.message}');
+        _logger.severe('Error querying categories: ${e.message}');
       } else {
         rethrow;
       }
@@ -60,7 +62,9 @@ class ProductManagementState extends State<ProductManagement> {
       // Query sizes for the product
     } catch (e) {
       if (e is UnsupportedError) {
-        print('Error querying sizes for product ID $productId: ${e.message}');
+        _logger.severe(
+          'Error querying sizes for product ID $productId: ${e.message}',
+        );
       } else {
         rethrow;
       }
@@ -72,7 +76,9 @@ class ProductManagementState extends State<ProductManagement> {
       // Query add-ins for the product
     } catch (e) {
       if (e is UnsupportedError) {
-        print('Error querying add-ins for product ID $productId: ${e.message}');
+        _logger.severe(
+          'Error querying add-ins for product ID $productId: ${e.message}',
+        );
       } else {
         rethrow;
       }
@@ -84,19 +90,6 @@ class ProductManagementState extends State<ProductManagement> {
     return DefaultTabController(
       length: categories.length,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text('Product Management'),
-          automaticallyImplyLeading: false, // Remove the back button
-          bottom:
-              categories.isNotEmpty
-                  ? TabBar(
-                    tabs:
-                        categories
-                            .map((category) => Tab(text: category))
-                            .toList(),
-                  )
-                  : null,
-        ),
         body:
             categories.isNotEmpty
                 ? TabBarView(

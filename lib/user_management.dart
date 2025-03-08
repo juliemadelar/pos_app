@@ -1,43 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart'; // Import the Database class
 import 'db_helper.dart'; // Import DBHelper
+import 'package:logger/logger.dart'; // Add this import
 
 class UserManagement extends StatefulWidget {
-  const UserManagement({super.key});
+  const UserManagement({super.key}); // Convert 'key' to a super parameter
 
   @override
-  UserManagementState createState() => UserManagementState();
+  UserManagementState createState() => UserManagementState(); // Make the type public
 }
 
 class UserManagementState extends State<UserManagement> {
-  final DBHelper _dbHelper = DBHelper();
+  // Make the type public
+  final DBHelper _dbHelper =
+      DBHelper(); // Ensure using the same DBHelper instance
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _roleController = TextEditingController();
+  final Logger _logger = Logger(); // Add this line
 
-  void _addCashier() async {
-    String name = _nameController.text;
-    String username = _usernameController.text;
-    String password = _passwordController.text;
-
-    await _dbHelper.addUser(name, username, password, 'cashier');
-    setState(() {});
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
   }
 
-  void _editCashier() async {
-    String name = _nameController.text;
-    String username = _usernameController.text;
-    String password = _passwordController.text;
-
-    await _dbHelper.updateUser(username, {'name': name, 'password': password});
-    setState(() {});
+  Future<void> _loadUsers() async {
+    try {
+      // Load users from the database
+      // ...
+      setState(() {});
+    } catch (e) {
+      _logger.e('Error loading users: $e'); // Use logger
+    }
   }
 
-  void _deleteCashier() async {
-    String username = _usernameController.text;
+  Future<void> _addUser() async {
+    try {
+      await _dbHelper.addUser(
+        _nameController.text.isEmpty ? 'N/A' : _nameController.text,
+        _usernameController.text.isEmpty ? 'N/A' : _usernameController.text,
+        _passwordController.text.isEmpty ? 'N/A' : _passwordController.text,
+        _roleController.text.isEmpty ? 'N/A' : _roleController.text,
+      );
+      _logger.i('User added: ${_usernameController.text}'); // Use logger
+      _loadUsers(); // Refresh the user list
+    } catch (e) {
+      _logger.e('Error adding user: $e'); // Use logger
+    }
+  }
 
-    await _dbHelper.deleteUser(username);
-    setState(() {});
+  Future<void> _updateUser() async {
+    try {
+      await _dbHelper.updateUser(_usernameController.text, {
+        'password':
+            _passwordController.text.isEmpty ? 'N/A' : _passwordController.text,
+        'role': _roleController.text.isEmpty ? 'N/A' : _roleController.text,
+        'name': _nameController.text.isEmpty ? 'N/A' : _nameController.text,
+      });
+      _logger.i('User updated: ${_usernameController.text}'); // Use logger
+      _loadUsers(); // Refresh the user list
+    } catch (e) {
+      _logger.e('Error updating user: $e'); // Use logger
+    }
+  }
+
+  Future<void> _deleteUser(String username) async {
+    try {
+      await _dbHelper.deleteUser(username);
+      _logger.i('User deleted: $username'); // Use logger
+      _loadUsers(); // Refresh the user list
+    } catch (e) {
+      _logger.e('Error deleting user: $e'); // Use logger
+    }
   }
 
   Future<List<Map<String, dynamic>>> _getCashierDetails() async {
@@ -48,11 +84,9 @@ class UserManagementState extends State<UserManagement> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false, // Remove the back button
-        title: Text('User Management'),
-      ),
-      body: Padding(
+      // Remove the AppBar
+      body: SingleChildScrollView(
+        // Wrap content in SingleChildScrollView
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,18 +137,17 @@ class UserManagementState extends State<UserManagement> {
                 Expanded(
                   child: Row(
                     children: [
-                      ElevatedButton(
-                        onPressed: _addCashier,
-                        child: Text('Add'),
-                      ),
+                      ElevatedButton(onPressed: _addUser, child: Text('Add')),
                       SizedBox(width: 10),
                       ElevatedButton(
-                        onPressed: _editCashier,
+                        onPressed: _updateUser,
                         child: Text('Edit'),
                       ),
                       SizedBox(width: 10),
                       ElevatedButton(
-                        onPressed: _deleteCashier,
+                        onPressed: () {
+                          _deleteUser(_usernameController.text);
+                        },
                         child: Text('Delete'),
                       ),
                     ],
@@ -144,8 +177,8 @@ class UserManagementState extends State<UserManagement> {
                         snapshot.data!.map((cashier) {
                           return DataRow(
                             cells: [
-                              DataCell(Text(cashier['name'])),
-                              DataCell(Text(cashier['username'])),
+                              DataCell(Text(cashier['name'] ?? 'N/A')),
+                              DataCell(Text(cashier['username'] ?? 'N/A')),
                               DataCell(Text('******')), // Masked password
                             ],
                           );

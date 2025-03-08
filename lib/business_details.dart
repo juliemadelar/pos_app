@@ -29,7 +29,8 @@ class BusinessDetailsFormState extends State<BusinessDetailsForm> {
   final TextEditingController _otherController = TextEditingController(
     text: '2',
   );
-  final DBHelper _dbHelper = DBHelper();
+  final DBHelper _dbHelper =
+      DBHelper(); // Ensure using the same DBHelper instance
   String? _businessLogo;
   String _selectedCurrency = 'PHP';
   final Logger _logger = Logger(); // Add this line
@@ -183,10 +184,7 @@ class BusinessDetailsFormState extends State<BusinessDetailsForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false, // Remove the back button
-        title: Text('Business Details'),
-      ),
+      // Remove the AppBar
       body: SingleChildScrollView(
         child: Center(
           child: Container(

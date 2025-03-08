@@ -1,18 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 
 class SalesReport extends StatefulWidget {
-  const SalesReport({super.key}); // Added named 'key' parameter
+  const SalesReport({super.key});
   @override
-  SalesReportState createState() => SalesReportState(); // Changed _SalesReportState to SalesReportState
+  SalesReportState createState() => SalesReportState();
 }
 
 class SalesReportState extends State<SalesReport> {
-  // Changed _SalesReportState to SalesReportState
+  final Logger _logger = Logger('SalesReport');
+
+  @override
+  void initState() {
+    super.initState();
+    _logger.info('SalesReport initialized');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Sales Report')),
-      body: Center(child: Text('Sales data will be displayed here.')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Sales Report by User'),
+            // Add more widgets here to display the sales report details
+          ],
+        ),
+      ),
     );
   }
 }

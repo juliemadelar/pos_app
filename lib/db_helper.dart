@@ -481,18 +481,18 @@ class DBHelper {
     }
   }
 
-  Future<void> updateBusinessDetail(String key, String value) async {
+  Future<void> updateBusinessDetail(String detail, String value) async {
     final db = await database;
     try {
       await db.update(
         'business_details',
-        {key: value},
-        where: 'key = ?',
-        whereArgs: [key],
+        {'value': value},
+        where: 'detail = ?',
+        whereArgs: [detail],
       );
-      _logger.i('Updated $key to $value'); // Add logging
+      _logger.i('Updated $detail to $value'); // Add logging
     } catch (e) {
-      _logger.e('Error updating $key: $e'); // Add logging
+      _logger.e('Error updating $detail: $e'); // Add logging
     }
   }
 
@@ -1242,20 +1242,20 @@ class DBHelper {
     await _insertSizeIfNotExists(db, 'Design 2', 80.00, keychainProductId);
   }
 
-  Future<String?> getBusinessDetail(String key) async {
+  Future<String?> getBusinessDetail(String detail) async {
     final db = await database;
     try {
       final result = await db.query(
         'business_details',
         columns: ['value'],
-        where: 'key = ?',
-        whereArgs: [key],
+        where: 'detail = ?',
+        whereArgs: [detail],
       );
       if (result.isNotEmpty) {
         return result.first['value'] as String?;
       }
     } catch (e) {
-      _logger.e('Error fetching $key: $e'); // Add logging
+      _logger.e('Error fetching $detail: $e'); // Add logging
     }
     return null;
   }
