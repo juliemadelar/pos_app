@@ -461,18 +461,24 @@ class CashierDashboardState extends State<CashierDashboard> {
   Future<void> _loadData() async {
     try {
       await _loadBusinessDetails();
-      await _loadCashierName();
+      await _loadCashierName(); // Ensure cashier name is loaded
       await _loadCategories();
       await _loadSubCategories();
       await _loadProductsWithDetails();
       _logger.info(_products); // Use logger instead of print
     } catch (e) {
       _logger.severe('Error loading data: $e');
-      // Handle error appropriately, maybe show an error message
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading data: $e')));
+      }
     } finally {
-      setState(() {
-        _isLoading = false; // Hide loading indicator
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false; // Hide loading indicator
+        });
+      }
     }
   }
 
@@ -500,12 +506,27 @@ class CashierDashboardState extends State<CashierDashboard> {
         'cashier',
       ); // Fetch cashier details
       if (user != null) {
-        setState(() {
-          cashierName = user['name']; // Set cashier name
-        });
+        if (mounted) {
+          setState(() {
+            cashierName = user['name']; // Set cashier name
+          });
+        }
+      } else {
+        // Handle the case where no cashier is found.  For example, display a message or redirect to login.
+        _logger.warning('No cashier found!');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No cashier found. Please log in.')),
+          );
+        }
       }
     } catch (e) {
       _logger.severe('Error loading cashier name: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading cashier name: $e')),
+        );
+      }
     }
   }
 
@@ -515,12 +536,16 @@ class CashierDashboardState extends State<CashierDashboard> {
       _logger.info(
         'Categories loaded: $_categories',
       ); // Use logger instead of print
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
       _logger.severe('Error loading categories: $e');
-      setState(() {
-        _categories = []; // Set categories to empty list on error
-      });
+      if (mounted) {
+        setState(() {
+          _categories = []; // Set categories to empty list on error
+        });
+      }
     }
   }
 
@@ -541,12 +566,16 @@ class CashierDashboardState extends State<CashierDashboard> {
         // If no sub-category with products is found, select the first sub-category
         _selectedSubCategoryId ??= _subCategories.first['id'];
       }
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
       _logger.severe('Error loading sub-categories: $e');
-      setState(() {
-        _subCategories = []; // Set sub-categories to empty list on error
-      });
+      if (mounted) {
+        setState(() {
+          _subCategories = []; // Set sub-categories to empty list on error
+        });
+      }
     }
   }
 
@@ -580,7 +609,9 @@ class CashierDashboardState extends State<CashierDashboard> {
         }
       }
 
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
       if (e is UnsupportedError && e.message == 'read-only') {
         _logger.severe(
@@ -589,9 +620,11 @@ class CashierDashboardState extends State<CashierDashboard> {
       } else {
         _logger.severe('Error loading products with details: $e');
       }
-      setState(() {
-        _products = []; // Set products to empty list on error
-      });
+      if (mounted) {
+        setState(() {
+          _products = []; // Set products to empty list on error
+        });
+      }
     }
   }
 

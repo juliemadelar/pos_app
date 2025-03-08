@@ -51,6 +51,16 @@ class UserManagementState extends State<UserManagement> {
     }
   }
 
+  Future<void> _deleteUser(String username) async {
+    try {
+      await _dbHelper.deleteUser(username);
+      _logger.i('User deleted: $username'); // Use logger
+      _loadUsers(); // Refresh the user list
+    } catch (e) {
+      _logger.e('Error deleting user: $e'); // Use logger
+    }
+  }
+
   Future<void> _updateUser() async {
     try {
       await _dbHelper.updateUser(_usernameController.text, {
@@ -66,13 +76,12 @@ class UserManagementState extends State<UserManagement> {
     }
   }
 
-  Future<void> _deleteUser(String username) async {
+  Future<void> _saveChanges() async {
     try {
-      await _dbHelper.deleteUser(username);
-      _logger.i('User deleted: $username'); // Use logger
-      _loadUsers(); // Refresh the user list
+      await _updateUser();
+      _logger.i('Changes saved for user: ${_usernameController.text}');
     } catch (e) {
-      _logger.e('Error deleting user: $e'); // Use logger
+      _logger.e('Error saving changes: $e');
     }
   }
 
@@ -134,25 +143,6 @@ class UserManagementState extends State<UserManagement> {
                     decoration: InputDecoration(labelText: 'Cashier Password'),
                   ),
                 ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      ElevatedButton(onPressed: _addUser, child: Text('Add')),
-                      SizedBox(width: 10),
-                      ElevatedButton(
-                        onPressed: _updateUser,
-                        child: Text('Edit'),
-                      ),
-                      SizedBox(width: 10),
-                      ElevatedButton(
-                        onPressed: () {
-                          _deleteUser(_usernameController.text);
-                        },
-                        child: Text('Delete'),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
             SizedBox(height: 20),
@@ -172,6 +162,7 @@ class UserManagementState extends State<UserManagement> {
                       DataColumn(label: Text('Name')),
                       DataColumn(label: Text('Username')),
                       DataColumn(label: Text('Password')),
+                      DataColumn(label: Text('Actions')),
                     ],
                     rows:
                         snapshot.data!.map((cashier) {
@@ -180,12 +171,46 @@ class UserManagementState extends State<UserManagement> {
                               DataCell(Text(cashier['name'] ?? 'N/A')),
                               DataCell(Text(cashier['username'] ?? 'N/A')),
                               DataCell(Text('******')), // Masked password
+                              DataCell(
+                                Row(
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        _nameController.text =
+                                            cashier['name'] ?? '';
+                                        _usernameController.text =
+                                            cashier['username'] ?? '';
+                                        _passwordController.text =
+                                            cashier['password'] ?? '';
+                                        _roleController.text = 'cashier';
+                                        _updateUser(); // Save changes to the database
+                                      },
+                                      child: Text('Edit'),
+                                    ),
+                                    SizedBox(width: 10),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        _deleteUser(cashier['username']);
+                                      },
+                                      child: Text('Delete'),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           );
                         }).toList(),
                   );
                 }
               },
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(onPressed: _addUser, child: Text('Add User')),
+            SizedBox(height: 20),
+            // Save Changes Button
+            ElevatedButton(
+              onPressed: _saveChanges,
+              child: Text('Save Changes'),
             ),
           ],
         ),
