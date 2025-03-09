@@ -184,37 +184,37 @@ class ProductManagementState extends State<ProductManagement> {
             return ListTile(
               leading:
                   item.containsKey('image')
-                      ? Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.edit),
-                            onPressed: () {
-                              _editItem(item);
-                            },
-                          ),
-                          Image.file(
-                            File(item['image']),
+                      ? Image.file(
+                        File(item['image']),
+                        width: 200,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Image.asset(
+                            'assets/placeholder.png', // Replace with your placeholder image
                             width: 200,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Image.asset(
-                                'assets/placeholder.png', // Replace with your placeholder image
-                                width: 200,
-                              );
-                            },
-                          ),
-                        ],
+                          );
+                        },
                       )
                       : null,
               title: Text(item['name']),
               subtitle: Text(
                 '${item.containsKey('parent_category') ? 'Parent Category: ${item['parent_category']}\n' : ''}${item.containsKey('sub_category') ? 'Sub Category: ${item['sub_category']}' : ''}',
               ),
-              trailing: IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: () {
-                  // Handle delete action
-                },
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: () {
+                      _editItem(item);
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete),
+                    onPressed: () {
+                      // Handle delete action
+                    },
+                  ),
+                ],
               ),
             );
           }).toList(),
