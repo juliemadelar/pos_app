@@ -182,6 +182,13 @@ class UserManagementState extends State<UserManagement> {
             _userAdded = true; // Set user added to true
             _isAddingUser = false; // Reset loading state
           });
+          await Future.delayed(
+            Duration(seconds: 2),
+          ); // Show success message for 2 seconds
+          setState(() {
+            _userAdded = false; // Reset user added flag
+          });
+          _loadUsers(); // Refresh the user list
         }
       } catch (e) {
         _logger.e('Error adding user: $e');
