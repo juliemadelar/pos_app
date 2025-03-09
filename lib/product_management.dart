@@ -48,10 +48,32 @@ class ProductManagementState extends State<ProductManagement> {
       }).toList(),
     );
 
+    final updatedProducts = await Future.wait(
+      products.map((product) async {
+        final subCategory = await _dbHelper.getSubCategoryById(
+          product['sub_category_id'],
+        );
+        final parentCategory =
+            subCategory != null && subCategory['parent_id'] != null
+                ? await _dbHelper.getCategoryById(subCategory['parent_id'])
+                : null;
+        String parentCategoryName =
+            parentCategory != null ? parentCategory['name'] : 'Unknown';
+        String subCategoryName =
+            subCategory != null ? subCategory['name'] : 'Unknown';
+
+        return {
+          ...product,
+          'parent_category': parentCategoryName,
+          'sub_category': subCategoryName,
+        };
+      }).toList(),
+    );
+
     setState(() {
       _categories = categories;
       _subCategories = updatedSubCategories;
-      _products = products;
+      _products = updatedProducts;
     });
   }
 
@@ -167,38 +189,37 @@ class ProductManagementState extends State<ProductManagement> {
             return ListTile(
               leading:
                   item.containsKey('image')
-                      ? Image.file(
-                        File(item['image']),
-                        width: 200,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Image.asset(
-                            'assets/placeholder.png', // Replace with your placeholder image
+                      ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () {
+                              _editItem(item);
+                            },
+                          ),
+                          Image.file(
+                            File(item['image']),
                             width: 200,
-                          );
-                        },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/placeholder.png', // Replace with your placeholder image
+                                width: 200,
+                              );
+                            },
+                          ),
+                        ],
                       )
                       : null,
               title: Text(item['name']),
-              subtitle:
-                  item.containsKey('parent_category')
-                      ? Text('Parent Category: ${item['parent_category']}')
-                      : null,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.edit),
-                    onPressed: () {
-                      _editItem(item);
-                    },
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () {
-                      // Handle delete action
-                    },
-                  ),
-                ],
+              subtitle: Text(
+                '${item.containsKey('parent_category') ? 'Parent Category: ${item['parent_category']}\n' : ''}${item.containsKey('sub_category') ? 'Sub Category: ${item['sub_category']}' : ''}',
+              ),
+              trailing: IconButton(
+                icon: Icon(Icons.delete),
+                onPressed: () {
+                  // Handle delete action
+                },
               ),
             );
           }).toList(),
