@@ -34,16 +34,20 @@ class ProductManagementState extends State<ProductManagement> {
     final subCategories = await _dbHelper.getSubCategories();
     final products = await _dbHelper.fetchAllProducts();
 
-    setState(() {
+    setState(() async {
       _categories = categories;
-      _subCategories =
-          subCategories.map((subCategory) {
-            final parentCategory = categories.firstWhere(
-              (category) => category['id'] == subCategory['parent_id'],
-              orElse: () => {'name': 'Unknown'},
-            );
-            return {...subCategory, 'parent_category': parentCategory['name']};
-          }).toList();
+      _subCategories = await Future.wait(
+        subCategories.map((subCategory) async {
+          final parentCategory = await _dbHelper.getCategoryById(
+            subCategory['parent_id'],
+          );
+          return {
+            ...subCategory,
+            'parent_category':
+                parentCategory != null ? parentCategory['name'] : 'Unknown',
+          };
+        }).toList(),
+      );
       _products = products;
     });
   }

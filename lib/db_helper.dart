@@ -1613,4 +1613,17 @@ class DBHelper {
       _dbMutex.release();
     }
   }
+
+  Future<Map<String, dynamic>?> getCategoryById(int id) async {
+    final db = await database;
+    final result = await db.query(
+      'categories',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (result.isNotEmpty) {
+      return result.first;
+    }
+    return null;
+  }
 }
