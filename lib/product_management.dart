@@ -119,6 +119,7 @@ class ProductManagementState extends State<ProductManagement> {
   void _addSubCategory() async {
     String subCategoryName = '';
     int? selectedCategoryId;
+    String? imagePath;
     final result = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -149,6 +150,20 @@ class ProductManagementState extends State<ProductManagement> {
                 },
                 decoration: const InputDecoration(labelText: 'Parent Category'),
               ),
+              ElevatedButton(
+                onPressed: () async {
+                  final pickedFile = await _picker.pickImage(
+                    source: ImageSource.gallery,
+                  );
+                  if (pickedFile != null) {
+                    imagePath = pickedFile.path;
+                  }
+                  setState(() {}); // Update UI to show new image
+                },
+                child: const Text('Pick Image'),
+              ),
+              if (imagePath != null)
+                Image.file(File(imagePath!), width: 100, height: 100),
             ],
           ),
           actions: [
@@ -169,6 +184,7 @@ class ProductManagementState extends State<ProductManagement> {
       await _dbHelper.insertSubCategory({
         'name': subCategoryName,
         'category_id': selectedCategoryId,
+        'image': imagePath,
       });
       _fetchData();
     }
@@ -260,6 +276,7 @@ class ProductManagementState extends State<ProductManagement> {
     String newName = item['name'];
     int? selectedCategoryId =
         type == 'subcategory' ? item['category_id'] : null;
+    String? imagePath = type == 'subcategory' ? item['image'] : null;
 
     final result = await showDialog<bool>(
       context: context,
@@ -291,6 +308,21 @@ class ProductManagementState extends State<ProductManagement> {
                     labelText: 'Parent Category',
                   ),
                 ),
+              if (type == 'subcategory')
+                ElevatedButton(
+                  onPressed: () async {
+                    final pickedFile = await _picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
+                    if (pickedFile != null) {
+                      imagePath = pickedFile.path;
+                    }
+                    setState(() {}); // Update UI to show new image
+                  },
+                  child: const Text('Pick Image'),
+                ),
+              if (imagePath != null)
+                Image.file(File(imagePath!), width: 100, height: 100),
             ],
           ),
           actions: [
@@ -317,6 +349,7 @@ class ProductManagementState extends State<ProductManagement> {
             'id': item['id'],
             'name': newName,
             'category_id': selectedCategoryId,
+            'image': imagePath,
           });
           break;
         case 'product':

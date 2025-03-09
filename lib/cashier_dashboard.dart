@@ -1,13 +1,14 @@
 // ignore_for_file: unused_local_variable, unused_element
 
 import 'package:flutter/material.dart';
-import 'db_helper.dart';
-import 'login_page.dart'; // Import login page
-import 'dart:io'; // Import dart:io for File
-import 'package:intl/intl.dart'; // Import for date and time formatting
-import 'package:logging/logging.dart'; // Import logging package
+// Import login page
+// Import dart:io for File
+// Import for date and time formatting
+// Import logging package
 
 class CashierDashboard extends StatelessWidget {
+  const CashierDashboard({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
