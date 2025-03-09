@@ -147,6 +147,47 @@ class ProductManagementState extends State<ProductManagement> {
     );
   }
 
+  void _addCategory() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        String categoryName = '';
+        return AlertDialog(
+          title: Text('Add Category'),
+          content: TextField(
+            decoration: InputDecoration(labelText: 'Category Name'),
+            onChanged: (value) {
+              categoryName = value;
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (categoryName.isNotEmpty) {
+                  await _dbHelper.insertCategory({'name': categoryName});
+                  _fetchData();
+                }
+                Navigator.of(context).pop();
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteCategory(int categoryId) async {
+    await _dbHelper.deleteCategory(categoryId);
+    await _fetchData(); // Ensure data is fetched after deletion
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -158,7 +199,15 @@ class ProductManagementState extends State<ProductManagement> {
               children: [
                 BootstrapCol(
                   sizes: 'col-12',
-                  child: _buildList('Categories', _categories),
+                  child: Column(
+                    children: [
+                      _buildList('Categories', _categories),
+                      ElevatedButton(
+                        onPressed: _addCategory,
+                        child: Text('Add Category'),
+                      ),
+                    ],
+                  ),
                 ),
                 BootstrapCol(
                   sizes: 'col-12',
@@ -211,7 +260,11 @@ class ProductManagementState extends State<ProductManagement> {
                   IconButton(
                     icon: Icon(Icons.delete),
                     onPressed: () {
-                      // Handle delete action
+                      if (title == 'Categories') {
+                        _deleteCategory(item['id']);
+                      } else {
+                        // Handle delete action for sub-categories and products
+                      }
                     },
                   ),
                 ],
