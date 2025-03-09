@@ -6,6 +6,8 @@ class SubCategoryList extends StatelessWidget {
   final List<Map<String, dynamic>> subCategories;
   final Function(Map<String, dynamic>) onEdit;
   final Function(int) onDelete;
+  final String defaultImagePath =
+      'assets/placeholder.png'; // Update default image path
 
   const SubCategoryList({
     super.key,
@@ -24,6 +26,7 @@ class SubCategoryList extends StatelessWidget {
     final TextEditingController parentCategoryController =
         TextEditingController(text: subCategory['parent_category']);
     String? imagePath = subCategory['image'];
+    bool imageExists = imagePath != null && await File(imagePath).exists();
 
     return showDialog<void>(
       context: context,
@@ -44,9 +47,9 @@ class SubCategoryList extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                imagePath != null
+                imageExists
                     ? Image.file(File(imagePath!))
-                    : const Icon(Icons.image_not_supported),
+                    : Image.asset(defaultImagePath), // Use default image asset
                 TextButton(
                   onPressed: () async {
                     final ImagePicker picker = ImagePicker();
@@ -94,11 +97,20 @@ class SubCategoryList extends StatelessWidget {
       title: const Text('Sub-Categories'),
       children:
           subCategories.map((subCategory) {
+            String? imagePath = subCategory['image'];
+            bool imageExists =
+                imagePath != null && File(imagePath).existsSync();
+
             return ListTile(
-              leading:
-                  subCategory['image'] != null
-                      ? Image.file(File(subCategory['image']))
-                      : const Icon(Icons.image_not_supported),
+              leading: SizedBox(
+                width: 50, // Set a fixed width for the leading widget
+                child:
+                    imageExists
+                        ? Image.file(File(imagePath!))
+                        : Image.asset(
+                          defaultImagePath,
+                        ), // Use default image asset
+              ),
               title: Text(subCategory['name']),
               subtitle: Text(
                 'Parent Category: ${subCategory['parent_category'] ?? 'Unknown'}',
