@@ -1,137 +1,57 @@
 import 'package:flutter/material.dart';
 import 'db_helper.dart'; // Import DBHelper
-import 'package:logging/logging.dart';
 
 class ProductManagement extends StatefulWidget {
-  const ProductManagement({super.key});
+  const ProductManagement({super.key}); // Add named 'key' parameter
 
   @override
   ProductManagementState createState() => ProductManagementState();
 }
 
 class ProductManagementState extends State<ProductManagement> {
-  List<Map<String, dynamic>> categories = [];
-  Map<String, List<Map<String, dynamic>>> subCategories = {};
-  Map<String, List<Map<String, dynamic>>> products = {};
-  final DBHelper _dbHelper = DBHelper(); // Instance of DBHelper
-  final Logger _logger = Logger('ProductManagement');
+  final DBHelper _dbHelper = DBHelper();
+  List<Map<String, dynamic>> _categories = [];
+  List<Map<String, dynamic>> _subCategories = [];
+  List<Map<String, dynamic>> _products = [];
 
   @override
   void initState() {
     super.initState();
-    _initializeData();
+    _fetchData();
   }
 
-  Future<void> _initializeData() async {
-    await _dbHelper.initializeDatabase();
-    fetchCategories();
-  }
+  Future<void> _fetchData() async {
+    final categories = await _dbHelper.getCategories();
+    final subCategories = await _dbHelper.getSubCategories();
+    final products = await _dbHelper.fetchAllProducts();
 
-  Future<void> fetchCategories() async {
-    try {
-      final List<Map<String, dynamic>> fetchedCategories =
-          await _dbHelper.getCategories();
-
-      setState(() {
-        categories = fetchedCategories;
-      });
-
-      for (var category in categories) {
-        fetchSubCategories(category['name']);
-      }
-    } catch (e) {
-      if (e is UnsupportedError) {
-        _logger.severe('Error querying categories: ${e.message}');
-      } else {
-        rethrow;
-      }
-    }
-  }
-
-  Future<void> fetchSubCategories(String category) async {
-    try {
-      final List<Map<String, dynamic>> fetchedSubCategories =
-          await _dbHelper.getSubCategories();
-
-      setState(() {
-        subCategories[category] = fetchedSubCategories;
-      });
-
-      for (var subCategory in fetchedSubCategories) {
-        fetchProducts(category, subCategory['name']);
-      }
-    } catch (e) {
-      if (e is UnsupportedError) {
-        _logger.severe(
-          'Error querying sub-categories for category $category: ${e.message}',
-        );
-      } else {
-        rethrow;
-      }
-    }
-  }
-
-  Future<void> fetchProducts(String category, String subCategory) async {
-    try {
-      final List<Map<String, dynamic>> fetchedProducts = await _dbHelper
-          .getProducts(category, subCategory);
-
-      setState(() {
-        products[subCategory] = fetchedProducts;
-      });
-    } catch (e) {
-      if (e is UnsupportedError) {
-        _logger.severe(
-          'Error querying products for sub-category $subCategory: ${e.message}',
-        );
-      } else {
-        rethrow;
-      }
-    }
+    setState(() {
+      _categories = categories;
+      _subCategories = subCategories;
+      _products = products;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: categories.length,
-      child: Scaffold(
-        body:
-            categories.isNotEmpty
-                ? TabBarView(
-                  children:
-                      categories.map((category) {
-                        return Column(
-                          children: [
-                            Text('${category['name']} Content'),
-                            Expanded(
-                              child: ListView.builder(
-                                itemCount:
-                                    subCategories[category['name']]?.length ??
-                                    0,
-                                itemBuilder: (context, index) {
-                                  var subCategory =
-                                      subCategories[category['name']]![index];
-                                  return ExpansionTile(
-                                    title: Text(subCategory['name']),
-                                    children:
-                                        products[subCategory['name']]?.map((
-                                          product,
-                                        ) {
-                                          return ListTile(
-                                            title: Text(product['name']),
-                                          );
-                                        }).toList() ??
-                                        [],
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                )
-                : Center(child: CircularProgressIndicator()),
+    return Scaffold(
+      body: Column(
+        children: [
+          _buildList('Categories', _categories),
+          _buildList('Sub-Categories', _subCategories),
+          _buildList('Products', _products),
+        ],
       ),
+    );
+  }
+
+  Widget _buildList(String title, List<Map<String, dynamic>> items) {
+    return ExpansionTile(
+      title: Text(title),
+      children:
+          items.map((item) {
+            return ListTile(title: Text(item['name']));
+          }).toList(),
     );
   }
 }

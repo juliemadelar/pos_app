@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'db_helper.dart';
-import 'cashier_dashboard.dart';
-import 'admin_dashboard.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -34,6 +32,7 @@ class LoginPageState extends State<LoginPage> {
   }
 
   void _initializeDatabase() async {
+    await _dbHelper.initializeDatabase(); // Ensure the database is initialized
     bool hasUsers = await _dbHelper.hasUsers();
     bool hasProducts = await _dbHelper.hasProducts();
 
@@ -68,36 +67,30 @@ class LoginPageState extends State<LoginPage> {
     if (username.isEmpty || password.isEmpty) {
       if (!mounted) return; // Check if the widget is still mounted
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter both username and password')),
+        SnackBar(content: Text('Please enter both username and password.')),
       );
       return;
     }
 
-    try {
-      var user = await _dbHelper.getUser(username, password);
+    var user = await _dbHelper.getUser(username, password);
+    if (!mounted) return; // Check if the widget is still mounted
+    if (user != null) {
+      String loginTime = DateFormat(
+        'yyyy-MM-dd HH:mm:ss',
+      ).format(DateTime.now());
+      await _dbHelper.insertLoginDetail(username, loginTime);
+
       if (!mounted) return; // Check if the widget is still mounted
-      if (user != null) {
-        if (user['role'] == 'cashier') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => CashierDashboard()),
-          );
-        } else if (user['role'] == 'admin') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => AdminDashboard()),
-          );
-        }
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Invalid username or password')));
+      if (user['role'] == 'admin') {
+        Navigator.pushReplacementNamed(context, '/');
+      } else if (user['role'] == 'cashier') {
+        Navigator.pushReplacementNamed(context, '/cashier_dashboard');
       }
-    } catch (e) {
+    } else {
       if (!mounted) return; // Check if the widget is still mounted
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred during login: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Invalid username or password.')));
     }
   }
 
