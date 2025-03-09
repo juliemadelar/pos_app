@@ -1,4 +1,4 @@
-name: my_pos
+name: pos_app
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -71,3 +71,17 @@ flutter:
 
   assets:
     - assets/logo.png
+    - assets/hotcoffee_default.png
+    # - assets/cold_brew.jpg
+    # - assets/tumbler.jpg
+    # - assets/mug.jpg
+    # - assets/choco_muffin_image.png
+    # - assets/croissant_image.png
+    # - assets/tuna_melt.jpg
+    # - assets/cappuccino.png
+    # - assets/cafe_latte.jpg
+    # - assets/iced_coffee.jpg
+    # - assets/iced_mocha.png
+    # - assets/classic_milktea.jpg
+    # - assets/cold_milktea_wintermelon.png
+    - assets/placeholder.png

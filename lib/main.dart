@@ -3,7 +3,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'admin_dashboard.dart';
 import 'login_page.dart';
 import 'db_helper.dart';
-import 'package:my_pos/cashier_dashboard.dart'; // Import the CashierDashboard page
+import 'package:pos_app/cashier_dashboard.dart'; // Import the CashierDashboard page
+// Import the image_picker package
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +37,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => AdminDashboard(),
         '/login': (context) => LoginPage(),
         '/cashier_dashboard':
-            (context) => CashierDashboard(), // Define the route
+            (context) => CashierDashboard(), // Define the routehe route
       },
       builder: (context, child) {
         return child != null

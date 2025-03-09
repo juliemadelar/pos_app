@@ -28,7 +28,7 @@ class DBHelper {
           'CREATE TABLE sub_categories(id INTEGER PRIMARY KEY, name TEXT, image TEXT, category_id INTEGER, FOREIGN KEY (category_id) REFERENCES categories(id))',
         );
         await db.execute(
-          'CREATE TABLE products(id INTEGER PRIMARY KEY, name TEXT, category TEXT, sub_category TEXT)',
+          'CREATE TABLE products(id INTEGER PRIMARY KEY, name TEXT, image TEXT, sub_category_id INTEGER, FOREIGN KEY (sub_category_id) REFERENCES sub_categories(id))',
         );
         await db.execute(
           'CREATE TABLE sizes (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, price REAL, product_id INTEGER, FOREIGN KEY (product_id) REFERENCES products (id))',
@@ -358,7 +358,7 @@ class DBHelper {
     final int chocoMuffinProductId = await _insertProductIfNotExists(
       db,
       'Choco Muffin',
-      'assets/choco_muffin.jpg',
+      'assets/choco_muffin_image.png', // Corrected image path
       pastrySubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Regular', 80.00, chocoMuffinProductId);
@@ -366,7 +366,7 @@ class DBHelper {
     final int croissantProductId = await _insertProductIfNotExists(
       db,
       'Croissant',
-      'assets/croissant.jpg',
+      'assets/croissant_image.png', // Corrected image path
       pastrySubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Regular', 80.00, croissantProductId);
@@ -375,7 +375,7 @@ class DBHelper {
     final int hamCheeseProductId = await _insertProductIfNotExists(
       db,
       'Ham and Cheese',
-      'assets/ham_cheese.jpg',
+      'assets/ham_cheese_image.png', // Ensure this path is correct
       sandwichesSubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Regular', 90.00, hamCheeseProductId);
@@ -1085,7 +1085,7 @@ class DBHelper {
     final int chocoMuffinProductId = await _insertProductIfNotExists(
       db,
       'Choco Muffin',
-      'path/to/choco_muffin_image.png',
+      'assets/choco_muffin_image.png', // Corrected image path
       pastrySubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Regular', 80.00, chocoMuffinProductId);
@@ -1093,7 +1093,7 @@ class DBHelper {
     final int croissantProductId = await _insertProductIfNotExists(
       db,
       'Croissant',
-      'path/to/croissant_image.png',
+      'assets/croissant_image.png', // Corrected image path
       pastrySubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Regular', 80.00, croissantProductId);
@@ -1102,7 +1102,7 @@ class DBHelper {
     final int hamCheeseProductId = await _insertProductIfNotExists(
       db,
       'Ham and Cheese',
-      'path/to/ham_cheese_image.png',
+      'assets/ham_cheese_image.png', // Ensure this path is correct
       sandwichesSubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Regular', 90.00, hamCheeseProductId);
@@ -1110,7 +1110,7 @@ class DBHelper {
     final int tunaMeltProductId = await _insertProductIfNotExists(
       db,
       'Tuna Melt',
-      'path/to/tuna_melt_image.png',
+      'assets/tuna_melt.jpg',
       sandwichesSubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Regular', 100.00, tunaMeltProductId);
@@ -1152,7 +1152,7 @@ class DBHelper {
     final int mugProductId = await _insertProductIfNotExists(
       db,
       'Mug',
-      'path/to/mug_image.png',
+      'assets/mug.jpg',
       merchandiseSubCategoryId,
     );
     await _insertSizeIfNotExists(
@@ -1166,7 +1166,7 @@ class DBHelper {
     final int keychainProductId = await _insertProductIfNotExists(
       db,
       'Keychain',
-      'path/to/keychain_image.png',
+      'assets/keychain.jpg',
       merchandiseSubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Design 1', 80.00, keychainProductId);
@@ -1495,7 +1495,7 @@ class DBHelper {
     final int chocoMuffinProductId = await _insertProductIfNotExists(
       db,
       'Choco Muffin',
-      'path/to/choco_muffin_image.png',
+      'assets/choco_muffin_image.png', // Corrected image path
       pastrySubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Regular', 80.00, chocoMuffinProductId);
@@ -1503,7 +1503,7 @@ class DBHelper {
     final int croissantProductId = await _insertProductIfNotExists(
       db,
       'Croissant',
-      'assets/croissant.jpg',
+      'assets/croissant_image.png', // Corrected image path
       pastrySubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Regular', 80.00, croissantProductId);
@@ -1512,7 +1512,7 @@ class DBHelper {
     final int hamCheeseProductId = await _insertProductIfNotExists(
       db,
       'Ham and Cheese',
-      'assets/ham_and_cheese.jpg',
+      'assets/ham_cheese_image.png', // Ensure this path is correct
       sandwichesSubCategoryId,
     );
     await _insertSizeIfNotExists(db, 'Regular', 90.00, hamCheeseProductId);
@@ -1562,7 +1562,7 @@ class DBHelper {
     final int mugProductId = await _insertProductIfNotExists(
       db,
       'Mug',
-      'path/to/mug_image.png',
+      'assets/mug.jpg',
       merchandiseSubCategoryId,
     );
     await _insertSizeIfNotExists(
