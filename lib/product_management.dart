@@ -17,6 +17,7 @@ class ProductManagementState extends State<ProductManagement> {
   List<Map<String, dynamic>> _categories = [];
   List<Map<String, dynamic>> _subCategories = [];
   List<Map<String, dynamic>> _products = [];
+  Map<String, dynamic>? _itemBeingEdited; // Track the item being edited
 
   @override
   void initState() {
@@ -72,26 +73,24 @@ class ProductManagementState extends State<ProductManagement> {
     });
   }
 
-  void _editItem(Map<String, dynamic> item) {
-    showDialog(
+  Future<void> _showEditDialog(Map<String, dynamic> item) async {
+    _itemBeingEdited = item; // Store item for later update
+    String? selectedCategory =
+        item['parent_category'] != 'Unknown' ? item['parent_category'] : null;
+    String? imagePath = item['image'];
+    final nameController = TextEditingController(text: item['name']);
+
+    final result = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
-        String? selectedCategory =
-            item['parent_category'] != 'Unknown'
-                ? item['parent_category']
-                : null;
-        String? imagePath = item['image'];
         return AlertDialog(
-          title: Text('Edit Item'),
+          title: const Text('Edit Item'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                decoration: InputDecoration(labelText: 'Name'),
-                controller: TextEditingController(text: item['name']),
-                onChanged: (value) {
-                  item['name'] = value;
-                },
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Name'),
               ),
               DropdownButtonFormField<String>(
                 value: selectedCategory,
@@ -105,7 +104,7 @@ class ProductManagementState extends State<ProductManagement> {
                 onChanged: (value) {
                   selectedCategory = value;
                 },
-                decoration: InputDecoration(labelText: 'Parent Category'),
+                decoration: const InputDecoration(labelText: 'Parent Category'),
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -113,12 +112,11 @@ class ProductManagementState extends State<ProductManagement> {
                     source: ImageSource.gallery,
                   );
                   if (pickedFile != null) {
-                    setState(() {
-                      imagePath = pickedFile.path;
-                    });
+                    imagePath = pickedFile.path;
                   }
+                  setState(() {}); // Update UI to show new image
                 },
-                child: Text('Pick Image'),
+                child: const Text('Pick Image'),
               ),
               if (imagePath != null)
                 Image.file(File(imagePath!), width: 100, height: 100),
@@ -126,61 +124,61 @@ class ProductManagementState extends State<ProductManagement> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  item['parent_category'] = selectedCategory;
-                  item['image'] = imagePath;
-                });
-                Navigator.of(context).pop();
-              },
-              child: Text('Save'),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Save'),
             ),
           ],
         );
       },
     );
+
+    if (result == true && mounted) {
+      // Check if widget is still mounted
+      setState(() {
+        _itemBeingEdited!['name'] = nameController.text;
+        _itemBeingEdited!['parent_category'] = selectedCategory;
+        _itemBeingEdited!['image'] = imagePath;
+        _itemBeingEdited = null; // Clear the edited item
+      });
+    }
+    nameController.dispose();
   }
 
-  void _addCategory() {
-    showDialog(
+  void _addCategory() async {
+    String categoryName = '';
+    final result = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
-        String categoryName = '';
         return AlertDialog(
-          title: Text('Add Category'),
+          title: const Text('Add Category'),
           content: TextField(
-            decoration: InputDecoration(labelText: 'Category Name'),
+            decoration: const InputDecoration(labelText: 'Category Name'),
             onChanged: (value) {
               categoryName = value;
             },
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () async {
-                if (categoryName.isNotEmpty) {
-                  await _dbHelper.insertCategory({'name': categoryName});
-                  _fetchData();
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text('Save'),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Save'),
             ),
           ],
         );
       },
     );
+
+    if (result == true) {
+      await _dbHelper.insertCategory({'name': categoryName});
+      _fetchData();
+    }
   }
 
   void _deleteCategory(int categoryId) async {
@@ -252,13 +250,11 @@ class ProductManagementState extends State<ProductManagement> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: Icon(Icons.edit),
-                    onPressed: () {
-                      _editItem(item);
-                    },
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => _showEditDialog(item),
                   ),
                   IconButton(
-                    icon: Icon(Icons.delete),
+                    icon: const Icon(Icons.delete),
                     onPressed: () {
                       if (title == 'Categories') {
                         _deleteCategory(item['id']);
