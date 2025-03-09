@@ -36,31 +36,26 @@ class ProductManagementState extends State<ProductManagement> {
 
     final updatedSubCategories = await Future.wait(
       subCategories.map((subCategory) async {
-        final parentCategory =
-            subCategory['parent_id'] != null
-                ? await _dbHelper.getCategoryById(subCategory['parent_id'])
-                : null;
+        final parentCategory = await _dbHelper.fetchCategoryById(
+          subCategory['category_id'],
+        );
         return {
           ...subCategory,
-          'parent_category':
-              parentCategory != null ? parentCategory['name'] : 'Unknown',
+          'parent_category': parentCategory['name'] ?? 'Unknown',
         };
       }).toList(),
     );
 
     final updatedProducts = await Future.wait(
       products.map((product) async {
-        final subCategory = await _dbHelper.getSubCategoryById(
+        final subCategory = await _dbHelper.fetchSubCategoryById(
           product['sub_category_id'],
         );
-        final parentCategory =
-            subCategory != null && subCategory['parent_id'] != null
-                ? await _dbHelper.getCategoryById(subCategory['parent_id'])
-                : null;
-        String parentCategoryName =
-            parentCategory != null ? parentCategory['name'] : 'Unknown';
-        String subCategoryName =
-            subCategory != null ? subCategory['name'] : 'Unknown';
+        final parentCategory = await _dbHelper.fetchCategoryById(
+          subCategory['category_id'],
+        );
+        String parentCategoryName = parentCategory['name'] ?? 'Unknown';
+        String subCategoryName = subCategory['name'] ?? 'Unknown';
 
         return {
           ...product,

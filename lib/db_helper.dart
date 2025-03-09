@@ -1639,4 +1639,24 @@ class DBHelper {
     }
     return null;
   }
+
+  Future<Map<String, dynamic>> fetchCategoryById(int id) async {
+    final db = await database;
+    final result = await db.query(
+      'categories',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    return result.isNotEmpty ? result.first : {};
+  }
+
+  Future<Map<String, dynamic>> fetchSubCategoryById(int id) async {
+    final db = await database;
+    final result = await db.query(
+      'sub_categories',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    return result.isNotEmpty ? result.first : {};
+  }
 }
