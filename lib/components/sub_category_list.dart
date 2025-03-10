@@ -106,7 +106,7 @@ class SubCategoryList extends StatelessWidget {
                 width: 50, // Set a fixed width for the leading widget
                 child:
                     imageExists
-                        ? Image.file(File(imagePath!))
+                        ? Image.file(File(imagePath))
                         : Image.asset(
                           defaultImagePath,
                         ), // Use default image asset
