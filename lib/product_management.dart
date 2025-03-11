@@ -5,6 +5,7 @@ import 'dart:io'; // Import dart:io for File
 import 'components/category_list.dart'; // Import CategoryList
 import 'components/sub_category_list.dart'; // Import SubCategoryList
 import 'components/product_list.dart'; // Import ProductList
+import 'components/size_list.dart'; // Import SizeList
 
 extension StringExtension on String {
   String capitalize() {
@@ -56,7 +57,8 @@ class ProductManagementState extends State<ProductManagement>
     final subCategories = await _dbHelper.getSubCategories();
     final products = await _dbHelper.fetchAllProducts();
     final addIns = await _dbHelper.getAddIns();
-    final sizes = await _dbHelper.getSizes(); // Fetch sizes
+    final productId = 1; // Define productId with a valid value
+    final sizes = await _dbHelper.getSizes(productId); // Fetch sizes
 
     final updatedSubCategories = await Future.wait(
       subCategories.map((subCategory) async {
@@ -508,6 +510,11 @@ class ProductManagementState extends State<ProductManagement>
     _fetchData();
   }
 
+  void _deleteSize(int sizeId) async {
+    await _dbHelper.deleteSize(sizeId);
+    await _fetchData(); // Ensure data is fetched after deletion
+  }
+
   void _showProductDetails(Map<String, dynamic> product) {
     showDialog(
       context: context,
@@ -557,118 +564,130 @@ class ProductManagementState extends State<ProductManagement>
             controller: _tabController,
             children: [
               SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min, // Add this line
-                  children: [
-                    CategoryList(
-                      categories: _categories,
-                      onEdit: (item) => _showEditDialog(item, 'category'),
-                      onDelete: _deleteCategory,
-                      itemBuilder:
-                          (context, item) => ListTile(
-                            title: Text(item['name']),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.edit),
-                                  onPressed:
-                                      () => _showEditDialog(item, 'category'),
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.delete),
-                                  onPressed: () => _deleteCategory(item['id']),
-                                ),
-                              ],
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min, // Add this line
+                    children: [
+                      CategoryList(
+                        categories: _categories,
+                        onEdit: (item) => _showEditDialog(item, 'category'),
+                        onDelete: _deleteCategory,
+                        itemBuilder:
+                            (context, item) => ListTile(
+                              title: Text(item['name']),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit),
+                                    onPressed:
+                                        () => _showEditDialog(item, 'category'),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete),
+                                    onPressed:
+                                        () => _deleteCategory(item['id']),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                    ),
-                    ElevatedButton(
-                      onPressed: _addCategory,
-                      child: Text('Add Category'),
-                    ),
-                  ],
+                      ),
+                      ElevatedButton(
+                        onPressed: _addCategory,
+                        child: Text('Add Category'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min, // Add this line
-                  children: [
-                    SubCategoryList(
-                      subCategories: _subCategories,
-                      onEdit: (item) => _showEditDialog(item, 'subcategory'),
-                      onDelete: _deleteSubCategory,
-                      itemBuilder:
-                          (context, item) => ListTile(
-                            title: Text(item['name']),
-                            subtitle: Text(
-                              'Parent Category: ${item['parent_category']}',
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min, // Add this line
+                    children: [
+                      SubCategoryList(
+                        subCategories: _subCategories,
+                        onEdit: (item) => _showEditDialog(item, 'subcategory'),
+                        onDelete: _deleteSubCategory,
+                        itemBuilder:
+                            (context, item) => ListTile(
+                              title: Text(item['name']),
+                              subtitle: Text(
+                                'Parent Category: ${item['parent_category']}',
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit),
+                                    onPressed:
+                                        () => _showEditDialog(
+                                          item,
+                                          'subcategory',
+                                        ),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete),
+                                    onPressed:
+                                        () => _deleteSubCategory(item['id']),
+                                  ),
+                                ],
+                              ),
                             ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.edit),
-                                  onPressed:
-                                      () =>
-                                          _showEditDialog(item, 'subcategory'),
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.delete),
-                                  onPressed:
-                                      () => _deleteSubCategory(item['id']),
-                                ),
-                              ],
-                            ),
-                          ),
-                    ),
-                    ElevatedButton(
-                      onPressed: _addSubCategory,
-                      child: Text('Add Sub-Category'),
-                    ),
-                  ],
+                      ),
+                      ElevatedButton(
+                        onPressed: _addSubCategory,
+                        child: Text('Add Sub-Category'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min, // Add this line
-                  children: [
-                    ProductList(
-                      products: _products,
-                      onEdit: (item, _) {
-                        _showEditDialog(item, 'product');
-                      },
-                      onDelete: _deleteProduct,
-                      onViewDetails:
-                          _showProductDetails, // Add onViewDetails callback
-                      itemBuilder:
-                          (context, item) => ListTile(
-                            title: Text(item['name']),
-                            subtitle: Text(
-                              'Sub-Category: ${item['sub_category']}',
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min, // Add this line
+                    children: [
+                      ProductList(
+                        products: _products,
+                        onEdit: (item, _) {
+                          _showEditDialog(item, 'product');
+                        },
+                        onDelete: _deleteProduct,
+                        onViewDetails:
+                            _showProductDetails, // Add onViewDetails callback
+                        itemBuilder:
+                            (context, item) => ListTile(
+                              title: Text(item['name']),
+                              subtitle: Text(
+                                'Sub-Category: ${item['sub_category']}',
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit),
+                                    onPressed:
+                                        () => _showEditDialog(item, 'product'),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete),
+                                    onPressed: () => _deleteProduct(item['id']),
+                                  ),
+                                ],
+                              ),
+                              onTap: () => _showProductDetails(item),
                             ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.edit),
-                                  onPressed:
-                                      () => _showEditDialog(item, 'product'),
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.delete),
-                                  onPressed: () => _deleteProduct(item['id']),
-                                ),
-                              ],
-                            ),
-                            onTap: () => _showProductDetails(item),
-                          ),
-                    ),
-                    ElevatedButton(
-                      onPressed: _addProduct,
-                      child: Text('Add Product'),
-                    ),
-                  ],
+                      ),
+                      ElevatedButton(
+                        onPressed: _addProduct,
+                        child: Text('Add Product'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               ListView.builder(
@@ -684,17 +703,28 @@ class ProductManagementState extends State<ProductManagement>
                   );
                 },
               ),
-              ListView.builder(
-                itemCount: _sizes.length,
-                itemBuilder: (context, index) {
-                  final size = _sizes[index];
-                  return ListTile(
-                    title: Text(size['size'] ?? 'Unknown Size'),
-                    subtitle: Text(
-                      'Parent Product: ${size['parent_product']}\nPrice: \$${size['price']}', // Include price
-                    ),
-                  );
-                },
+              SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min, // Add this line
+                    children: [
+                      SizesList(
+                        productId: 1, // Provide a valid productId
+                        sizesList: _sizes,
+                        onEdit: (item) => _showEditDialog(item, 'size'),
+                        onDelete: (id) => _deleteSize(id),
+                        itemBuilder:
+                            (context, item) => ListTile(
+                              title: Text(item['size'] ?? 'Unknown Size'),
+                              subtitle: Text(
+                                'Parent Product: ${item['parent_product']}\nPrice: \$${item['price']}', // Include price
+                              ),
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           );
