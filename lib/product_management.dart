@@ -535,8 +535,10 @@ class ProductManagementState extends State<ProductManagement>
         children: [
           SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min, // Add this line
               children: [
                 Flexible(
+                  fit: FlexFit.loose, // Use Flexible with FlexFit.loose
                   child: CategoryList(
                     categories: _categories,
                     onEdit: (item) => _showEditDialog(item, 'category'),
@@ -570,8 +572,10 @@ class ProductManagementState extends State<ProductManagement>
           ),
           SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min, // Add this line
               children: [
                 Flexible(
+                  fit: FlexFit.loose, // Use Flexible with FlexFit.loose
                   child: SubCategoryList(
                     subCategories: _subCategories,
                     onEdit: (item) => _showEditDialog(item, 'subcategory'),
@@ -608,8 +612,10 @@ class ProductManagementState extends State<ProductManagement>
           ),
           SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min, // Add this line
               children: [
                 Flexible(
+                  fit: FlexFit.loose, // Use Flexible with FlexFit.loose
                   child: ProductList(
                     products: _products,
                     onEdit: (item, _) {
@@ -653,8 +659,10 @@ class ProductManagementState extends State<ProductManagement>
           ),
           SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min, // Add this line
               children: [
                 Flexible(
+                  fit: FlexFit.loose, // Use Flexible with FlexFit.loose
                   child: AddInList(
                     addInList: _addIns, // Corrected parameter name
                     onEdit: (item) => _showEditDialog(item, 'add-in'),
