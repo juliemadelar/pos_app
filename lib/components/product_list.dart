@@ -13,6 +13,7 @@ class ProductList extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required void Function(Map<String, dynamic> product) onViewDetails,
+    required ListTile Function(dynamic context, dynamic item) itemBuilder,
   });
 
   Future<void> showEditDialog(

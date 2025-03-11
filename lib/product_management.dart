@@ -533,71 +533,171 @@ class ProductManagementState extends State<ProductManagement>
       body: TabBarView(
         controller: _tabController,
         children: [
-          Column(
-            children: [
-              Flexible(
-                child: CategoryList(
-                  categories: _categories,
-                  onEdit: (item) => _showEditDialog(item, 'category'),
-                  onDelete: _deleteCategory,
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                Flexible(
+                  child: CategoryList(
+                    categories: _categories,
+                    onEdit: (item) => _showEditDialog(item, 'category'),
+                    onDelete: _deleteCategory,
+                    itemBuilder:
+                        (context, item) => ListTile(
+                          title: Text(item['name']),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit),
+                                onPressed:
+                                    () => _showEditDialog(item, 'category'),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () => _deleteCategory(item['id']),
+                              ),
+                            ],
+                          ),
+                        ),
+                  ),
                 ),
-              ),
-              ElevatedButton(
-                onPressed: _addCategory,
-                child: Text('Add Category'),
-              ),
-            ],
+                ElevatedButton(
+                  onPressed: _addCategory,
+                  child: Text('Add Category'),
+                ),
+              ],
+            ),
           ),
-          Column(
-            children: [
-              Flexible(
-                child: SubCategoryList(
-                  subCategories: _subCategories,
-                  onEdit: (item) => _showEditDialog(item, 'subcategory'),
-                  onDelete: _deleteSubCategory,
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                Flexible(
+                  child: SubCategoryList(
+                    subCategories: _subCategories,
+                    onEdit: (item) => _showEditDialog(item, 'subcategory'),
+                    onDelete: _deleteSubCategory,
+                    itemBuilder:
+                        (context, item) => ListTile(
+                          title: Text(item['name']),
+                          subtitle: Text(
+                            'Parent Category: ${item['parent_category']}',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit),
+                                onPressed:
+                                    () => _showEditDialog(item, 'subcategory'),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () => _deleteSubCategory(item['id']),
+                              ),
+                            ],
+                          ),
+                        ),
+                  ),
                 ),
-              ),
-              ElevatedButton(
-                onPressed: _addSubCategory,
-                child: Text('Add Sub-Category'),
-              ),
-            ],
+                ElevatedButton(
+                  onPressed: _addSubCategory,
+                  child: Text('Add Sub-Category'),
+                ),
+              ],
+            ),
           ),
-          Column(
-            children: [
-              Flexible(
-                child: ProductList(
-                  products: _products,
-                  onEdit: (item, _) {
-                    _selectedProductId =
-                        item['id']; // Update selected product ID
-                    _showEditDialog(item, 'product');
-                  },
-                  onDelete: _deleteProduct,
-                  onViewDetails:
-                      _showProductDetails, // Add onViewDetails callback
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                Flexible(
+                  child: ProductList(
+                    products: _products,
+                    onEdit: (item, _) {
+                      _selectedProductId =
+                          item['id']; // Update selected product ID
+                      _showEditDialog(item, 'product');
+                    },
+                    onDelete: _deleteProduct,
+                    onViewDetails:
+                        _showProductDetails, // Add onViewDetails callback
+                    itemBuilder:
+                        (context, item) => ListTile(
+                          title: Text(item['name']),
+                          subtitle: Text(
+                            'Sub-Category: ${item['sub_category']}',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit),
+                                onPressed:
+                                    () => _showEditDialog(item, 'product'),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () => _deleteProduct(item['id']),
+                              ),
+                            ],
+                          ),
+                          onTap: () => _showProductDetails(item),
+                        ),
+                  ),
                 ),
-              ),
-              ElevatedButton(
-                onPressed: _addProduct,
-                child: Text('Add Product'),
-              ),
-            ],
+                ElevatedButton(
+                  onPressed: _addProduct,
+                  child: Text('Add Product'),
+                ),
+              ],
+            ),
           ),
-          Column(
-            children: [
-              Flexible(
-                child: AddInList(
-                  addInList: _addIns, // Corrected parameter name
-                  onEdit: (item) => _showEditDialog(item, 'add-in'),
-                  onDelete: _deleteAddIn,
-                  productId: _selectedProductId, // Use the selected product ID
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                Flexible(
+                  child: AddInList(
+                    addInList: _addIns, // Corrected parameter name
+                    onEdit: (item) => _showEditDialog(item, 'add-in'),
+                    onDelete: _deleteAddIn,
+                    productId:
+                        _selectedProductId, // Use the selected product ID
+                    itemBuilder:
+                        (context, item) => ListTile(
+                          title: Text(item['name']),
+                          subtitle: Text(
+                            'Parent Product: ${item['parent_product']}',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit),
+                                onPressed:
+                                    () => _showEditDialog(item, 'add-in'),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () => _deleteAddIn(item['id']),
+                              ),
+                            ],
+                          ),
+                        ),
+                  ),
                 ),
-              ),
-              ElevatedButton(onPressed: _addAddIn, child: Text('Add Add-In')),
-            ],
+                ElevatedButton(onPressed: _addAddIn, child: Text('Add Add-In')),
+              ],
+            ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _tabController.index == 0 ? _addCategory() : null;
+          _tabController.index == 1 ? _addSubCategory() : null;
+          _tabController.index == 2 ? _addProduct() : null;
+          _tabController.index == 3 ? _addAddIn() : null;
+        },
+        child: Icon(Icons.add),
       ),
     );
   }

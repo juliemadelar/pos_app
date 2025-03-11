@@ -11,6 +11,7 @@ class AddInList extends StatefulWidget {
     required this.onEdit,
     required this.onDelete,
     super.key,
+    required ListTile Function(dynamic context, dynamic item) itemBuilder,
   });
 
   @override

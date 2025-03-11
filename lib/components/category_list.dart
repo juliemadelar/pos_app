@@ -11,6 +11,7 @@ class CategoryList extends StatelessWidget {
     required this.categories,
     required this.onEdit,
     required this.onDelete,
+    required ListTile Function(dynamic context, dynamic item) itemBuilder,
   });
 
   void saveChanges() async {

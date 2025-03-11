@@ -14,6 +14,7 @@ class SubCategoryList extends StatelessWidget {
     required this.subCategories,
     required this.onEdit,
     required this.onDelete,
+    required ListTile Function(dynamic context, dynamic item) itemBuilder,
   });
 
   Future<void> showEditDialog(
