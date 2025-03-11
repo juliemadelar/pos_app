@@ -1419,4 +1419,27 @@ class DBHelper {
     final db = await database;
     await db.delete('sizes', where: 'id = ?', whereArgs: [sizeId]);
   }
+
+  Future<List<Map<String, dynamic>>> getAllSizes() async {
+    // Implement the method to fetch all sizes from the database
+    // Example implementation:
+    final db = await database;
+    final List<Map<String, dynamic>> sizes = await db.query('sizes');
+    return sizes;
+  }
+
+  Future<void> updateSize(int sizeId, Map<String, dynamic> values) async {
+    await _dbMutex.acquire();
+    try {
+      final db = await database;
+      await db.update('sizes', values, where: 'id = ?', whereArgs: [sizeId]);
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<void> insertSize(Map<String, dynamic> size) async {
+    final db = await database;
+    await db.insert('sizes', size);
+  }
 }

@@ -38,7 +38,9 @@ class ProductManagementState extends State<ProductManagement>
       length: 5,
       vsync: this,
     ); // Update length to 5
-    _initializeDatabase();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeDatabase();
+    });
   }
 
   @override
@@ -57,8 +59,7 @@ class ProductManagementState extends State<ProductManagement>
     final subCategories = await _dbHelper.getSubCategories();
     final products = await _dbHelper.fetchAllProducts();
     final addIns = await _dbHelper.getAddIns();
-    final productId = 1; // Define productId with a valid value
-    final sizes = await _dbHelper.getSizes(productId); // Fetch sizes
+    final sizes = await _dbHelper.getAllSizes(); // Fetch sizes for all products
 
     final updatedSubCategories = await Future.wait(
       subCategories.map((subCategory) async {
@@ -100,26 +101,13 @@ class ProductManagementState extends State<ProductManagement>
       }).toList(),
     );
 
-    final updatedSizes = await Future.wait(
-      sizes.map((size) async {
-        final parentProduct = await _dbHelper.fetchProductById(
-          size['product_id'],
-        );
-        return {
-          ...size,
-          'parent_product': parentProduct?['name'] ?? 'Unknown',
-          'price': size['price'], // Include price
-        };
-      }).toList(),
-    );
-
     if (mounted) {
       setState(() {
         _categories = categories;
         _subCategories = updatedSubCategories;
         _products = updatedProducts;
         _addIns = updatedAddIns;
-        _sizes = updatedSizes; // Update sizes list
+        _sizes = sizes; // Update sizes list
       });
     }
   }
@@ -151,7 +139,7 @@ class ProductManagementState extends State<ProductManagement>
       },
     );
 
-    if (result == true) {
+    if (result == true && mounted) {
       await _dbHelper.insertCategory({'name': categoryName});
       _fetchData();
     }
@@ -228,7 +216,7 @@ class ProductManagementState extends State<ProductManagement>
       },
     );
 
-    if (result == true) {
+    if (result == true && mounted) {
       await _dbHelper.insertSubCategory({
         'name': subCategoryName,
         'category_id': selectedCategoryId,
@@ -307,7 +295,7 @@ class ProductManagementState extends State<ProductManagement>
       },
     );
 
-    if (result == true) {
+    if (result == true && mounted) {
       await _dbHelper.insertProduct({
         'name': productName,
         'sub_category_id': selectedSubCategoryId,
@@ -377,7 +365,7 @@ class ProductManagementState extends State<ProductManagement>
       },
     );
 
-    if (result == true) {
+    if (result == true && mounted) {
       await _dbHelper.insertAddIn({
         'name': addInName,
         'product_id': selectedProductId,
@@ -480,7 +468,7 @@ class ProductManagementState extends State<ProductManagement>
       },
     );
 
-    if (result == true) {
+    if (result == true && mounted) {
       switch (type) {
         case 'category':
           await _dbHelper.updateCategory({'id': item['id'], 'name': newName});
@@ -504,6 +492,55 @@ class ProductManagementState extends State<ProductManagement>
             'price': item['price'],
           });
           break;
+        case 'size':
+          String newSize = item['size'] ?? '';
+          double? newPrice = item['price'];
+          final result = await showDialog<bool>(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Edit Size'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      decoration: const InputDecoration(labelText: 'Size'),
+                      controller: TextEditingController(text: newSize),
+                      onChanged: (value) => newSize = value,
+                    ),
+                    TextField(
+                      decoration: const InputDecoration(labelText: 'Price'),
+                      keyboardType: TextInputType.number,
+                      controller: TextEditingController(
+                        text: newPrice?.toString(),
+                      ),
+                      onChanged: (value) => newPrice = double.tryParse(value),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Save'),
+                  ),
+                ],
+              );
+            },
+          );
+
+          if (result == true && mounted) {
+            await _dbHelper.updateSize(item['id'], {
+              'size': newSize,
+              'price': newPrice,
+              'product_id': item['product_id'], // Ensure product_id is included
+            });
+            _fetchData();
+          }
+          break;
       }
       _fetchData();
     }
@@ -513,6 +550,52 @@ class ProductManagementState extends State<ProductManagement>
   void _deleteSize(int sizeId) async {
     await _dbHelper.deleteSize(sizeId);
     await _fetchData(); // Ensure data is fetched after deletion
+  }
+
+  void _addSize() async {
+    String sizeName = '';
+    double? price;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Add Size'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: const InputDecoration(labelText: 'Size Name'),
+                onChanged: (value) {
+                  sizeName = value;
+                },
+              ),
+              TextField(
+                decoration: const InputDecoration(labelText: 'Price'),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  price = double.tryParse(value);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true && mounted) {
+      await _dbHelper.insertSize({'size': sizeName, 'price': price});
+      _fetchData();
+    }
   }
 
   void _showProductDetails(Map<String, dynamic> product) {
@@ -710,17 +793,10 @@ class ProductManagementState extends State<ProductManagement>
                     mainAxisSize: MainAxisSize.min, // Add this line
                     children: [
                       SizesList(
-                        productId: 1, // Provide a valid productId
+                        // productId: 1, // Provide a valid productId
                         sizesList: _sizes,
                         onEdit: (item) => _showEditDialog(item, 'size'),
                         onDelete: (id) => _deleteSize(id),
-                        itemBuilder:
-                            (context, item) => ListTile(
-                              title: Text(item['size'] ?? 'Unknown Size'),
-                              subtitle: Text(
-                                'Parent Product: ${item['parent_product']}\nPrice: \$${item['price']}', // Include price
-                              ),
-                            ),
                       ),
                     ],
                   ),
@@ -732,10 +808,17 @@ class ProductManagementState extends State<ProductManagement>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          _tabController.index == 0 ? _addCategory() : null;
-          _tabController.index == 1 ? _addSubCategory() : null;
-          _tabController.index == 2 ? _addProduct() : null;
-          _tabController.index == 3 ? _addAddIn() : null;
+          if (_tabController.index == 0) {
+            _addCategory();
+          } else if (_tabController.index == 1) {
+            _addSubCategory();
+          } else if (_tabController.index == 2) {
+            _addProduct();
+          } else if (_tabController.index == 3) {
+            _addAddIn();
+          } else if (_tabController.index == 4) {
+            _addSize(); // Add this line to handle adding sizes
+          }
         },
         child: Icon(Icons.add),
       ),
