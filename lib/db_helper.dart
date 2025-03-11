@@ -698,7 +698,7 @@ class DBHelper {
     await _dbMutex.acquire();
     try {
       Database db = await database;
-      return await db.query('add_ins');
+      return await db.query('add_ins'); // Fetch data from add_ins table
     } finally {
       _dbMutex.release();
     }
@@ -917,6 +917,17 @@ class DBHelper {
 
   Future<void> createAndSaveProductTables() async {
     Database db = await database;
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS add_in_list (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        product_id INTEGER,
+        quantity INTEGER,
+        price REAL,
+        FOREIGN KEY (product_id) REFERENCES products(id)
+      )
+    ''');
 
     // Clear existing data
     await db.delete('sizes');
@@ -1683,5 +1694,45 @@ class DBHelper {
         whereArgs: [category.id],
       );
     }
+  }
+
+  Future<List<Map<String, dynamic>>> getAddInList(String productId) async {
+    final db = await database;
+    return await db.query(
+      'add_in_list',
+      where: 'product_id = ?',
+      whereArgs: [productId],
+    );
+  }
+
+  Future<String?> getProductName(int productId) async {
+    final db = await database;
+    final product = await db.query(
+      'products',
+      where: 'id = ?',
+      whereArgs: [productId],
+    );
+    return product.isNotEmpty ? product.first['name'] as String? : null;
+  }
+
+  // Added this function to fetch AddIns by product ID
+  Future<List<Map<String, dynamic>>> getAddInsByProductId(int productId) async {
+    await _dbMutex.acquire();
+    try {
+      final db = await database;
+      return await db.query(
+        'add_ins',
+        where: 'product_id = ?',
+        whereArgs: [productId],
+      );
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchProductById(int id) async {
+    final db = await database;
+    final result = await db.query('products', where: 'id = ?', whereArgs: [id]);
+    return result.isNotEmpty ? result.first : null;
   }
 }
