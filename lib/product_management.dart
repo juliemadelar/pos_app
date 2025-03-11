@@ -376,7 +376,7 @@ class ProductManagementState extends State<ProductManagement>
   }
 
   void _showEditDialog(Map<String, dynamic> item, String type) async {
-    String newName = item['name'];
+    String newName = item['name'] ?? ''; // Ensure newName is not null
     int? selectedCategoryId =
         type == 'subcategory' ? item['category_id'] : null;
     int? selectedProductId = type == 'add-in' ? item['product_id'] : null;
@@ -493,38 +493,87 @@ class ProductManagementState extends State<ProductManagement>
           });
           break;
         case 'size':
-          String newSize = item['size'] ?? '';
-          double? newPrice = item['price'];
-          final result = await showDialog<bool>(
+          // Get the size name from the 'size' field or use the 'name' field as fallback
+          String sizeName = item['size'] ?? item['name'] ?? '';
+          double? sizePrice = item['price'];
+          int? productId = item['product_id'];
+
+          final editResult = await showDialog<Map<String, dynamic>>(
             context: context,
             builder: (BuildContext context) {
               return AlertDialog(
                 title: const Text('Edit Size'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      decoration: const InputDecoration(labelText: 'Size'),
-                      controller: TextEditingController(text: newSize),
-                      onChanged: (value) => newSize = value,
-                    ),
-                    TextField(
-                      decoration: const InputDecoration(labelText: 'Price'),
-                      keyboardType: TextInputType.number,
-                      controller: TextEditingController(
-                        text: newPrice?.toString(),
+                content: StatefulBuilder(
+                  builder: (BuildContext context, StateSetter setState) {
+                    return SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Edit all size properties below:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            decoration: const InputDecoration(
+                              labelText: 'Size Name',
+                              hintText: 'Enter the size name',
+                              border: OutlineInputBorder(),
+                            ),
+                            controller: TextEditingController(text: sizeName),
+                            onChanged: (value) => sizeName = value,
+                          ),
+                          const SizedBox(height: 15),
+                          TextField(
+                            decoration: const InputDecoration(
+                              labelText: 'Price',
+                              hintText: 'Enter the price',
+                              border: OutlineInputBorder(),
+                              prefixText: '₱',
+                            ),
+                            keyboardType: TextInputType.number,
+                            controller: TextEditingController(
+                              text: sizePrice?.toString() ?? '',
+                            ),
+                            onChanged:
+                                (value) => sizePrice = double.tryParse(value),
+                          ),
+                          const SizedBox(height: 15),
+                          DropdownButtonFormField<int>(
+                            value: productId,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Parent Product',
+                              hintText: 'Select the product',
+                              border: OutlineInputBorder(),
+                            ),
+                            items:
+                                _products.map((product) {
+                                  return DropdownMenuItem<int>(
+                                    value: product['id'],
+                                    child: Text(product['name']),
+                                  );
+                                }).toList(),
+                            onChanged:
+                                (value) => setState(() => productId = value),
+                          ),
+                        ],
                       ),
-                      onChanged: (value) => newPrice = double.tryParse(value),
-                    ),
-                  ],
+                    );
+                  },
                 ),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () => Navigator.pop(context),
                     child: const Text('Cancel'),
                   ),
                   TextButton(
-                    onPressed: () => Navigator.pop(context, true),
+                    onPressed:
+                        () => Navigator.pop(context, {
+                          'size': sizeName,
+                          'price': sizePrice,
+                          'product_id': productId,
+                        }),
                     child: const Text('Save'),
                   ),
                 ],
@@ -532,13 +581,13 @@ class ProductManagementState extends State<ProductManagement>
             },
           );
 
-          if (result == true && mounted) {
+          if (editResult != null) {
             await _dbHelper.updateSize(item['id'], {
-              'size': newSize,
-              'price': newPrice,
-              'product_id': item['product_id'], // Ensure product_id is included
+              'size': editResult['size'],
+              'price': editResult['price'],
+              'product_id': editResult['product_id'],
             });
-            _fetchData();
+            _fetchData(); // Refresh the data
           }
           break;
       }

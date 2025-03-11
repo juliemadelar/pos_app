@@ -54,11 +54,13 @@ class SizesList extends StatelessWidget {
                         if (onEdit != null)
                           IconButton(
                             icon: const Icon(Icons.edit),
+                            tooltip: 'Edit size, price, and product',
                             onPressed: () => onEdit!(item),
                           ),
                         if (onDelete != null)
                           IconButton(
                             icon: const Icon(Icons.delete),
+                            tooltip: 'Delete size',
                             onPressed: () => onDelete!(item['id']),
                           ),
                       ],
@@ -93,7 +95,6 @@ class SizesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Size Selection')),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
