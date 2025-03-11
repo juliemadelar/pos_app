@@ -28,6 +28,8 @@ class SubCategoryList extends StatelessWidget {
     String? imagePath = subCategory['image'];
     bool imageExists = imagePath != null && await File(imagePath).exists();
 
+    if (!context.mounted) return; // Guard against using context if not mounted
+
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -58,7 +60,9 @@ class SubCategoryList extends StatelessWidget {
                     );
                     if (pickedFile != null) {
                       imagePath = pickedFile.path;
-                      (context as Element).markNeedsBuild(); // Update UI
+                      if (context.mounted) {
+                        (context as Element).markNeedsBuild(); // Update UI
+                      }
                     }
                   },
                   child: const Text('Pick Image'),

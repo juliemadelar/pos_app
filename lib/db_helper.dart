@@ -6,6 +6,17 @@ import 'dart:developer'; // For log
 import 'package:mutex/mutex.dart'; // Add mutex dependency
 import 'package:logger/logger.dart'; // Add this import
 
+class Category {
+  final int id;
+  final String name;
+
+  Category({required this.id, required this.name});
+
+  Map<String, dynamic> toMap() {
+    return {'id': id, 'name': name};
+  }
+}
+
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
   factory DBHelper() => _instance;
@@ -1658,5 +1669,19 @@ class DBHelper {
       whereArgs: [id],
     );
     return result.isNotEmpty ? result.first : {};
+  }
+
+  Future<void> updateCategories(List<Category> categories) async {
+    // Implement the logic to update categories in the database
+    // Example:
+    final db = await database;
+    for (var category in categories) {
+      await db.update(
+        'categories',
+        category.toMap(),
+        where: 'id = ?',
+        whereArgs: [category.id],
+      );
+    }
   }
 }

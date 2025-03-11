@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pos_app/db_helper.dart'; // Import the db_helper
 
 class CategoryList extends StatelessWidget {
   final List<Map<String, dynamic>> categories;
@@ -11,6 +12,16 @@ class CategoryList extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
   });
+
+  void saveChanges() async {
+    // Create an instance of DBHelper before calling the method
+    final dbHelper = DBHelper();
+    final categoryList =
+        categories
+            .map((map) => Category(id: map['id'], name: map['name']))
+            .toList();
+    await dbHelper.updateCategories(categoryList);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,11 +36,17 @@ class CategoryList extends StatelessWidget {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.edit),
-                    onPressed: () => onEdit(category),
+                    onPressed: () {
+                      onEdit(category);
+                      saveChanges();
+                    },
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete),
-                    onPressed: () => onDelete(category['id']),
+                    onPressed: () {
+                      onDelete(category['id']);
+                      saveChanges();
+                    },
                   ),
                 ],
               ),
