@@ -555,6 +555,7 @@ class ProductManagementState extends State<ProductManagement>
   void _addSize() async {
     String sizeName = '';
     double? price;
+    int? selectedProductId;
     final result = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -576,6 +577,20 @@ class ProductManagementState extends State<ProductManagement>
                   price = double.tryParse(value);
                 },
               ),
+              DropdownButtonFormField<int>(
+                value: selectedProductId,
+                items:
+                    _products.map((product) {
+                      return DropdownMenuItem<int>(
+                        value: product['id'],
+                        child: Text(product['name']),
+                      );
+                    }).toList(),
+                onChanged: (value) {
+                  selectedProductId = value;
+                },
+                decoration: const InputDecoration(labelText: 'Product'),
+              ),
             ],
           ),
           actions: [
@@ -593,8 +608,23 @@ class ProductManagementState extends State<ProductManagement>
     );
 
     if (result == true && mounted) {
-      await _dbHelper.insertSize({'size': sizeName, 'price': price});
-      _fetchData();
+      // Make sure a product is selected
+      if (selectedProductId != null) {
+        await _dbHelper.insertSize({
+          'size': sizeName,
+          'price': price,
+          'product_id': selectedProductId,
+        });
+        _fetchData();
+      } else {
+        // Show error message if no product is selected
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a product for this size'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -795,6 +825,10 @@ class ProductManagementState extends State<ProductManagement>
                       SizesList(
                         // productId: 1, // Provide a valid productId
                         sizesList: _sizes,
+                        productNames: {
+                          for (var product in _products)
+                            product['id']: product['name'],
+                        },
                         onEdit: (item) => _showEditDialog(item, 'size'),
                         onDelete: (id) => _deleteSize(id),
                       ),

@@ -4,11 +4,13 @@ class SizesList extends StatelessWidget {
   final List<Map<String, dynamic>> sizesList;
   final Function(Map<String, dynamic>)? onEdit;
   final Function(int)? onDelete;
+  final Map<int, String> productNames; // Add this to show product names
 
   const SizesList({
     required this.sizesList,
     this.onEdit,
     this.onDelete,
+    required this.productNames, // Make this required
     super.key,
   });
 
@@ -24,27 +26,45 @@ class SizesList extends StatelessWidget {
       itemCount: sizesList.length,
       itemBuilder: (context, index) {
         final item = sizesList[index];
-        return ListTile(
-          title: Text(item['name'] ?? item['size'] ?? 'Size ${index + 1}'),
-          subtitle: Text('Price: ${item['price']}'),
-          trailing:
-              (onEdit != null || onDelete != null)
-                  ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (onEdit != null)
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => onEdit!(item),
-                        ),
-                      if (onDelete != null)
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => onDelete!(item['id']),
-                        ),
-                    ],
-                  )
-                  : null,
+        final productId = item['product_id'] as int?;
+        final productName =
+            productId != null
+                ? productNames[productId] ?? 'Unknown Product'
+                : 'Unknown Product';
+
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: ListTile(
+            title: Text(item['name'] ?? item['size'] ?? 'Size ${index + 1}'),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Price: ₱${item['price']}'),
+                Text(
+                  'Product: $productName',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+            trailing:
+                (onEdit != null || onDelete != null)
+                    ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (onEdit != null)
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => onEdit!(item),
+                          ),
+                        if (onDelete != null)
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => onDelete!(item['id']),
+                          ),
+                      ],
+                    )
+                    : null,
+          ),
         );
       },
     );
@@ -58,6 +78,7 @@ class SizesScreen extends StatelessWidget {
   final Function(Map<String, dynamic>)? onEdit;
   final Function(int)? onDelete;
   final VoidCallback? onAdd;
+  final Map<int, String> productNames; // Add this parameter
 
   const SizesScreen({
     required this.productId,
@@ -65,6 +86,7 @@ class SizesScreen extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.onAdd,
+    required this.productNames, // Make this required
     super.key,
   });
 
@@ -79,6 +101,7 @@ class SizesScreen extends StatelessWidget {
             sizesList: sizesList,
             onEdit: onEdit,
             onDelete: onDelete,
+            productNames: productNames,
           ),
         ),
       ),
