@@ -27,12 +27,16 @@ class ProductManagementState extends State<ProductManagement>
   List<Map<String, dynamic>> _subCategories = [];
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _addIns = [];
+  List<Map<String, dynamic>> _sizes = []; // Add sizes list
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(
+      length: 5,
+      vsync: this,
+    ); // Update length to 5
     _initializeDatabase();
   }
 
@@ -52,6 +56,7 @@ class ProductManagementState extends State<ProductManagement>
     final subCategories = await _dbHelper.getSubCategories();
     final products = await _dbHelper.fetchAllProducts();
     final addIns = await _dbHelper.getAddIns();
+    final sizes = await _dbHelper.getSizes(); // Fetch sizes
 
     final updatedSubCategories = await Future.wait(
       subCategories.map((subCategory) async {
@@ -93,12 +98,26 @@ class ProductManagementState extends State<ProductManagement>
       }).toList(),
     );
 
+    final updatedSizes = await Future.wait(
+      sizes.map((size) async {
+        final parentProduct = await _dbHelper.fetchProductById(
+          size['product_id'],
+        );
+        return {
+          ...size,
+          'parent_product': parentProduct?['name'] ?? 'Unknown',
+          'price': size['price'], // Include price
+        };
+      }).toList(),
+    );
+
     if (mounted) {
       setState(() {
         _categories = categories;
         _subCategories = updatedSubCategories;
         _products = updatedProducts;
         _addIns = updatedAddIns;
+        _sizes = updatedSizes; // Update sizes list
       });
     }
   }
@@ -528,6 +547,7 @@ class ProductManagementState extends State<ProductManagement>
             Tab(text: 'Sub-Categories'),
             Tab(text: 'Products'),
             Tab(text: 'Add-Ins'),
+            Tab(text: 'Sizes'), // Add Sizes tab
           ],
         ),
       ),
@@ -660,6 +680,18 @@ class ProductManagementState extends State<ProductManagement>
                     subtitle: Text('Price: \$${addIn['price']}'),
                     trailing: Text(
                       'Parent Product: ${addIn['parent_product']}',
+                    ),
+                  );
+                },
+              ),
+              ListView.builder(
+                itemCount: _sizes.length,
+                itemBuilder: (context, index) {
+                  final size = _sizes[index];
+                  return ListTile(
+                    title: Text(size['size'] ?? 'Unknown Size'),
+                    subtitle: Text(
+                      'Parent Product: ${size['parent_product']}\nPrice: \$${size['price']}', // Include price
                     ),
                   );
                 },
