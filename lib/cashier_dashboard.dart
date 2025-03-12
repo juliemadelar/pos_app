@@ -180,30 +180,93 @@ class ProductSelectionArea extends StatefulWidget {
 
 class ProductSelectionAreaState extends State<ProductSelectionArea> {
   final Map<int, String?> selectedSizes = {};
-  final Map<String, int> quantities = {}; // Modified to include size
-  final Map<int, TextEditingController> quantityControllers =
-      {}; // Add this line
+  final Map<String, int> quantities = {}; // Key format: productId_size
+  final Map<int, TextEditingController> quantityControllers = {};
+  Map<int, List<Map<String, dynamic>>> addInsByProduct = {};
+  Map<int, Set<int>> selectedAddIns = {};
 
   @override
   void initState() {
     super.initState();
-    // Set default size to "Regular" if available
+    // Initialize quantities and controllers for all products
     for (var product in widget.products) {
       final productSizes =
           widget.sizes
               .where((size) => size['product_id'] == product['id'])
               .toList();
-      if (productSizes.any((size) => size['size'] == 'Regular')) {
-        selectedSizes[product['id']] = 'Regular';
+
+      // Set default size to "Regular" if available
+      String defaultSize = 'Regular';
+      if (productSizes.any((size) => size['size'] == defaultSize)) {
+        selectedSizes[product['id']] = defaultSize;
+      } else if (productSizes.isNotEmpty) {
+        selectedSizes[product['id']] = productSizes.first['size'];
       }
-      // Initialize quantity to 0 for each product and size combination
+
+      // Initialize quantity controller with 0
+      final controller = TextEditingController(text: '0');
+      quantityControllers[product['id']] = controller;
+
+      // Initialize quantities for each product and size
       for (var size in productSizes) {
         quantities['${product['id']}_${size['size']}'] = 0;
       }
-      quantityControllers[product['id']] = TextEditingController(
-        text: '0',
-      ); // Initialize controller
+
+      // Initialize selectedAddIns for each product
+      selectedAddIns[product['id']] = <int>{};
     }
+
+    // Fetch add-ins immediately when widget initializes
+    _fetchAddInsForProducts();
+  }
+
+  @override
+  void dispose() {
+    // Dispose all controllers to prevent memory leaks
+    for (final controller in quantityControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _fetchAddInsForProducts() async {
+    final dbHelper = DatabaseHelper();
+    Map<int, List<Map<String, dynamic>>> fetchedAddIns = {};
+
+    for (var product in widget.products) {
+      final productId = product['id'];
+      // Fetch add-ins from add_ins table
+      final addIns = await dbHelper.getAddInList(productId);
+      fetchedAddIns[productId] = addIns;
+
+      // Initialize empty set for selected add-ins
+      if (selectedAddIns[productId] == null) {
+        selectedAddIns[productId] = <int>{};
+      }
+    }
+
+    setState(() {
+      addInsByProduct = fetchedAddIns;
+    });
+  }
+
+  // Helper method to update quantity based on product and selected size
+  void _updateQuantity(int productId, int change) {
+    setState(() {
+      String size = selectedSizes[productId] ?? 'Regular';
+      String key = '${productId}_$size';
+
+      // Get current quantity with null safety
+      int currentQuantity = quantities[key] ?? 0;
+
+      // Apply change and ensure it's not negative
+      int newQuantity =
+          (currentQuantity + change) < 0 ? 0 : currentQuantity + change;
+
+      // Update quantity map and controller
+      quantities[key] = newQuantity;
+      quantityControllers[productId]?.text = newQuantity.toString();
+    });
   }
 
   @override
@@ -211,10 +274,10 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
     // Mock data for demonstration
     final String productImage =
         'assets/placeholder.png'; // Replace with database call
-    final List<String> addIns = [
-      'Add-In 1',
-      'Add-In 2',
-    ]; // Replace with database call
+    // final List<String> addIns = [
+    //   'Add-In 1',
+    //   'Add-In 2',
+    // ]; // Replace with database call
 
     return Container(
       width: MediaQuery.of(context).size.width * 0.55,
@@ -223,9 +286,10 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children:
             widget.products.map((product) {
+              final productId = product['id'];
               final productSizes =
                   widget.sizes
-                      .where((size) => size['product_id'] == product['id'])
+                      .where((size) => size['product_id'] == productId)
                       .toList();
               return Container(
                 margin: EdgeInsets.symmetric(vertical: 10),
@@ -262,56 +326,30 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                                 children: [
                                   IconButton(
                                     icon: Icon(Icons.remove),
-                                    onPressed: () {
-                                      setState(() {
-                                        String size =
-                                            selectedSizes[product['id']] ??
-                                            'Regular';
-                                        if ((quantities['${product['id']}_$size'] ??
-                                                0) >
-                                            0) {
-                                          quantities['${product['id']}_$size'] =
-                                              (quantities['${product['id']}_$size'] ??
-                                                  0) -
-                                              1;
-                                          quantityControllers[product['id']]!
-                                                  .text =
-                                              quantities['${product['id']}_$size']
-                                                  .toString(); // Update controller
-                                        }
-                                      });
-                                    },
+                                    onPressed:
+                                        () => _updateQuantity(productId, -1),
                                   ),
                                   SizedBox(
                                     width: 50, // Ensure bounded width
                                     child: TextField(
                                       decoration: InputDecoration(
-                                        labelText: 'Quantity',
+                                        labelText: 'Qty',
                                         border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 0,
+                                        ),
                                       ),
                                       textAlign: TextAlign.center,
                                       controller:
-                                          quantityControllers[product['id']], // Use controller
-                                      readOnly: true, // Make it read-only
+                                          quantityControllers[productId],
+                                      readOnly: true,
                                     ),
                                   ),
                                   IconButton(
                                     icon: Icon(Icons.add),
-                                    onPressed: () {
-                                      setState(() {
-                                        String size =
-                                            selectedSizes[product['id']] ??
-                                            'Regular';
-                                        quantities['${product['id']}_$size'] =
-                                            (quantities['${product['id']}_$size'] ??
-                                                0) +
-                                            1;
-                                        quantityControllers[product['id']]!
-                                                .text =
-                                            quantities['${product['id']}_$size']
-                                                .toString(); // Update controller
-                                      });
-                                    },
+                                    onPressed:
+                                        () => _updateQuantity(productId, 1),
                                   ),
                                 ],
                               ),
@@ -327,13 +365,19 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                                   return ElevatedButton(
                                     onPressed: () {
                                       setState(() {
-                                        selectedSizes[product['id']] =
-                                            size['size'];
+                                        selectedSizes[productId] = size['size'];
+
+                                        // Update quantity controller to show selected size quantity
+                                        String key =
+                                            '${productId}_${size['size']}';
+                                        int qty = quantities[key] ?? 0;
+                                        quantityControllers[productId]?.text =
+                                            qty.toString();
                                       });
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor:
-                                          selectedSizes[product['id']] ==
+                                          selectedSizes[productId] ==
                                                   size['size']
                                               ? Colors.blue
                                               : Colors.grey,
@@ -347,21 +391,56 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                         ],
                       ),
                       SizedBox(height: 20),
-                      // Row 2
-                      Wrap(
-                        spacing: 10,
-                        children:
-                            addIns.map((String addIn) {
-                              return FilterChip(
-                                label: Text(addIn),
-                                onSelected: (bool selected) {
-                                  // Handle add-in selection
-                                },
-                              );
-                            }).toList(),
-                      ),
-                      SizedBox(height: 20),
+                      // Row 2 - Add-ins
+                      if (addInsByProduct[productId]?.isNotEmpty ?? false)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Add-ins:',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 5),
+                            Wrap(
+                              spacing: 10,
+                              children:
+                                  addInsByProduct[productId]!.map((addIn) {
+                                    return FilterChip(
+                                      label: Text(
+                                        '${addIn['name']} (\$${addIn['price'].toStringAsFixed(2)})',
+                                      ),
+                                      selected:
+                                          selectedAddIns[productId]?.contains(
+                                            addIn['id'],
+                                          ) ??
+                                          false,
+                                      onSelected: (bool selected) {
+                                        setState(() {
+                                          if (selectedAddIns[productId] ==
+                                              null) {
+                                            selectedAddIns[productId] = {};
+                                          }
 
+                                          if (selected) {
+                                            selectedAddIns[productId]!.add(
+                                              addIn['id'],
+                                            );
+                                          } else {
+                                            selectedAddIns[productId]!.remove(
+                                              addIn['id'],
+                                            );
+                                          }
+                                        });
+                                      },
+                                    );
+                                  }).toList(),
+                            ),
+                          ],
+                        )
+                      else
+                        SizedBox(height: 0),
+
+                      SizedBox(height: 20),
                       // Row 3
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,

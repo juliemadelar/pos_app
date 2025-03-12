@@ -146,4 +146,13 @@ class DatabaseHelper {
       whereArgs: [productId],
     );
   }
+
+  Future<List<Map<String, dynamic>>> getAddInsByProductId(int productId) async {
+    final db = await database;
+    return await db.query(
+      'add_ins',
+      where: 'product_id = ?',
+      whereArgs: [productId],
+    );
+  }
 }
