@@ -236,7 +236,8 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
       selectedAddIns[product['id']] = <int>{};
     }
 
-    // Don't call directly here as we'll use FutureBuilder instead
+    // Fetch add-ins when the widget is initialized
+    _fetchAddInsForProducts();
   }
 
   @override
@@ -248,11 +249,14 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
     super.dispose();
   }
 
-  Future<Map<int, List<Map<String, dynamic>>>> _fetchAddInsForProducts() async {
+  Future<void> _fetchAddInsForProducts() async {
     if (!isLoadingAddIns) {
-      // Return the cached data if already loaded
-      return addInsList;
+      return; // Return if already loaded
     }
+
+    setState(() {
+      isLoadingAddIns = true;
+    });
 
     final dbHelper = DatabaseHelper();
     Map<int, List<Map<String, dynamic>>> fetchedAddIns = {};
@@ -276,8 +280,6 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
 
     // Debug prints
     _log.info('Fetched add-ins: $addInsList');
-
-    return fetchedAddIns;
   }
 
   // Helper method to update quantity based on product and selected size
@@ -297,6 +299,50 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
       quantities[key] = newQuantity;
       quantityControllers[productId]?.text = newQuantity.toString();
     });
+  }
+
+  Widget _buildAddIns(Map<String, dynamic> product) {
+    final productId = product['id'];
+    final productAddIns = addInsList[productId] ?? [];
+
+    if (productAddIns.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Add-ins:', style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: 5),
+          Wrap(
+            spacing: 10,
+            children:
+                productAddIns.map((addIn) {
+                  return FilterChip(
+                    label: Text(
+                      '${addIn['name']} (\$${addIn['price'].toStringAsFixed(2)})',
+                    ),
+                    selected:
+                        selectedAddIns[productId]?.contains(addIn['id']) ??
+                        false,
+                    onSelected: (bool selected) {
+                      setState(() {
+                        if (selectedAddIns[productId] == null) {
+                          selectedAddIns[productId] = {};
+                        }
+
+                        if (selected) {
+                          selectedAddIns[productId]!.add(addIn['id']);
+                        } else {
+                          selectedAddIns[productId]!.remove(addIn['id']);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+          ),
+        ],
+      );
+    } else {
+      return SizedBox(height: 0);
+    }
   }
 
   @override
@@ -418,69 +464,10 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                       ),
                       SizedBox(height: 20),
                       // Row 2 - Add-ins
-                      FutureBuilder<Map<int, List<Map<String, dynamic>>>>(
-                        future: _fetchAddInsForProducts(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                                  ConnectionState.waiting &&
-                              isLoadingAddIns) {
-                            return Center(child: CircularProgressIndicator());
-                          }
-
-                          // Get add-ins for this product (either from snapshot or cached data)
-                          final List<Map<String, dynamic>> productAddIns =
-                              snapshot.data?[productId] ??
-                              addInsList[productId] ??
-                              [];
-
-                          if (productAddIns.isNotEmpty) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Add-ins:',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                SizedBox(height: 5),
-                                Wrap(
-                                  spacing: 10,
-                                  children:
-                                      productAddIns.map((addIn) {
-                                        return FilterChip(
-                                          label: Text(
-                                            '${addIn['name']} (\$${addIn['price'].toStringAsFixed(2)})',
-                                          ),
-                                          selected:
-                                              selectedAddIns[productId]
-                                                  ?.contains(addIn['id']) ??
-                                              false,
-                                          onSelected: (bool selected) {
-                                            setState(() {
-                                              if (selectedAddIns[productId] ==
-                                                  null) {
-                                                selectedAddIns[productId] = {};
-                                              }
-
-                                              if (selected) {
-                                                selectedAddIns[productId]!.add(
-                                                  addIn['id'],
-                                                );
-                                              } else {
-                                                selectedAddIns[productId]!
-                                                    .remove(addIn['id']);
-                                              }
-                                            });
-                                          },
-                                        );
-                                      }).toList(),
-                                ),
-                              ],
-                            );
-                          } else {
-                            return SizedBox(height: 0);
-                          }
-                        },
-                      ),
+                      if (isLoadingAddIns)
+                        Center(child: CircularProgressIndicator())
+                      else
+                        _buildAddIns(product),
                       SizedBox(height: 20),
                       // Row 3
                       Row(
