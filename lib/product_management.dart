@@ -905,6 +905,7 @@ class ProductManagementState extends State<ProductManagement>
                   final addIn = _addIns[index];
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 4),
+                    elevation: 4, // Add elevation for shadow
                     child: ListTile(
                       title: Text(addIn['name']),
                       subtitle: Text('Price: \$${addIn['price']}'),

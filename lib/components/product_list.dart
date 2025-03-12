@@ -122,32 +122,38 @@ class ProductList extends StatelessWidget {
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   elevation: 4, // Add elevation for shadow
                   child: ListTile(
-                    leading: product['image'] != null && File(product['image']).existsSync()
-                        ? Image.file(
-                            File(product['image']),
-                            width: 50,
-                            height: 50,
-                          )
-                        : Image.asset(
-                            'assets/placeholder.png',
-                            width: 50,
-                            height: 50,
-                          ),
+                    leading:
+                        product['image'] != null &&
+                                File(product['image']).existsSync()
+                            ? Image.file(
+                              File(product['image']),
+                              width: 50,
+                              height: 50,
+                            )
+                            : Image.asset(
+                              'assets/placeholder.png',
+                              width: 50,
+                              height: 50,
+                            ),
                     title: Text(product['name']),
                     subtitle: Text('Sub-Category: ${product['sub_category']}'),
-                    trailing: Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.edit),
-                        onPressed: () => showEditDialog(context, product),
+                    trailing: SizedBox(
+                      width: 100, // Adjust the width as needed
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () => showEditDialog(context, product),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete),
+                            onPressed: () => onDelete(product['id']),
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () => onDelete(product['id']),
-                      ),
-                    ],
+                    ),
+                    onTap: () => onViewDetails(product),
                   ),
-                  onTap: () => onViewDetails(product),
                 );
               },
             ),
