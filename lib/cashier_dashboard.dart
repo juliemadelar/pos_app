@@ -135,25 +135,49 @@ class CashierDashboardState extends State<CashierDashboard> {
                               category,
                               style: TextStyle(
                                 color: Colors.black,
+                                shadows: [
+                                  Shadow(
+                                    offset: Offset(1.0, 1.0),
+                                    blurRadius: 3.0,
+                                    color: Colors.grey,
+                                  ),
+                                ],
                               ), // Changed to black for visibility
                             ),
                           ),
-                          ...subCategories[category]!.map((subCategory) {
-                            return ListTile(
-                              title: Text(
-                                subCategory,
-                                style: TextStyle(
-                                  color: Colors.black,
-                                ), // Changed to black for visibility
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  selectedSubCategory = subCategory;
-                                });
-                                _fetchProducts(subCategory);
-                              },
-                            );
-                          }),
+                          // Wrap sub-category menu in a container with white background
+                          Container(
+                            color: Colors.white,
+                            child: Column(
+                              children:
+                                  subCategories[category]!.map((subCategory) {
+                                    return ListTile(
+                                      title: Center(
+                                        // Align text to center
+                                        child: Text(
+                                          subCategory,
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            shadows: [
+                                              Shadow(
+                                                offset: Offset(1.0, 1.0),
+                                                blurRadius: 3.0,
+                                                color: Colors.grey,
+                                              ),
+                                            ],
+                                          ), // Changed to black for visibility
+                                        ),
+                                      ),
+                                      onTap: () {
+                                        setState(() {
+                                          selectedSubCategory = subCategory;
+                                        });
+                                        _fetchProducts(subCategory);
+                                      },
+                                    );
+                                  }).toList(),
+                            ),
+                          ),
                         ],
                       );
                     },
