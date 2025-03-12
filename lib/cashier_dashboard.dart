@@ -180,6 +180,23 @@ class ProductSelectionArea extends StatefulWidget {
 
 class ProductSelectionAreaState extends State<ProductSelectionArea> {
   final Map<int, String?> selectedSizes = {};
+  final Map<int, int> quantities = {}; // Add this line
+
+  @override
+  void initState() {
+    super.initState();
+    // Set default size to "Regular" if available
+    for (var product in widget.products) {
+      final productSizes =
+          widget.sizes
+              .where((size) => size['product_id'] == product['id'])
+              .toList();
+      if (productSizes.any((size) => size['size'] == 'Regular')) {
+        selectedSizes[product['id']] = 'Regular';
+      }
+      quantities[product['id']] = 0; // Initialize quantity to 0
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -215,33 +232,68 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(
-                            width: 100, // Ensure bounded width
-                            child: TextField(
-                              decoration: InputDecoration(
-                                labelText: 'Quantity',
-                                border: OutlineInputBorder(),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.remove),
+                                onPressed: () {
+                                  setState(() {
+                                    if (quantities[product['id']]! > 0) {
+                                      quantities[product['id']] =
+                                          quantities[product['id']]! - 1;
+                                    }
+                                  });
+                                },
                               ),
-                            ),
+                              SizedBox(
+                                width: 50, // Ensure bounded width
+                                child: TextField(
+                                  decoration: InputDecoration(
+                                    labelText: 'Quantity',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  controller: TextEditingController(
+                                    text: quantities[product['id']].toString(),
+                                  ),
+                                  readOnly: true, // Make it read-only
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.add),
+                                onPressed: () {
+                                  setState(() {
+                                    quantities[product['id']] =
+                                        quantities[product['id']]! + 1;
+                                  });
+                                },
+                              ),
+                            ],
                           ),
                           SizedBox(height: 10),
-                          DropdownButton<String>(
-                            hint: Text('Select Size'),
-                            value: selectedSizes[product['id']],
-                            items:
+                          Wrap(
+                            spacing: 10,
+                            children:
                                 productSizes.map((size) {
-                                  return DropdownMenuItem<String>(
-                                    value: size['size'],
+                                  return ElevatedButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        selectedSizes[product['id']] =
+                                            size['size'];
+                                      });
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          selectedSizes[product['id']] ==
+                                                  size['size']
+                                              ? Colors.blue
+                                              : Colors.grey,
+                                    ),
                                     child: Text(
                                       '${size['size']} (\$${size['price'].toStringAsFixed(2)})',
                                     ),
                                   );
                                 }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                selectedSizes[product['id']] = newValue;
-                              });
-                            },
                           ),
                         ],
                       ),
