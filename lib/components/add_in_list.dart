@@ -33,6 +33,7 @@ class _AddInListState extends State<AddInList> {
                   DataColumn(label: Text('Name')),
                   DataColumn(label: Text('Price')),
                   DataColumn(label: Text('Product')),
+                  DataColumn(label: Text('Actions')), // Added Actions column
                 ],
                 rows:
                     widget.addInList
@@ -45,6 +46,21 @@ class _AddInListState extends State<AddInList> {
                               DataCell(Text(item['name'])),
                               DataCell(Text(item['price'].toString())),
                               DataCell(Text(item['parent_product'].toString())),
+                              DataCell(
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.edit),
+                                      onPressed: () => widget.onEdit(item),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.delete),
+                                      onPressed:
+                                          () => widget.onDelete(item['id']),
+                                    ),
+                                  ],
+                                ),
+                              ), // Added Actions cell
                             ],
                           ),
                         )

@@ -488,8 +488,8 @@ class ProductManagementState extends State<ProductManagement>
           await _dbHelper.updateAddIn({
             'id': item['id'],
             'name': newName,
-            'product_id': item['product_id'],
-            'price': item['price'],
+            'product_id': selectedProductId,
+            'price': price,
           });
           break;
         case 'size':
@@ -859,8 +859,21 @@ class ProductManagementState extends State<ProductManagement>
                   return ListTile(
                     title: Text(addIn['name']),
                     subtitle: Text('Price: \$${addIn['price']}'),
-                    trailing: Text(
-                      'Parent Product: ${addIn['parent_product']}',
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.edit),
+                          onPressed: () => _showEditDialog(addIn, 'add-in'),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed:
+                              () => _dbHelper
+                                  .deleteAddIn(addIn['id'])
+                                  .then((_) => _fetchData()),
+                        ),
+                      ],
                     ),
                   );
                 },
