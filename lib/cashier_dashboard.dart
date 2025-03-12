@@ -175,17 +175,17 @@ class ProductSelectionArea extends StatefulWidget {
   });
 
   @override
-  _ProductSelectionAreaState createState() => _ProductSelectionAreaState();
+  ProductSelectionAreaState createState() => ProductSelectionAreaState();
 }
 
-class _ProductSelectionAreaState extends State<ProductSelectionArea> {
+class ProductSelectionAreaState extends State<ProductSelectionArea> {
   final Map<int, String?> selectedSizes = {};
 
   @override
   Widget build(BuildContext context) {
     // Mock data for demonstration
     final String productImage =
-        'assets/product.png'; // Replace with database call
+        'assets/placeholder.png'; // Replace with database call
     final List<String> addIns = [
       'Add-In 1',
       'Add-In 2',
@@ -215,10 +215,13 @@ class _ProductSelectionAreaState extends State<ProductSelectionArea> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          TextField(
-                            decoration: InputDecoration(
-                              labelText: 'Quantity',
-                              border: OutlineInputBorder(),
+                          SizedBox(
+                            width: 100, // Ensure bounded width
+                            child: TextField(
+                              decoration: InputDecoration(
+                                labelText: 'Quantity',
+                                border: OutlineInputBorder(),
+                              ),
                             ),
                           ),
                           SizedBox(height: 10),
@@ -228,9 +231,9 @@ class _ProductSelectionAreaState extends State<ProductSelectionArea> {
                             items:
                                 productSizes.map((size) {
                                   return DropdownMenuItem<String>(
-                                    value: size['name'],
+                                    value: size['size'],
                                     child: Text(
-                                      '${size['name']} (\$${size['price'].toStringAsFixed(2)})',
+                                      '${size['size']} (\$${size['price'].toStringAsFixed(2)})',
                                     ),
                                   );
                                 }).toList(),
