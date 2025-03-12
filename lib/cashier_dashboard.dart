@@ -160,7 +160,8 @@ class CashierDashboardState extends State<CashierDashboard> {
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton(
                       onPressed: () {
-                        // Handle logout
+                        // Navigate back to login page
+                        Navigator.of(context).pushReplacementNamed('/login');
                       },
                       child: Text('Log Out'),
                     ),
