@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'database_helper.dart'; //
 
 class CashierDashboard extends StatefulWidget {
-  const CashierDashboard({super.key}); // Add named 'key' parameter
+  const CashierDashboard({super.key}); //
 
   @override
   CashierDashboardState createState() => CashierDashboardState();
@@ -9,6 +10,52 @@ class CashierDashboard extends StatefulWidget {
 
 class CashierDashboardState extends State<CashierDashboard> {
   String? selectedSubCategory;
+  List<String> categories = [];
+  Map<String, List<String>> subCategories = {};
+  List<Map<String, dynamic>> products = [];
+  List<Map<String, dynamic>> sizes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategoriesAndSubCategories();
+  }
+
+  Future<void> _fetchCategoriesAndSubCategories() async {
+    final dbHelper = DatabaseHelper();
+    final categoryList = await dbHelper.getCategoryList();
+    final subCategoryMap = <String, List<String>>{};
+
+    for (var category in categoryList) {
+      final subCategoryList = await dbHelper.getSubCategoryList(category['id']);
+      subCategoryMap[category['name']] =
+          subCategoryList
+              .map<String>((subCategory) => subCategory['name'] as String)
+              .toList();
+    }
+
+    setState(() {
+      categories =
+          categoryList.map((category) => category['name'] as String).toList();
+      subCategories = subCategoryMap;
+    });
+  }
+
+  Future<void> _fetchProducts(String subCategory) async {
+    final dbHelper = DatabaseHelper();
+    final productList = await dbHelper.getProductListBySubCategory(subCategory);
+    final sizeList = <Map<String, dynamic>>[];
+
+    for (var product in productList) {
+      final sizes = await dbHelper.getSizeListByProductId(product['id']);
+      sizeList.addAll(sizes);
+    }
+
+    setState(() {
+      products = productList;
+      sizes = sizeList;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,14 +64,6 @@ class CashierDashboardState extends State<CashierDashboard> {
     final String businessName =
         'Demo Business Name'; // Replace with database call
     final String cashierName = 'John Doe'; // Replace with user login data
-    final List<String> categories = [
-      'Category 1',
-      'Category 2',
-    ]; // Replace with database call
-    final Map<String, List<String>> subCategories = {
-      'Category 1': ['Sub 1', 'Sub 2'],
-      'Category 2': ['Sub 3', 'Sub 4'],
-    }; // Replace with database call
 
     return Scaffold(
       appBar: AppBar(
@@ -71,30 +110,24 @@ class CashierDashboardState extends State<CashierDashboard> {
                       return ExpansionTile(
                         title: Text(
                           category,
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(
+                            color: Colors.black,
+                          ), // Changed to black for visibility
                         ),
                         children:
                             subCategories[category]!.map((subCategory) {
                               return ListTile(
-                                title: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
-                                    image: DecorationImage(
-                                      image: AssetImage(
-                                        'assets/placeholder.png',
-                                      ), // Replace with actual icon
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    subCategory,
-                                    style: TextStyle(color: Colors.white),
-                                  ),
+                                title: Text(
+                                  subCategory,
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                  ), // Changed to black for visibility
                                 ),
                                 onTap: () {
                                   setState(() {
                                     selectedSubCategory = subCategory;
                                   });
+                                  _fetchProducts(subCategory);
                                 },
                               );
                             }).toList(),
@@ -123,7 +156,7 @@ class CashierDashboardState extends State<CashierDashboard> {
             child:
                 selectedSubCategory == null
                     ? Center(child: Text('Select a sub-category'))
-                    : ProductSelectionArea(subCategory: selectedSubCategory!),
+                    : ProductSelectionArea(products: products, sizes: sizes),
           ),
         ],
       ),
@@ -131,23 +164,28 @@ class CashierDashboardState extends State<CashierDashboard> {
   }
 }
 
-class ProductSelectionArea extends StatelessWidget {
-  final String subCategory;
+class ProductSelectionArea extends StatefulWidget {
+  final List<Map<String, dynamic>> products;
+  final List<Map<String, dynamic>> sizes;
 
-  const ProductSelectionArea({super.key, required this.subCategory});
+  const ProductSelectionArea({
+    super.key,
+    required this.products,
+    required this.sizes,
+  });
+
+  @override
+  _ProductSelectionAreaState createState() => _ProductSelectionAreaState();
+}
+
+class _ProductSelectionAreaState extends State<ProductSelectionArea> {
+  final Map<int, String?> selectedSizes = {};
 
   @override
   Widget build(BuildContext context) {
     // Mock data for demonstration
     final String productImage =
         'assets/product.png'; // Replace with database call
-    final String productName = 'Demo Product'; // Replace with database call
-    final double productPrice = 10.0; // Replace with database call
-    final List<String> sizes = [
-      'Small',
-      'Medium',
-      'Large',
-    ]; // Replace with database call
     final List<String> addIns = [
       'Add-In 1',
       'Add-In 2',
@@ -158,74 +196,90 @@ class ProductSelectionArea extends StatelessWidget {
       padding: EdgeInsets.all(10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Row 1
-          Row(
-            children: [
-              Image.asset(productImage, width: 100),
-              SizedBox(width: 10),
-              Text(productName, style: TextStyle(fontSize: 20)),
-              Spacer(),
-              Column(
+        children:
+            widget.products.map((product) {
+              final productSizes =
+                  widget.sizes
+                      .where((size) => size['product_id'] == product['id'])
+                      .toList();
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Quantity',
-                      border: OutlineInputBorder(),
-                    ),
+                  // Row 1
+                  Row(
+                    children: [
+                      Image.asset(productImage, width: 100),
+                      SizedBox(width: 10),
+                      Text(product['name'], style: TextStyle(fontSize: 20)),
+                      Spacer(),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextField(
+                            decoration: InputDecoration(
+                              labelText: 'Quantity',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                          DropdownButton<String>(
+                            hint: Text('Select Size'),
+                            value: selectedSizes[product['id']],
+                            items:
+                                productSizes.map((size) {
+                                  return DropdownMenuItem<String>(
+                                    value: size['name'],
+                                    child: Text(
+                                      '${size['name']} (\$${size['price'].toStringAsFixed(2)})',
+                                    ),
+                                  );
+                                }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                selectedSizes[product['id']] = newValue;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 10),
-                  DropdownButton<String>(
-                    hint: Text('Select Size'),
-                    items:
-                        sizes.map((String size) {
-                          return DropdownMenuItem<String>(
-                            value: size,
-                            child: Text(size),
+                  SizedBox(height: 20),
+                  // Row 2
+                  Text('Add-Ins Options', style: TextStyle(fontSize: 16)),
+                  Wrap(
+                    spacing: 10,
+                    children:
+                        addIns.map((String addIn) {
+                          return FilterChip(
+                            label: Text(addIn),
+                            onSelected: (bool selected) {
+                              // Handle add-in selection
+                            },
                           );
                         }).toList(),
-                    onChanged: (String? newValue) {
-                      // Handle size selection
-                    },
                   ),
+                  SizedBox(height: 20),
+                  // Row 3
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Price: \$${productSizes.isNotEmpty ? productSizes.first['price'].toStringAsFixed(2) : '0.00'}',
+                        style: TextStyle(fontSize: 20),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Handle add to cart
+                        },
+                        child: Text('Add to Cart'),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
                 ],
-              ),
-            ],
-          ),
-          SizedBox(height: 20),
-          // Row 2
-          Text('Add-Ins Options', style: TextStyle(fontSize: 16)),
-          Wrap(
-            spacing: 10,
-            children:
-                addIns.map((String addIn) {
-                  return FilterChip(
-                    label: Text(addIn),
-                    onSelected: (bool selected) {
-                      // Handle add-in selection
-                    },
-                  );
-                }).toList(),
-          ),
-          SizedBox(height: 20),
-          // Row 3
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Price: \$${productPrice.toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 20),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  // Handle add to cart
-                },
-                child: Text('Add to Cart'),
-              ),
-            ],
-          ),
-        ],
+              );
+            }).toList(),
       ),
     );
   }
