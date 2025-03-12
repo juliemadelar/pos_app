@@ -251,11 +251,13 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                         children: [
                           Image.asset(productImage, width: 100),
                           SizedBox(width: 10),
-                          Text(product['name'], style: TextStyle(fontSize: 20)),
-                          Spacer(),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Text(
+                                product['name'],
+                                style: TextStyle(fontSize: 20),
+                              ),
                               Row(
                                 children: [
                                   IconButton(
@@ -313,38 +315,39 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                                   ),
                                 ],
                               ),
-                              SizedBox(height: 10),
-                              Wrap(
-                                spacing: 10,
-                                children:
-                                    productSizes.map((size) {
-                                      return ElevatedButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            selectedSizes[product['id']] =
-                                                size['size'];
-                                          });
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              selectedSizes[product['id']] ==
-                                                      size['size']
-                                                  ? Colors.blue
-                                                  : Colors.grey,
-                                        ),
-                                        child: Text(
-                                          '${size['size']} (\$${size['price'].toStringAsFixed(2)})',
-                                        ),
-                                      );
-                                    }).toList(),
-                              ),
                             ],
+                          ),
+                          Spacer(),
+                          Wrap(
+                            spacing: 10,
+                            alignment: WrapAlignment.end,
+                            direction: Axis.vertical,
+                            children:
+                                productSizes.map((size) {
+                                  return ElevatedButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        selectedSizes[product['id']] =
+                                            size['size'];
+                                      });
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          selectedSizes[product['id']] ==
+                                                  size['size']
+                                              ? Colors.blue
+                                              : Colors.grey,
+                                    ),
+                                    child: Text(
+                                      '${size['size']} (\$${size['price'].toStringAsFixed(2)})',
+                                    ),
+                                  );
+                                }).toList(),
                           ),
                         ],
                       ),
                       SizedBox(height: 20),
                       // Row 2
-                      Text('Add-Ins Options', style: TextStyle(fontSize: 16)),
                       Wrap(
                         spacing: 10,
                         children:
@@ -358,19 +361,18 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                             }).toList(),
                       ),
                       SizedBox(height: 20),
+
                       // Row 3
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Text(
-                            'Price: \$${productSizes.isNotEmpty ? productSizes.first['price'].toStringAsFixed(2) : '0.00'}',
-                            style: TextStyle(fontSize: 20),
-                          ),
                           ElevatedButton(
                             onPressed: () {
                               // Handle add to cart
                             },
-                            child: Text('Add to Cart'),
+                            child: Text(
+                              'Add to Cart (\$${productSizes.isNotEmpty ? productSizes.first['price'].toStringAsFixed(2) : '0.00'})',
+                            ),
                           ),
                         ],
                       ),
