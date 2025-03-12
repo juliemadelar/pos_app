@@ -180,7 +180,9 @@ class ProductSelectionArea extends StatefulWidget {
 
 class ProductSelectionAreaState extends State<ProductSelectionArea> {
   final Map<int, String?> selectedSizes = {};
-  final Map<int, int> quantities = {}; // Add this line
+  final Map<String, int> quantities = {}; // Modified to include size
+  final Map<int, TextEditingController> quantityControllers =
+      {}; // Add this line
 
   @override
   void initState() {
@@ -194,7 +196,13 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
       if (productSizes.any((size) => size['size'] == 'Regular')) {
         selectedSizes[product['id']] = 'Regular';
       }
-      quantities[product['id']] = 0; // Initialize quantity to 0
+      // Initialize quantity to 0 for each product and size combination
+      for (var size in productSizes) {
+        quantities['${product['id']}_${size['size']}'] = 0;
+      }
+      quantityControllers[product['id']] = TextEditingController(
+        text: '0',
+      ); // Initialize controller
     }
   }
 
@@ -219,120 +227,157 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                   widget.sizes
                       .where((size) => size['product_id'] == product['id'])
                       .toList();
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Row 1
-                  Row(
+              return Container(
+                margin: EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withAlpha((0.5 * 255).toInt()),
+                      spreadRadius: 2,
+                      blurRadius: 5,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Image.asset(productImage, width: 100),
-                      SizedBox(width: 10),
-                      Text(product['name'], style: TextStyle(fontSize: 20)),
-                      Spacer(),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      // Row 1
+                      Row(
                         children: [
-                          Row(
+                          Image.asset(productImage, width: 100),
+                          SizedBox(width: 10),
+                          Text(product['name'], style: TextStyle(fontSize: 20)),
+                          Spacer(),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              IconButton(
-                                icon: Icon(Icons.remove),
-                                onPressed: () {
-                                  setState(() {
-                                    if (quantities[product['id']]! > 0) {
-                                      quantities[product['id']] =
-                                          quantities[product['id']]! - 1;
-                                    }
-                                  });
-                                },
-                              ),
-                              SizedBox(
-                                width: 50, // Ensure bounded width
-                                child: TextField(
-                                  decoration: InputDecoration(
-                                    labelText: 'Quantity',
-                                    border: OutlineInputBorder(),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.remove),
+                                    onPressed: () {
+                                      setState(() {
+                                        String size =
+                                            selectedSizes[product['id']] ??
+                                            'Regular';
+                                        if ((quantities['${product['id']}_$size'] ??
+                                                0) >
+                                            0) {
+                                          quantities['${product['id']}_$size'] =
+                                              (quantities['${product['id']}_$size'] ??
+                                                  0) -
+                                              1;
+                                          quantityControllers[product['id']]!
+                                                  .text =
+                                              quantities['${product['id']}_$size']
+                                                  .toString(); // Update controller
+                                        }
+                                      });
+                                    },
                                   ),
-                                  textAlign: TextAlign.center,
-                                  controller: TextEditingController(
-                                    text: quantities[product['id']].toString(),
+                                  SizedBox(
+                                    width: 50, // Ensure bounded width
+                                    child: TextField(
+                                      decoration: InputDecoration(
+                                        labelText: 'Quantity',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      controller:
+                                          quantityControllers[product['id']], // Use controller
+                                      readOnly: true, // Make it read-only
+                                    ),
                                   ),
-                                  readOnly: true, // Make it read-only
-                                ),
+                                  IconButton(
+                                    icon: Icon(Icons.add),
+                                    onPressed: () {
+                                      setState(() {
+                                        String size =
+                                            selectedSizes[product['id']] ??
+                                            'Regular';
+                                        quantities['${product['id']}_$size'] =
+                                            (quantities['${product['id']}_$size'] ??
+                                                0) +
+                                            1;
+                                        quantityControllers[product['id']]!
+                                                .text =
+                                            quantities['${product['id']}_$size']
+                                                .toString(); // Update controller
+                                      });
+                                    },
+                                  ),
+                                ],
                               ),
-                              IconButton(
-                                icon: Icon(Icons.add),
-                                onPressed: () {
-                                  setState(() {
-                                    quantities[product['id']] =
-                                        quantities[product['id']]! + 1;
-                                  });
-                                },
+                              SizedBox(height: 10),
+                              Wrap(
+                                spacing: 10,
+                                children:
+                                    productSizes.map((size) {
+                                      return ElevatedButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            selectedSizes[product['id']] =
+                                                size['size'];
+                                          });
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              selectedSizes[product['id']] ==
+                                                      size['size']
+                                                  ? Colors.blue
+                                                  : Colors.grey,
+                                        ),
+                                        child: Text(
+                                          '${size['size']} (\$${size['price'].toStringAsFixed(2)})',
+                                        ),
+                                      );
+                                    }).toList(),
                               ),
                             ],
                           ),
-                          SizedBox(height: 10),
-                          Wrap(
-                            spacing: 10,
-                            children:
-                                productSizes.map((size) {
-                                  return ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        selectedSizes[product['id']] =
-                                            size['size'];
-                                      });
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          selectedSizes[product['id']] ==
-                                                  size['size']
-                                              ? Colors.blue
-                                              : Colors.grey,
-                                    ),
-                                    child: Text(
-                                      '${size['size']} (\$${size['price'].toStringAsFixed(2)})',
-                                    ),
-                                  );
-                                }).toList(),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      // Row 2
+                      Text('Add-Ins Options', style: TextStyle(fontSize: 16)),
+                      Wrap(
+                        spacing: 10,
+                        children:
+                            addIns.map((String addIn) {
+                              return FilterChip(
+                                label: Text(addIn),
+                                onSelected: (bool selected) {
+                                  // Handle add-in selection
+                                },
+                              );
+                            }).toList(),
+                      ),
+                      SizedBox(height: 20),
+                      // Row 3
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Price: \$${productSizes.isNotEmpty ? productSizes.first['price'].toStringAsFixed(2) : '0.00'}',
+                            style: TextStyle(fontSize: 20),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              // Handle add to cart
+                            },
+                            child: Text('Add to Cart'),
                           ),
                         ],
                       ),
+                      SizedBox(height: 20),
                     ],
                   ),
-                  SizedBox(height: 20),
-                  // Row 2
-                  Text('Add-Ins Options', style: TextStyle(fontSize: 16)),
-                  Wrap(
-                    spacing: 10,
-                    children:
-                        addIns.map((String addIn) {
-                          return FilterChip(
-                            label: Text(addIn),
-                            onSelected: (bool selected) {
-                              // Handle add-in selection
-                            },
-                          );
-                        }).toList(),
-                  ),
-                  SizedBox(height: 20),
-                  // Row 3
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Price: \$${productSizes.isNotEmpty ? productSizes.first['price'].toStringAsFixed(2) : '0.00'}',
-                        style: TextStyle(fontSize: 20),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          // Handle add to cart
-                        },
-                        child: Text('Add to Cart'),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-                ],
+                ),
               );
             }).toList(),
       ),
