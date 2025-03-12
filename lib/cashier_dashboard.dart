@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'database_helper.dart'; //
+import 'package:logging/logging.dart';
+
+final _log = Logger('CashierDashboard');
 
 class CashierDashboard extends StatefulWidget {
   const CashierDashboard({super.key}); //
@@ -55,6 +58,10 @@ class CashierDashboardState extends State<CashierDashboard> {
       products = productList;
       sizes = sizeList;
     });
+
+    // Debug prints
+    _log.info('Fetched products: $products');
+    _log.info('Fetched sizes: $sizes');
   }
 
   @override
@@ -184,6 +191,7 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
   final Map<int, TextEditingController> quantityControllers = {};
   Map<int, List<Map<String, dynamic>>> addInsByProduct = {};
   Map<int, Set<int>> selectedAddIns = {};
+  bool isLoadingAddIns = true;
 
   @override
   void initState() {
@@ -247,7 +255,11 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
 
     setState(() {
       addInsByProduct = fetchedAddIns;
+      isLoadingAddIns = false;
     });
+
+    // Debug prints
+    _log.info('Fetched add-ins: $addInsByProduct');
   }
 
   // Helper method to update quantity based on product and selected size
@@ -274,10 +286,6 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
     // Mock data for demonstration
     final String productImage =
         'assets/placeholder.png'; // Replace with database call
-    // final List<String> addIns = [
-    //   'Add-In 1',
-    //   'Add-In 2',
-    // ]; // Replace with database call
 
     return Container(
       width: MediaQuery.of(context).size.width * 0.55,
@@ -392,7 +400,9 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                       ),
                       SizedBox(height: 20),
                       // Row 2 - Add-ins
-                      if (addInsByProduct[productId]?.isNotEmpty ?? false)
+                      if (isLoadingAddIns)
+                        Center(child: CircularProgressIndicator())
+                      else if (addInsByProduct[productId]?.isNotEmpty ?? false)
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
