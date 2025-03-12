@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:image_picker/image_picker.dart'; // Add this import
+import 'package:image_picker/image_picker.dart';
 
 class ProductList extends StatelessWidget {
   final List<Map<String, dynamic>> products;
   final Function(Map<String, dynamic>, String) onEdit;
   final Function(int) onDelete;
+  final void Function(Map<String, dynamic>) onViewDetails;
+  final ListTile Function(BuildContext, Map<String, dynamic>) itemBuilder;
 
   const ProductList({
     super.key,
     required this.products,
     required this.onEdit,
     required this.onDelete,
-    required void Function(Map<String, dynamic> product) onViewDetails,
-    required ListTile Function(dynamic context, dynamic item) itemBuilder,
+    required this.onViewDetails,
+    required this.itemBuilder,
   });
 
   Future<void> showEditDialog(
@@ -22,60 +24,82 @@ class ProductList extends StatelessWidget {
   ) async {
     final ImagePicker picker = ImagePicker();
     XFile? image;
+    final TextEditingController nameController = TextEditingController(
+      text: product['name'],
+    );
+    final TextEditingController subCategoryController = TextEditingController(
+      text: product['sub_category'],
+    );
 
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Edit Product'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              TextField(
-                controller: TextEditingController(text: product['name']),
-                decoration: InputDecoration(labelText: 'Product Name'),
-                onChanged: (value) {
-                  product['name'] = value;
-                },
-              ),
-              TextField(
-                controller: TextEditingController(
-                  text: product['sub_category'],
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: Text('Edit Product'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(labelText: 'Product Name'),
+                      onChanged: (value) {
+                        product['name'] = value;
+                      },
+                    ),
+                    TextField(
+                      controller: subCategoryController,
+                      decoration: InputDecoration(labelText: 'Sub Category'),
+                      onChanged: (value) {
+                        product['sub_category'] = value;
+                      },
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        image = await picker.pickImage(
+                          source: ImageSource.gallery,
+                        );
+                        if (image != null) {
+                          setState(() {
+                            product['image'] = image?.path;
+                          });
+                        }
+                      },
+                      child: Text('Change Image'),
+                    ),
+                    if (product['image'] != null)
+                      Image.file(
+                        File(product['image']),
+                        width: 100,
+                        height: 100,
+                      ),
+                  ],
                 ),
-                decoration: InputDecoration(labelText: 'Sub Category'),
-                onChanged: (value) {
-                  product['sub_category'] = value;
-                },
               ),
-              ElevatedButton(
-                onPressed: () async {
-                  image = await picker.pickImage(source: ImageSource.gallery);
-                  if (image != null) {
-                    product['image'] = image?.path;
-                    (context as Element).markNeedsBuild(); // Update UI
-                  }
-                },
-                child: Text('Change Image'),
-              ),
-              if (product['image'] != null)
-                Image.file(File(product['image']), width: 100, height: 100),
-            ],
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Save'),
-              onPressed: () {
-                onEdit(product, image?.path ?? '');
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
+              actions: <Widget>[
+                TextButton(
+                  child: Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: Text('Save'),
+                  onPressed: () {
+                    onEdit({
+                      'id': product['id'],
+                      'name': nameController.text,
+                      'sub_category': subCategoryController.text,
+                      'image': product['image'],
+                    }, image?.path ?? '');
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -83,47 +107,53 @@ class ProductList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ExpansionTile(
-      title: const Text('Products'),
-      children:
-          products.map((product) {
-            return ListTile(
-              leading:
-                  product.containsKey('image')
-                      ? Image.file(
-                        File(product['image']),
-                        width: 200,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Image.asset(
-                            'assets/placeholder.png', // Replace with your placeholder image
-                            width: 200,
-                          );
-                        },
-                      )
-                      : null,
-              title: Text(product['name']),
-              subtitle: Text(
-                'Parent Category: ${product['parent_category'] ?? 'Unknown'}\nSub Category: ${product['sub_category'] ?? 'Unknown'}',
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed:
-                        () => showEditDialog(
-                          context,
-                          product,
-                        ), // Update this line
+    return Column(
+      mainAxisSize: MainAxisSize.min, // Set mainAxisSize to MainAxisSize.min
+      children: [
+        Flexible(
+          fit: FlexFit.loose, // Use FlexFit.loose
+          child: SizedBox(
+            height: 400, // Provide a height constraint
+            child: ListView.builder(
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                final product = products[index];
+                return ListTile(
+                  leading:
+                      product['image'] != null &&
+                              File(product['image']).existsSync()
+                          ? Image.file(
+                            File(product['image']),
+                            width: 50,
+                            height: 50,
+                          )
+                          : Image.asset(
+                            'assets/placeholder.png',
+                            width: 50,
+                            height: 50,
+                          ),
+                  title: Text(product['name']),
+                  subtitle: Text('Sub-Category: ${product['sub_category']}'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.edit),
+                        onPressed: () => showEditDialog(context, product),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () => onDelete(product['id']),
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () => onDelete(product['id']),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
+                  onTap: () => onViewDetails(product),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

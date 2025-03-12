@@ -22,10 +22,10 @@ class SubCategoryList extends StatelessWidget {
     Map<String, dynamic> subCategory,
   ) async {
     final TextEditingController nameController = TextEditingController(
-      text: subCategory['name'],
+      text: subCategory['name'] ?? '',
     );
     final TextEditingController parentCategoryController =
-        TextEditingController(text: subCategory['parent_category']);
+        TextEditingController(text: subCategory['parent_category'] ?? '');
     String? imagePath = subCategory['image'];
     bool imageExists = imagePath != null && await File(imagePath).exists();
 
@@ -34,63 +34,69 @@ class SubCategoryList extends StatelessWidget {
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Edit Sub-Category'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Name'),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: const Text('Edit Sub-Category'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: <Widget>[
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Name'),
+                    ),
+                    TextField(
+                      controller: parentCategoryController,
+                      decoration: const InputDecoration(
+                        labelText: 'Parent Category',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    imageExists
+                        ? Image.file(File(imagePath!))
+                        : Image.asset(
+                          defaultImagePath,
+                        ), // Use default image asset
+                    TextButton(
+                      onPressed: () async {
+                        final ImagePicker picker = ImagePicker();
+                        final XFile? pickedFile = await picker.pickImage(
+                          source: ImageSource.gallery,
+                        );
+                        if (pickedFile != null) {
+                          setState(() {
+                            imagePath = pickedFile.path;
+                            imageExists = true;
+                          });
+                        }
+                      },
+                      child: const Text('Pick Image'),
+                    ),
+                  ],
                 ),
-                TextField(
-                  controller: parentCategoryController,
-                  decoration: const InputDecoration(
-                    labelText: 'Parent Category',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                imageExists
-                    ? Image.file(File(imagePath!))
-                    : Image.asset(defaultImagePath), // Use default image asset
+              ),
+              actions: <Widget>[
                 TextButton(
-                  onPressed: () async {
-                    final ImagePicker picker = ImagePicker();
-                    final XFile? pickedFile = await picker.pickImage(
-                      source: ImageSource.gallery,
-                    );
-                    if (pickedFile != null) {
-                      imagePath = pickedFile.path;
-                      if (context.mounted) {
-                        (context as Element).markNeedsBuild(); // Update UI
-                      }
-                    }
+                  child: const Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
                   },
-                  child: const Text('Pick Image'),
+                ),
+                TextButton(
+                  child: const Text('Save'),
+                  onPressed: () {
+                    onEdit({
+                      'id': subCategory['id'],
+                      'name': nameController.text,
+                      'parent_category': parentCategoryController.text,
+                      'image': imagePath,
+                    });
+                    Navigator.of(context).pop();
+                  },
                 ),
               ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Save'),
-              onPressed: () {
-                onEdit({
-                  'id': subCategory['id'],
-                  'name': nameController.text,
-                  'parent_category': parentCategoryController.text,
-                  'image': imagePath,
-                });
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
+            );
+          },
         );
       },
     );

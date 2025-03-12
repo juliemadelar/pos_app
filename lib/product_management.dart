@@ -55,60 +55,73 @@ class ProductManagementState extends State<ProductManagement>
   }
 
   Future<void> _fetchData() async {
-    final categories = await _dbHelper.getCategories();
-    final subCategories = await _dbHelper.getSubCategories();
-    final products = await _dbHelper.fetchAllProducts();
-    final addIns = await _dbHelper.getAddIns();
-    final sizes = await _dbHelper.getAllSizes(); // Fetch sizes for all products
+    try {
+      final categories = await _dbHelper.getCategories();
+      final subCategories = await _dbHelper.getSubCategories();
+      final products = await _dbHelper.fetchAllProducts();
+      final addIns = await _dbHelper.getAddIns();
+      final sizes =
+          await _dbHelper.getAllSizes(); // Fetch sizes for all products
 
-    final updatedSubCategories = await Future.wait(
-      subCategories.map((subCategory) async {
-        final parentCategory = await _dbHelper.fetchCategoryById(
-          subCategory['category_id'],
-        );
-        return {
-          ...subCategory,
-          'parent_category': parentCategory['name'] ?? 'Unknown',
-        };
-      }).toList(),
-    );
+      final updatedSubCategories = await Future.wait(
+        subCategories.map((subCategory) async {
+          final parentCategory = await _dbHelper.fetchCategoryById(
+            subCategory['category_id'],
+          );
+          return {
+            ...subCategory,
+            'parent_category': parentCategory['name'] ?? 'Unknown',
+          };
+        }).toList(),
+      );
 
-    final updatedProducts = await Future.wait(
-      products.map((product) async {
-        final subCategory = await _dbHelper.fetchSubCategoryById(
-          product['sub_category_id'],
-        );
-        final parentCategory = await _dbHelper.fetchCategoryById(
-          subCategory['category_id'],
-        );
-        return {
-          ...product,
-          'sub_category': subCategory['name'] ?? 'Unknown',
-          'parent_category': parentCategory['name'] ?? 'Unknown',
-        };
-      }).toList(),
-    );
+      final updatedProducts = await Future.wait(
+        products.map((product) async {
+          final subCategory = await _dbHelper.fetchSubCategoryById(
+            product['sub_category_id'],
+          );
+          final parentCategory = await _dbHelper.fetchCategoryById(
+            subCategory['category_id'],
+          );
+          return {
+            ...product,
+            'sub_category': subCategory['name'] ?? 'Unknown',
+            'parent_category': parentCategory['name'] ?? 'Unknown',
+          };
+        }).toList(),
+      );
 
-    final updatedAddIns = await Future.wait(
-      addIns.map((addIn) async {
-        final parentProduct = await _dbHelper.fetchProductById(
-          addIn['product_id']!,
-        );
-        return {
-          ...addIn,
-          'parent_product': parentProduct?['name'] ?? 'Unknown',
-        };
-      }).toList(),
-    );
+      final updatedAddIns = await Future.wait(
+        addIns.map((addIn) async {
+          final parentProduct = await _dbHelper.fetchProductById(
+            addIn['product_id']!,
+          );
+          return {
+            ...addIn,
+            'parent_product': parentProduct?['name'] ?? 'Unknown',
+          };
+        }).toList(),
+      );
 
-    if (mounted) {
-      setState(() {
-        _categories = categories;
-        _subCategories = updatedSubCategories;
-        _products = updatedProducts;
-        _addIns = updatedAddIns;
-        _sizes = sizes; // Update sizes list
-      });
+      if (mounted) {
+        setState(() {
+          _categories = categories;
+          _subCategories = updatedSubCategories;
+          _products = updatedProducts;
+          _addIns = updatedAddIns;
+          _sizes = sizes; // Update sizes list
+        });
+      }
+    } catch (e) {
+      // Handle any errors that occur during the fetch process
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error fetching data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -381,7 +394,8 @@ class ProductManagementState extends State<ProductManagement>
         type == 'subcategory' ? item['category_id'] : null;
     int? selectedProductId = type == 'add-in' ? item['product_id'] : null;
     double? price = type == 'add-in' ? item['price'] : null;
-    String? imagePath = type == 'subcategory' ? item['image'] : null;
+    String? imagePath =
+        type == 'subcategory' || type == 'product' ? item['image'] : null;
 
     final result = await showDialog<bool>(
       context: context,
@@ -435,7 +449,7 @@ class ProductManagementState extends State<ProductManagement>
                   controller: TextEditingController(text: price?.toString()),
                   onChanged: (value) => price = double.tryParse(value),
                 ),
-              if (type == 'subcategory')
+              if (type == 'subcategory' || type == 'product')
                 ElevatedButton(
                   onPressed: () async {
                     final pickedFile = await _picker.pickImage(
@@ -482,7 +496,11 @@ class ProductManagementState extends State<ProductManagement>
           });
           break;
         case 'product':
-          await _dbHelper.updateProduct({'id': item['id'], 'name': newName});
+          await _dbHelper.updateProduct({
+            'id': item['id'],
+            'name': newName,
+            'image': imagePath,
+          });
           break;
         case 'add-in':
           await _dbHelper.updateAddIn({
@@ -587,13 +605,11 @@ class ProductManagementState extends State<ProductManagement>
               'price': editResult['price'],
               'product_id': editResult['product_id'],
             });
-            _fetchData(); // Refresh the data
           }
           break;
       }
-      _fetchData();
+      _fetchData(); // Refresh the data after updating
     }
-    _fetchData();
   }
 
   void _deleteSize(int sizeId) async {
@@ -686,8 +702,18 @@ class ProductManagementState extends State<ProductManagement>
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (product['image'] != null)
-                Image.file(File(product['image']), width: 100, height: 100),
+              Image.file(
+                File(product['image'] ?? 'assets/placeholder.png'),
+                width: 100,
+                height: 100,
+                errorBuilder: (context, error, stackTrace) {
+                  return Image.asset(
+                    'assets/placeholder.png',
+                    width: 100,
+                    height: 100,
+                  );
+                },
+              ),
               Text('Category: ${product['parent_category']}'),
               Text('Sub-Category: ${product['sub_category']}'),
             ],
@@ -815,17 +841,38 @@ class ProductManagementState extends State<ProductManagement>
                     children: [
                       ProductList(
                         products: _products,
-                        onEdit: (item, _) {
+                        onEdit: (item, _) async {
                           _showEditDialog(item, 'product');
+                          _fetchData(); // Ensure data is fetched after editing
                         },
                         onDelete: _deleteProduct,
                         onViewDetails:
                             _showProductDetails, // Add onViewDetails callback
                         itemBuilder:
                             (context, item) => ListTile(
+                              key: ValueKey(
+                                item['id'],
+                              ), // Use a unique key here!
                               title: Text(item['name']),
-                              subtitle: Text(
-                                'Sub-Category: ${item['sub_category']}',
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Sub-Category: ${item['sub_category']}'),
+                                  Image.file(
+                                    File(
+                                      item['image'] ?? 'assets/placeholder.png',
+                                    ),
+                                    width: 50,
+                                    height: 50,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Image.asset(
+                                        'assets/placeholder.png',
+                                        width: 50,
+                                        height: 50,
+                                      );
+                                    },
+                                  ),
+                                ],
                               ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
