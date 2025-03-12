@@ -903,24 +903,27 @@ class ProductManagementState extends State<ProductManagement>
                 itemCount: _addIns.length,
                 itemBuilder: (context, index) {
                   final addIn = _addIns[index];
-                  return ListTile(
-                    title: Text(addIn['name']),
-                    subtitle: Text('Price: \$${addIn['price']}'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.edit),
-                          onPressed: () => _showEditDialog(addIn, 'add-in'),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed:
-                              () => _dbHelper
-                                  .deleteAddIn(addIn['id'])
-                                  .then((_) => _fetchData()),
-                        ),
-                      ],
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: ListTile(
+                      title: Text(addIn['name']),
+                      subtitle: Text('Price: \$${addIn['price']}'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () => _showEditDialog(addIn, 'add-in'),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete),
+                            onPressed:
+                                () => _dbHelper
+                                    .deleteAddIn(addIn['id'])
+                                    .then((_) => _fetchData()),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },

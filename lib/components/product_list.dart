@@ -118,24 +118,24 @@ class ProductList extends StatelessWidget {
               itemCount: products.length,
               itemBuilder: (context, index) {
                 final product = products[index];
-                return ListTile(
-                  leading:
-                      product['image'] != null &&
-                              File(product['image']).existsSync()
-                          ? Image.file(
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  elevation: 4, // Add elevation for shadow
+                  child: ListTile(
+                    leading: product['image'] != null && File(product['image']).existsSync()
+                        ? Image.file(
                             File(product['image']),
                             width: 50,
                             height: 50,
                           )
-                          : Image.asset(
+                        : Image.asset(
                             'assets/placeholder.png',
                             width: 50,
                             height: 50,
                           ),
-                  title: Text(product['name']),
-                  subtitle: Text('Sub-Category: ${product['sub_category']}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    title: Text(product['name']),
+                    subtitle: Text('Sub-Category: ${product['sub_category']}'),
+                    trailing: Row(
                     children: [
                       IconButton(
                         icon: Icon(Icons.edit),
