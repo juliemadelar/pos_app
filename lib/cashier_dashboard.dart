@@ -71,6 +71,12 @@ class CashierDashboardState extends State<CashierDashboard> {
     _log.info('Fetched sizes: $sizes');
   }
 
+  Future<void> _fetchAddInsForProducts() async {
+    // Implement the logic to fetch add-ins for products
+    // This is a placeholder implementation
+    await Future.delayed(Duration(seconds: 1));
+  }
+
   @override
   Widget build(BuildContext context) {
     // Mock data for demonstration
@@ -175,7 +181,22 @@ class CashierDashboardState extends State<CashierDashboard> {
             child:
                 selectedSubCategory == null
                     ? Center(child: Text('Select a sub-category'))
-                    : ProductSelectionArea(products: products, sizes: sizes),
+                    : FutureBuilder(
+                      future: _fetchAddInsForProducts(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          return Center(child: Text('Error fetching add-ins'));
+                        } else {
+                          return ProductSelectionArea(
+                            products: products,
+                            sizes: sizes,
+                          );
+                        }
+                      },
+                    ),
           ),
         ],
       ),
@@ -259,27 +280,25 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
     });
 
     final dbHelper = DatabaseHelper();
-    Map<int, List<Map<String, dynamic>>> fetchedAddIns = {};
 
-    for (var product in widget.products) {
-      final productId = product['id'];
-      // Fetch add-ins from add_ins table
-      final addIns = await dbHelper.getAddInList(productId);
-      fetchedAddIns[productId] = addIns;
+    try {
+      final fetchedAddIns = await dbHelper.fetchAddInsForProducts(
+        widget.products,
+      );
 
-      // Initialize empty set for selected add-ins
-      if (selectedAddIns[productId] == null) {
-        selectedAddIns[productId] = <int>{};
-      }
+      setState(() {
+        addInsList = fetchedAddIns;
+        isLoadingAddIns = false;
+      });
+
+      // Debug prints
+      _log.info('Fetched add-ins: $addInsList');
+    } catch (e) {
+      _log.severe('Error fetching add-ins: $e');
+      setState(() {
+        isLoadingAddIns = false;
+      });
     }
-
-    setState(() {
-      addInsList = fetchedAddIns;
-      isLoadingAddIns = false;
-    });
-
-    // Debug prints
-    _log.info('Fetched add-ins: $addInsList');
   }
 
   // Helper method to update quantity based on product and selected size
@@ -341,7 +360,7 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
         ],
       );
     } else {
-      return SizedBox(height: 0);
+      return SizedBox.shrink(); // Using shrink() for empty state
     }
   }
 

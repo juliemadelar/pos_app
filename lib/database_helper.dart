@@ -155,4 +155,23 @@ class DatabaseHelper {
       whereArgs: [productId],
     );
   }
+
+  Future<Map<int, List<Map<String, dynamic>>>> fetchAddInsForProducts(
+    List<Map<String, dynamic>> products,
+  ) async {
+    final db = await database;
+    final batch = db.batch();
+    final addInsMap = <int, List<Map<String, dynamic>>>{};
+
+    for (final product in products) {
+      final productId = product['id'];
+      batch.query('add_ins', where: 'product_id = ?', whereArgs: [productId]);
+    }
+
+    final results = await batch.commit();
+    for (int i = 0; i < products.length; i++) {
+      addInsMap[products[i]['id']] = results[i] as List<Map<String, dynamic>>;
+    }
+    return addInsMap;
+  }
 }
