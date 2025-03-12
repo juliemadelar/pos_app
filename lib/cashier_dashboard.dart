@@ -344,6 +344,36 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
     });
   }
 
+  double _calculateTotalPrice(int productId) {
+    double totalPrice = 0;
+    final selectedSize =
+        selectedSizes[productId] ?? 'Regular'; // Simplified size selection
+    final key = '${productId}_$selectedSize'; // Correct key formation
+    final quantity = quantities[key] ?? 0;
+
+    // Find the price for the selected size
+    final sizePrice =
+        widget.sizes.firstWhere(
+          (size) =>
+              size['product_id'] == productId && size['size'] == selectedSize,
+          orElse: () => {'price': 0},
+        )['price'];
+
+    totalPrice += (sizePrice ?? 0) * quantity;
+
+    // Add add-in prices
+    final selectedProductAddIns = selectedAddIns[productId] ?? {};
+    for (final addInId in selectedProductAddIns) {
+      final addIn = addInsList[productId]?.firstWhere(
+        (addIn) => addIn['id'] == addInId,
+        orElse: () => {'price': 0},
+      );
+      totalPrice += (addIn?['price'] ?? 0);
+    }
+
+    return totalPrice;
+  }
+
   Widget _buildAddIns(Map<String, dynamic> product) {
     final productId = product['id'];
     final productAddIns = addInsList[productId] ?? [];
@@ -512,17 +542,18 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                       else
                         _buildAddIns(product),
                       SizedBox(height: 20),
-                      // Row 3
+                      // Row 3 - Add Price Calculation
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          Text(
+                            'Total: \$${_calculateTotalPrice(productId).toStringAsFixed(2)}',
+                          ),
                           ElevatedButton(
                             onPressed: () {
                               // Handle add to cart
                             },
-                            child: Text(
-                              'Add to Cart (\$${productSizes.isNotEmpty ? productSizes.first['price'].toStringAsFixed(2) : '0.00'})',
-                            ),
+                            child: Text('Add to Cart'),
                           ),
                         ],
                       ),
