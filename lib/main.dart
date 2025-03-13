@@ -36,8 +36,10 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => AdminDashboard(),
         '/login': (context) => LoginPage(),
-        '/cashier_dashboard':
-            (context) => CashierDashboard(cashierId: 1), // Define the route
+        '/cashier_dashboard': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map;
+          return CashierDashboard(username: args['username']);
+        }, // Define the route
       },
       builder: (context, child) {
         return child != null

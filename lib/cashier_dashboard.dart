@@ -5,9 +5,9 @@ import 'package:logging/logging.dart';
 final _log = Logger('CashierDashboard');
 
 class CashierDashboard extends StatefulWidget {
-  final int cashierId; // Add cashierId to identify the cashier
+  final String username; // Change to username to identify the cashier
 
-  const CashierDashboard({super.key, required this.cashierId});
+  const CashierDashboard({super.key, required this.username});
 
   @override
   CashierDashboardState createState() => CashierDashboardState();
@@ -25,7 +25,7 @@ class CashierDashboardState extends State<CashierDashboard> {
   @override
   void initState() {
     super.initState();
-    _fetchCashierName(widget.cashierId); // Fetch cashier name on init
+    _fetchCashierName(widget.username); // Fetch cashier name on init
     _fetchCategoriesAndSubCategories();
   }
 
@@ -82,12 +82,12 @@ class CashierDashboardState extends State<CashierDashboard> {
     await Future.delayed(Duration(seconds: 1));
   }
 
-  Future<void> _fetchCashierName(int cashierId) async {
+  Future<void> _fetchCashierName(String username) async {
     final dbHelper = DatabaseHelper();
     try {
-      final userDetails = await dbHelper.getUserDetails(cashierId);
+      final userDetails = await dbHelper.getUserByUsername(username);
       setState(() {
-        cashierName = userDetails.isNotEmpty ? userDetails.first['name'] : null;
+        cashierName = userDetails != null ? userDetails['name'] : null;
         _isLoadingCashierName = false; // Update loading state
       });
     } catch (e) {
@@ -596,5 +596,5 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
 }
 
 void main() {
-  runApp(MaterialApp(home: CashierDashboard(cashierId: 1)));
+  runApp(MaterialApp(home: CashierDashboard(username: 'cashier1')));
 }

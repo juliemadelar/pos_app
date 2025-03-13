@@ -84,7 +84,11 @@ class LoginPageState extends State<LoginPage> {
       if (user['role'] == 'admin') {
         Navigator.pushReplacementNamed(context, '/');
       } else if (user['role'] == 'cashier') {
-        Navigator.pushReplacementNamed(context, '/cashier_dashboard');
+        Navigator.pushReplacementNamed(
+          context,
+          '/cashier_dashboard',
+          arguments: {'username': username},
+        );
       }
     } else {
       if (!mounted) return; // Check if the widget is still mounted
