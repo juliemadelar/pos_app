@@ -5,7 +5,6 @@ import 'admin_dashboard.dart';
 import 'login_page.dart';
 import 'db_helper.dart';
 import 'package:pos_app/cashier_dashboard.dart'; // Import the CashierDashboard page
-import 'cart_provider.dart'; // Import the CartProvider
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +24,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => CartProvider()),
+        Provider(create: (_) => Object()), // Add a dummy provider
         // Add other providers here if needed
       ],
       child: MyApp(),

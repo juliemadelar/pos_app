@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'database_helper.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
-import 'cart_provider.dart'; // Ensure CartProvider is imported
-import 'cart_screen.dart'; // Ensure CartScreen is imported
 import 'package:flutter/services.dart'; // Add this line for input formatter
 
 final _log = Logger('CashierDashboard');
@@ -29,7 +27,6 @@ class CashierDashboardState extends State<CashierDashboard> {
   bool _isLoadingCashierName = true; // Add loading indicator
   String? businessName; // Add businessName variable
   bool _isLoadingBusinessName = true; // Add loading indicator for business name
-  double totalCartPrice = 0.0; // Add totalCartPrice variable
   final Map<int, Set<int>> selectedAddIns = {}; // Add this line
   Map<int, List<Map<String, dynamic>>> addInsList = {}; // Add this line
   bool isLoadingAddIns = true; // Add this line
@@ -140,33 +137,6 @@ class CashierDashboardState extends State<CashierDashboard> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Error loading business name.')),
         );
-      });
-    }
-  }
-
-  void _addToCart(int productId) {
-    final selectedSize = selectedSizes[productId] ?? 'Regular';
-    final key = '${productId}_$selectedSize';
-    final quantity = quantities[key] ?? 0;
-
-    if (quantity > 0) {
-      final product = products.firstWhere((p) => p['id'] == productId);
-      final sizePrice =
-          sizes.firstWhere(
-            (size) =>
-                size['product_id'] == productId && size['size'] == selectedSize,
-            orElse: () => {'price': 0},
-          )['price'];
-
-      final cartProvider = Provider.of<CartProvider>(context, listen: false);
-      cartProvider.addItem(
-        '${product['name']} ($selectedSize)',
-        sizePrice,
-        quantity,
-      );
-
-      setState(() {
-        totalCartPrice = cartProvider.totalAmount;
       });
     }
   }
@@ -304,55 +274,36 @@ class CashierDashboardState extends State<CashierDashboard> {
           ),
           // Main Content Area
           Expanded(
-            child: Column(
+            child: Row(
               children: [
+                // Main Content Area
                 Expanded(
-                  child:
-                      selectedSubCategory == null
-                          ? Center(child: Text('Select a sub-category'))
-                          : ProductSelectionArea(
-                            products: products,
-                            sizes: sizes,
-                            addInsList:
-                                addInsList, // Pass addInsList to ProductSelectionArea
-                            onAddToCart:
-                                (productId) =>
-                                    _addToCart(productId), // Pass callback
-                            updateTotalPrice: () {
-                              setState(() {
-                                totalCartPrice =
-                                    Provider.of<CartProvider>(
-                                      context,
-                                      listen: false,
-                                    ).totalAmount;
-                              });
-                            },
-                          ),
-                ),
-                // Bottom Tab
-                Container(
-                  color: Colors.grey[300],
-                  padding: EdgeInsets.all(10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  flex: 3, // 55% width
+                  child: Column(
                     children: [
-                      Text(
-                        'Total Price: \$${totalCartPrice.toStringAsFixed(2)}',
-                        style: TextStyle(fontSize: 20),
+                      Expanded(
+                        child:
+                            selectedSubCategory == null
+                                ? Center(child: Text('Select a sub-category'))
+                                : ProductSelectionArea(
+                                  products: products,
+                                  sizes: sizes,
+                                  addInsList:
+                                      addInsList, // Pass addInsList to ProductSelectionArea
+                                ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.shopping_cart),
-                        onPressed: () {
-                          // Navigate to cart_screen.dart
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder:
-                                  (context) =>
-                                      CartScreen(), // Use CartScreen here
-                            ),
-                          );
-                        },
-                      ),
+                      // Removed the bottom tab containing total price and cart icon
+                    ],
+                  ),
+                ),
+                // New Right Column
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.25,
+                  color: Colors.grey[300],
+                  child: Column(
+                    children: [
+                      // Add widgets for the new right column here
+                      Text('Right Column Content'),
                     ],
                   ),
                 ),
@@ -369,16 +320,12 @@ class ProductSelectionArea extends StatefulWidget {
   final List<Map<String, dynamic>> products;
   final List<Map<String, dynamic>> sizes;
   final Map<int, List<Map<String, dynamic>>> addInsList; // Add this line
-  final Function(int) onAddToCart; // Add callback for adding to cart
-  final VoidCallback updateTotalPrice;
 
   const ProductSelectionArea({
     super.key,
     required this.products,
     required this.sizes,
     required this.addInsList, // Add this line
-    required this.onAddToCart,
-    required this.updateTotalPrice,
   });
 
   @override
@@ -687,15 +634,6 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                             Text(
                               'Total: \$${_calculateTotalPrice(productId).toStringAsFixed(2)}',
                             ),
-                            ElevatedButton(
-                              onPressed: () {
-                                widget.onAddToCart(
-                                  product['id'],
-                                ); // Call callback
-                                widget.updateTotalPrice();
-                              },
-                              child: Text('Add to Cart'),
-                            ),
                           ],
                         ),
                         SizedBox(height: 20),
@@ -714,7 +652,6 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => CartProvider()),
         // Add other providers here if needed
       ],
       child: MaterialApp(
