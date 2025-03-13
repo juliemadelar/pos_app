@@ -523,6 +523,34 @@ class CashierDashboardState extends State<CashierDashboard> {
                             Text('\$0.00', style: TextStyle(fontSize: 16)),
                           ],
                         ),
+                        Divider(),
+                        // Add new container with buttons
+                        Container(
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  // Handle Cash button press
+                                },
+                                child: Text('Cash'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  // Handle Card button press
+                                },
+                                child: Text('Card'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  // Handle Print button press
+                                },
+                                child: Text('Print'),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
