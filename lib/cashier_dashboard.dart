@@ -11,9 +11,15 @@ class CashierDashboard extends StatefulWidget {
 
   const CashierDashboard({super.key, required this.username});
 
+  // Add this getter
+  Map<int, List<Map<String, dynamic>>> get addInsList =>
+      _dashboardState.addInsList;
+
   @override
   CashierDashboardState createState() => CashierDashboardState();
 }
+
+late CashierDashboardState _dashboardState;
 
 class CashierDashboardState extends State<CashierDashboard> {
   String? selectedSubCategory;
@@ -30,6 +36,10 @@ class CashierDashboardState extends State<CashierDashboard> {
   final Map<int, Set<int>> selectedAddIns = {}; // Add this line
   Map<int, List<Map<String, dynamic>>> addInsList = {}; // Add this line
   bool isLoadingAddIns = true; // Add this line
+
+  CashierDashboardState() {
+    _dashboardState = this;
+  }
 
   @override
   void initState() {
@@ -139,6 +149,35 @@ class CashierDashboardState extends State<CashierDashboard> {
         );
       });
     }
+  }
+
+  double _calculateTotalPrice(int productId) {
+    double totalPrice = 0;
+    final selectedSize = selectedSizes[productId] ?? 'Regular';
+    final key = '${productId}_$selectedSize';
+    final quantity = quantities[key] ?? 0;
+
+    // Find the price for the selected size
+    final sizePrice =
+        sizes.firstWhere(
+          (size) =>
+              size['product_id'] == productId && size['size'] == selectedSize,
+          orElse: () => {'price': 0},
+        )['price'];
+
+    totalPrice += (sizePrice ?? 0) * quantity;
+
+    // Add add-in prices
+    final selectedProductAddIns = selectedAddIns[productId] ?? {};
+    for (final addInId in selectedProductAddIns) {
+      final addIn = widget.addInsList[productId]?.firstWhere(
+        (addIn) => addIn['id'] == addInId,
+        orElse: () => {'price': 0},
+      );
+      totalPrice += (addIn?['price'] ?? 0);
+    }
+
+    return totalPrice;
   }
 
   @override
@@ -302,8 +341,91 @@ class CashierDashboardState extends State<CashierDashboard> {
                   color: Colors.grey[300],
                   child: Column(
                     children: [
-                      // Add widgets for the new right column here
-                      Text('Right Column Content'),
+                      // Business Logo
+                      Image.asset(businessLogo, height: 100),
+                      SizedBox(height: 10),
+                      // Business Name
+                      Text(
+                        businessName ?? 'Business Name',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 5),
+                      // Business Address
+                      Text('Business Address'),
+                      // Business Contact Number
+                      Text('Contact Number: 123-456-7890'),
+                      // VAT Reg TIN
+                      Text('VAT Reg TIN: 123456789'),
+                      Divider(),
+                      // Date and Time
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Date: ${DateTime.now().toLocal().toString().split(' ')[0]}',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            'Time: ${TimeOfDay.now().format(context)}',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 5),
+                      // Order Number
+                      Text(
+                        'Order Number: 12345',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      Divider(),
+                      // Order Details
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: products.length,
+                          itemBuilder: (context, index) {
+                            final product = products[index];
+                            final productId = product['id'];
+                            final quantity =
+                                quantities['${productId}_${selectedSizes[productId]}'] ??
+                                0;
+                            if (quantity > 0) {
+                              return ListTile(
+                                title: Text('${product['name']} x$quantity'),
+                                trailing: Text(
+                                  '\$${_calculateTotalPrice(productId).toStringAsFixed(2)}',
+                                ),
+                              );
+                            } else {
+                              return SizedBox.shrink();
+                            }
+                          },
+                        ),
+                      ),
+                      Divider(),
+                      // Subtotal
+                      Text('Subtotal: \$0.00', style: TextStyle(fontSize: 16)),
+                      // Tax
+                      Text('Tax: \$0.00', style: TextStyle(fontSize: 16)),
+                      // Discount
+                      Text('Discount: \$0.00', style: TextStyle(fontSize: 16)),
+                      // Total
+                      Text(
+                        'Total: \$0.00',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      // Amount Paid
+                      Text(
+                        'Amount Paid: \$0.00',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      // Change
+                      Text('Change: \$0.00', style: TextStyle(fontSize: 16)),
                     ],
                   ),
                 ),
@@ -633,6 +755,19 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                           children: [
                             Text(
                               'Total: \$${_calculateTotalPrice(productId).toStringAsFixed(2)}',
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                // Add to cart logic here
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '${product['name']} added to cart',
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Text('Add to Cart'),
                             ),
                           ],
                         ),
