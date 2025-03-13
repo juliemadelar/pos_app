@@ -21,11 +21,14 @@ class CashierDashboardState extends State<CashierDashboard> {
   List<Map<String, dynamic>> sizes = [];
   String? cashierName; // Add cashierName variable
   bool _isLoadingCashierName = true; // Add loading indicator
+  String? businessName; // Add businessName variable
+  bool _isLoadingBusinessName = true; // Add loading indicator for business name
 
   @override
   void initState() {
     super.initState();
     _fetchCashierName(widget.username); // Fetch cashier name on init
+    _fetchBusinessName(); // Fetch business name on init
     _fetchCategoriesAndSubCategories();
   }
 
@@ -66,6 +69,7 @@ class CashierDashboardState extends State<CashierDashboard> {
       sizeList.addAll(sizes);
     }
 
+    if (!mounted) return; // Prevent setState call if widget is disposed
     setState(() {
       products = productList;
       sizes = sizeList;
@@ -101,11 +105,29 @@ class CashierDashboardState extends State<CashierDashboard> {
     }
   }
 
+  Future<void> _fetchBusinessName() async {
+    final dbHelper = DatabaseHelper();
+    try {
+      final name = await dbHelper.getBusinessName();
+      setState(() {
+        businessName = name;
+        _isLoadingBusinessName = false; // Update loading state
+      });
+    } catch (e) {
+      _log.severe('Error fetching business name: $e');
+      setState(() {
+        _isLoadingBusinessName = false; // Update loading state even on error
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error loading business name.')),
+        );
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Mock data for demonstration - REMOVED as cashierName is now fetched
+    // Mock data for demonstration - REMOVED as businessName is now fetched
     final String businessLogo = 'assets/logo.png';
-    final String businessName = 'Demo Business Name';
 
     return Scaffold(
       appBar: AppBar(
@@ -118,7 +140,14 @@ class CashierDashboardState extends State<CashierDashboard> {
               children: [
                 Image.asset(businessLogo, height: 100),
                 SizedBox(width: 10),
-                Text(businessName, style: TextStyle(fontSize: 20)),
+                _isLoadingBusinessName
+                    ? CircularProgressIndicator()
+                    : businessName == null || businessName?.isEmpty == true
+                    ? Text(
+                      'Business Name Not Found',
+                      style: TextStyle(fontSize: 20),
+                    )
+                    : Text(businessName!, style: TextStyle(fontSize: 20)),
                 SizedBox(width: 40),
                 SizedBox(
                   width: MediaQuery.of(context).size.width * 0.45,

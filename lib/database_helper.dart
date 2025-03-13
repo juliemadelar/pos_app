@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'dart:developer' as developer;
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -88,7 +89,14 @@ class DatabaseHelper {
         email TEXT UNIQUE
       )
     ''');
+    await db.execute('''
+      CREATE TABLE business_details (
+        id INTEGER PRIMARY KEY,
+        value TEXT
+      )
+    ''');
     await _insertInitialCashierData(db);
+    await _insertInitialBusinessData(db);
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -108,6 +116,15 @@ class DatabaseHelper {
     await db.insert(
       'cashiers',
       {'id': 1, 'name': 'Default Cashier Name'}, // Replace with actual name
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> _insertInitialBusinessData(Database db) async {
+    const String businessName = 'My Business Name'; // Define the business name
+    await db.insert(
+      'business_details',
+      {'id': 1, 'value': businessName}, // Use the defined business name
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -224,6 +241,38 @@ class DatabaseHelper {
       whereArgs: [1], // Assuming you have a cashier with ID 1
     );
     return result.isNotEmpty ? result.first['name'] as String? : null;
+  }
+
+  Future<String?> getBusinessName() async {
+    final db = await database;
+    try {
+      final result = await db.query(
+        'business_details',
+        columns: ['value'], // Specify the column to fetch
+        where: 'id = ?',
+        whereArgs: [1], // Assuming you have a business with ID 1
+      );
+      return result.isNotEmpty ? result.first['value'] as String? : null;
+    } catch (e) {
+      developer.log('Error fetching business name: $e');
+      return null;
+    }
+  }
+
+  Future<String?> getBusinessLogoLocation() async {
+    final db = await database;
+    try {
+      final result = await db.query(
+        'business_details',
+        columns: ['value'],
+        where: 'id = ?',
+        whereArgs: [5],
+      );
+      return result.isNotEmpty ? result.first['value'] as String? : null;
+    } catch (e) {
+      developer.log('Error fetching business logo: $e');
+      return null;
+    }
   }
 
   Future<List<Map<String, dynamic>>> getUserDetails(int userId) async {
