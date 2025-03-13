@@ -492,7 +492,17 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                             children: [
                               Text(
                                 product['name'],
-                                style: TextStyle(fontSize: 20),
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold, // Make font bold
+                                  shadows: [
+                                    Shadow(
+                                      offset: Offset(1.0, 1.0),
+                                      blurRadius: 3.0,
+                                      color: Colors.grey,
+                                    ),
+                                  ],
+                                ),
                               ),
                               Row(
                                 children: [
