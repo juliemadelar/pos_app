@@ -159,12 +159,19 @@ class CashierDashboardState extends State<CashierDashboard> {
     }
   }
 
-  double _calculateTotalPrice() {
-    double totalPrice = 0;
+  double _calculateSubtotal() {
+    double subtotal = 0;
     for (final order in orderDetails) {
-      totalPrice += order['price'];
+      subtotal += order['price'];
     }
-    return totalPrice;
+    return subtotal;
+  }
+
+  double _calculateTotal() {
+    double subtotal = _calculateSubtotal();
+    double tax = 0; // Add tax calculation logic if needed
+    double discount = 0; // Add discount calculation logic if needed
+    return subtotal - tax - discount;
   }
 
   void _addToCart(
@@ -191,6 +198,12 @@ class CashierDashboardState extends State<CashierDashboard> {
         'product_id': productId,
         'addInNames': addInNames, // Add this line
       });
+    });
+  }
+
+  void _removeFromCart(int index) {
+    setState(() {
+      orderDetails.removeAt(index);
     });
   }
 
@@ -350,7 +363,9 @@ class CashierDashboardState extends State<CashierDashboard> {
                 ),
                 // New Right Column
                 Container(
-                  width: MediaQuery.of(context).size.width * 0.25,
+                  width:
+                      MediaQuery.of(context).size.width *
+                      0.3, // Adjusted to 30% width
                   color: Colors.grey[300],
                   child: Container(
                     color: Colors.white, // Add white background
@@ -419,11 +434,21 @@ class CashierDashboardState extends State<CashierDashboard> {
                                     title: Text(
                                       '${orderItem['size']} ${orderItem['product']} x ${orderItem['quantity']}',
                                     ),
-                                    trailing: Text(
-                                      '\$${(orderItem['price'] - orderItem['addIns'].fold(0, (sum, addInId) {
-                                            final addIn = addInsList[orderItem['product_id']]?.firstWhere((addIn) => addIn['id'] == addInId, orElse: () => {'price': 0});
-                                            return sum + (addIn?['price'] ?? 0);
-                                          })).toStringAsFixed(2)}',
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          '\$${(orderItem['price'] - orderItem['addIns'].fold(0, (sum, addInId) {
+                                                final addIn = addInsList[orderItem['product_id']]?.firstWhere((addIn) => addIn['id'] == addInId, orElse: () => {'price': 0});
+                                                return sum + (addIn?['price'] ?? 0);
+                                              })).toStringAsFixed(2)}',
+                                        ),
+                                        IconButton(
+                                          icon: Icon(Icons.delete),
+                                          onPressed:
+                                              () => _removeFromCart(index),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   if (orderItem['addInNames'] != null &&
@@ -465,7 +490,10 @@ class CashierDashboardState extends State<CashierDashboard> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('Subtotal:', style: TextStyle(fontSize: 16)),
-                            Text('\$0.00', style: TextStyle(fontSize: 16)),
+                            Text(
+                              '\$${_calculateSubtotal().toStringAsFixed(2)}',
+                              style: TextStyle(fontSize: 16),
+                            ),
                           ],
                         ),
                         // Tax
@@ -496,7 +524,7 @@ class CashierDashboardState extends State<CashierDashboard> {
                               ),
                             ),
                             Text(
-                              '\$${_calculateTotalPrice().toStringAsFixed(2)}', // Calculate total here
+                              '\$${_calculateTotal().toStringAsFixed(2)}', // Calculate total here
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
