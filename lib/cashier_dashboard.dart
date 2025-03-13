@@ -74,6 +74,7 @@ class CashierDashboardState extends State<CashierDashboard> {
       products = productList;
       sizes = sizeList;
     });
+    await _fetchAddInsForProducts(); // New line added here
 
     // Debug prints
     _log.info('Fetched products: $products');
@@ -126,7 +127,6 @@ class CashierDashboardState extends State<CashierDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    // Mock data for demonstration - REMOVED as businessName is now fetched
     final String businessLogo = 'assets/logo.png';
 
     return Scaffold(
@@ -261,22 +261,7 @@ class CashierDashboardState extends State<CashierDashboard> {
             child:
                 selectedSubCategory == null
                     ? Center(child: Text('Select a sub-category'))
-                    : FutureBuilder(
-                      future: _fetchAddInsForProducts(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return Center(child: CircularProgressIndicator());
-                        } else if (snapshot.hasError) {
-                          return Center(child: Text('Error fetching add-ins'));
-                        } else {
-                          return ProductSelectionArea(
-                            products: products,
-                            sizes: sizes,
-                          );
-                        }
-                      },
-                    ),
+                    : ProductSelectionArea(products: products, sizes: sizes),
           ),
         ],
       ),
@@ -309,6 +294,9 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
   @override
   void initState() {
     super.initState();
+    _log.info(
+      'widget.sizes in ProductSelectionArea: ${widget.sizes}',
+    ); // << Added log
     // Initialize quantities and controllers for all products
     for (var product in widget.products) {
       final productSizes =
