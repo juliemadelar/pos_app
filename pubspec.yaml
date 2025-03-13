@@ -30,6 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  provider: ^6.0.3
   flutter_plugin_android_lifecycle: ^2.0.27
   sqflite: ^2.0.0+4
   sqflite_common_ffi: ^2.3.5

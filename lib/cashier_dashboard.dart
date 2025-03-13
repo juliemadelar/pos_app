@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'database_helper.dart'; //
+import 'database_helper.dart';
 import 'package:logging/logging.dart';
+import 'package:provider/provider.dart';
+import 'cart_provider.dart'; // Ensure CartProvider is imported
+import 'cart_screen.dart'; // Ensure CartScreen is imported
+import 'package:flutter/services.dart'; // Add this line for input formatter
 
 final _log = Logger('CashierDashboard');
 
@@ -19,10 +23,16 @@ class CashierDashboardState extends State<CashierDashboard> {
   Map<String, List<String>> subCategories = {};
   List<Map<String, dynamic>> products = [];
   List<Map<String, dynamic>> sizes = [];
+  final Map<int, String?> selectedSizes = {}; // Add selectedSizes variable
+  final Map<String, int> quantities = {}; // Add this line
   String? cashierName; // Add cashierName variable
   bool _isLoadingCashierName = true; // Add loading indicator
   String? businessName; // Add businessName variable
   bool _isLoadingBusinessName = true; // Add loading indicator for business name
+  double totalCartPrice = 0.0; // Add totalCartPrice variable
+  final Map<int, Set<int>> selectedAddIns = {}; // Add this line
+  Map<int, List<Map<String, dynamic>>> addInsList = {}; // Add this line
+  bool isLoadingAddIns = true; // Add this line
 
   @override
   void initState() {
@@ -30,6 +40,7 @@ class CashierDashboardState extends State<CashierDashboard> {
     _fetchCashierName(widget.username); // Fetch cashier name on init
     _fetchBusinessName(); // Fetch business name on init
     _fetchCategoriesAndSubCategories();
+    _fetchAddInsForProducts(); // Initialize addInsList
   }
 
   Future<void> _fetchCategoriesAndSubCategories() async {
@@ -82,9 +93,17 @@ class CashierDashboardState extends State<CashierDashboard> {
   }
 
   Future<void> _fetchAddInsForProducts() async {
-    // Implement the logic to fetch add-ins for products
-    // This is a placeholder implementation
-    await Future.delayed(Duration(seconds: 1));
+    final dbHelper = DatabaseHelper();
+    try {
+      final fetchedAddIns = await dbHelper.fetchAddInsForProducts(products);
+      setState(() {
+        addInsList = fetchedAddIns;
+        isLoadingAddIns = false; // Ensure loading flag is set to false
+      });
+      _log.info('Fetched add-ins: $addInsList');
+    } catch (e) {
+      _log.severe('Error fetching add-ins: $e');
+    }
   }
 
   Future<void> _fetchCashierName(String username) async {
@@ -121,6 +140,33 @@ class CashierDashboardState extends State<CashierDashboard> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Error loading business name.')),
         );
+      });
+    }
+  }
+
+  void _addToCart(int productId) {
+    final selectedSize = selectedSizes[productId] ?? 'Regular';
+    final key = '${productId}_$selectedSize';
+    final quantity = quantities[key] ?? 0;
+
+    if (quantity > 0) {
+      final product = products.firstWhere((p) => p['id'] == productId);
+      final sizePrice =
+          sizes.firstWhere(
+            (size) =>
+                size['product_id'] == productId && size['size'] == selectedSize,
+            orElse: () => {'price': 0},
+          )['price'];
+
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      cartProvider.addItem(
+        '${product['name']} ($selectedSize)',
+        sizePrice,
+        quantity,
+      );
+
+      setState(() {
+        totalCartPrice = cartProvider.totalAmount;
       });
     }
   }
@@ -166,7 +212,7 @@ class CashierDashboardState extends State<CashierDashboard> {
                 ? CircularProgressIndicator()
                 : cashierName == null
                 ? Text('Cashier: Not Found', style: TextStyle(fontSize: 20))
-                : Text('Cashier: $cashierName', style: TextStyle(fontSize: 20)),
+                : Text('$cashierName', style: TextStyle(fontSize: 20)),
           ],
         ),
       ),
@@ -258,10 +304,60 @@ class CashierDashboardState extends State<CashierDashboard> {
           ),
           // Main Content Area
           Expanded(
-            child:
-                selectedSubCategory == null
-                    ? Center(child: Text('Select a sub-category'))
-                    : ProductSelectionArea(products: products, sizes: sizes),
+            child: Column(
+              children: [
+                Expanded(
+                  child:
+                      selectedSubCategory == null
+                          ? Center(child: Text('Select a sub-category'))
+                          : ProductSelectionArea(
+                            products: products,
+                            sizes: sizes,
+                            addInsList:
+                                addInsList, // Pass addInsList to ProductSelectionArea
+                            onAddToCart:
+                                (productId) =>
+                                    _addToCart(productId), // Pass callback
+                            updateTotalPrice: () {
+                              setState(() {
+                                totalCartPrice =
+                                    Provider.of<CartProvider>(
+                                      context,
+                                      listen: false,
+                                    ).totalAmount;
+                              });
+                            },
+                          ),
+                ),
+                // Bottom Tab
+                Container(
+                  color: Colors.grey[300],
+                  padding: EdgeInsets.all(10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total Price: \$${totalCartPrice.toStringAsFixed(2)}',
+                        style: TextStyle(fontSize: 20),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.shopping_cart),
+                        onPressed: () {
+                          // Navigate to cart_screen.dart
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder:
+                                  (context) =>
+                                      CartScreen(), // Use CartScreen here
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -272,11 +368,17 @@ class CashierDashboardState extends State<CashierDashboard> {
 class ProductSelectionArea extends StatefulWidget {
   final List<Map<String, dynamic>> products;
   final List<Map<String, dynamic>> sizes;
+  final Map<int, List<Map<String, dynamic>>> addInsList; // Add this line
+  final Function(int) onAddToCart; // Add callback for adding to cart
+  final VoidCallback updateTotalPrice;
 
   const ProductSelectionArea({
     super.key,
     required this.products,
     required this.sizes,
+    required this.addInsList, // Add this line
+    required this.onAddToCart,
+    required this.updateTotalPrice,
   });
 
   @override
@@ -287,7 +389,6 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
   final Map<int, String?> selectedSizes = {};
   final Map<String, int> quantities = {}; // Key format: productId_size
   final Map<int, TextEditingController> quantityControllers = {};
-  Map<int, List<Map<String, dynamic>>> addInsList = {};
   Map<int, Set<int>> selectedAddIns = {};
   bool isLoadingAddIns = true;
 
@@ -313,20 +414,21 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
       }
 
       // Initialize quantity controller with 0
-      final controller = TextEditingController(text: '0');
+      final controller = TextEditingController();
       quantityControllers[product['id']] = controller;
 
       // Initialize quantities for each product and size
       for (var size in productSizes) {
         quantities['${product['id']}_${size['size']}'] = 0;
+        controller.text = '0';
       }
 
       // Initialize selectedAddIns for each product
       selectedAddIns[product['id']] = <int>{};
     }
-
-    // Fetch add-ins when the widget is initialized
-    _fetchAddInsForProducts();
+    setState(() {
+      isLoadingAddIns = false; // Ensure loading flag is set to false
+    });
   }
 
   @override
@@ -338,51 +440,16 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
     super.dispose();
   }
 
-  Future<void> _fetchAddInsForProducts() async {
-    if (!isLoadingAddIns) {
-      return; // Return if already loaded
-    }
-
-    setState(() {
-      isLoadingAddIns = true;
-    });
-
-    final dbHelper = DatabaseHelper();
-
-    try {
-      final fetchedAddIns = await dbHelper.fetchAddInsForProducts(
-        widget.products,
-      );
-
-      setState(() {
-        addInsList = fetchedAddIns;
-        isLoadingAddIns = false;
-      });
-
-      // Debug prints
-      _log.info('Fetched add-ins: $addInsList');
-    } catch (e) {
-      _log.severe('Error fetching add-ins: $e');
-      setState(() {
-        isLoadingAddIns = false;
-      });
-    }
-  }
-
   // Helper method to update quantity based on product and selected size
   void _updateQuantity(int productId, int change) {
     setState(() {
       String size = selectedSizes[productId] ?? 'Regular';
       String key = '${productId}_$size';
 
-      // Get current quantity with null safety
       int currentQuantity = quantities[key] ?? 0;
-
-      // Apply change and ensure it's not negative
       int newQuantity =
           (currentQuantity + change) < 0 ? 0 : currentQuantity + change;
 
-      // Update quantity map and controller
       quantities[key] = newQuantity;
       quantityControllers[productId]?.text = newQuantity.toString();
     });
@@ -408,7 +475,7 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
     // Add add-in prices
     final selectedProductAddIns = selectedAddIns[productId] ?? {};
     for (final addInId in selectedProductAddIns) {
-      final addIn = addInsList[productId]?.firstWhere(
+      final addIn = widget.addInsList[productId]?.firstWhere(
         (addIn) => addIn['id'] == addInId,
         orElse: () => {'price': 0},
       );
@@ -420,7 +487,7 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
 
   Widget _buildAddIns(Map<String, dynamic> product) {
     final productId = product['id'];
-    final productAddIns = addInsList[productId] ?? [];
+    final productAddIns = widget.addInsList[productId] ?? [];
 
     if (productAddIns.isNotEmpty) {
       return Column(
@@ -471,157 +538,186 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
     return Container(
       width: MediaQuery.of(context).size.width * 0.55,
       padding: EdgeInsets.all(10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children:
-            widget.products.map((product) {
-              final productId = product['id'];
-              final productSizes =
-                  widget.sizes
-                      .where((size) => size['product_id'] == productId)
-                      .toList();
-              return Container(
-                margin: EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withAlpha((0.5 * 255).toInt()),
-                      spreadRadius: 2,
-                      blurRadius: 5,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Row 1
-                      Row(
-                        children: [
-                          Image.asset(productImage, width: 100),
-                          SizedBox(width: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                product['name'],
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold, // Make font bold
-                                  shadows: [
-                                    Shadow(
-                                      offset: Offset(1.0, 1.0),
-                                      blurRadius: 3.0,
-                                      color: Colors.grey,
+      child: SingleChildScrollView(
+        // Wrap Column with SingleChildScrollView
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children:
+              widget.products.map((product) {
+                final productId = product['id'];
+                final productSizes =
+                    widget.sizes
+                        .where((size) => size['product_id'] == productId)
+                        .toList();
+                return Container(
+                  margin: EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withAlpha((0.5 * 255).toInt()),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Row 1
+                        Row(
+                          children: [
+                            Image.asset(productImage, width: 100),
+                            SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product['name'],
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight:
+                                        FontWeight.bold, // Make font bold
+                                    shadows: [
+                                      Shadow(
+                                        offset: Offset(1.0, 1.0),
+                                        blurRadius: 3.0,
+                                        color: Colors.grey,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.remove),
+                                      onPressed:
+                                          () => _updateQuantity(productId, -1),
+                                    ),
+                                    SizedBox(
+                                      width: 50, // Ensure bounded width
+                                      child: TextField(
+                                        decoration: InputDecoration(
+                                          labelText: 'Qty',
+                                          border: OutlineInputBorder(),
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 0,
+                                          ),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        controller:
+                                            quantityControllers[productId],
+                                        onChanged: (value) {
+                                          // Update quantity in the map
+                                          String size =
+                                              selectedSizes[productId] ??
+                                              'Regular';
+                                          String key = '${productId}_$size';
+                                          quantities[key] =
+                                              int.tryParse(value) ?? 0;
+                                        },
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter
+                                              .digitsOnly,
+                                        ], // Add this line
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.add),
+                                      onPressed:
+                                          () => _updateQuantity(productId, 1),
                                     ),
                                   ],
                                 ),
-                              ),
-                              Row(
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.remove),
-                                    onPressed:
-                                        () => _updateQuantity(productId, -1),
-                                  ),
-                                  SizedBox(
-                                    width: 50, // Ensure bounded width
-                                    child: TextField(
-                                      decoration: InputDecoration(
-                                        labelText: 'Qty',
-                                        border: OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 0,
-                                        ),
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      controller:
-                                          quantityControllers[productId],
-                                      readOnly: true,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(Icons.add),
-                                    onPressed:
-                                        () => _updateQuantity(productId, 1),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          Spacer(),
-                          Wrap(
-                            spacing: 10,
-                            alignment: WrapAlignment.end,
-                            direction: Axis.vertical,
-                            children:
-                                productSizes.map((size) {
-                                  return ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        selectedSizes[productId] = size['size'];
+                              ],
+                            ),
+                            Spacer(),
+                            Wrap(
+                              spacing: 10,
+                              alignment: WrapAlignment.end,
+                              direction: Axis.vertical,
+                              children:
+                                  productSizes.map((size) {
+                                    return ElevatedButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          selectedSizes[productId] =
+                                              size['size'];
 
-                                        // Update quantity controller to show selected size quantity
-                                        String key =
-                                            '${productId}_${size['size']}';
-                                        int qty = quantities[key] ?? 0;
-                                        quantityControllers[productId]?.text =
-                                            qty.toString();
-                                      });
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          selectedSizes[productId] ==
-                                                  size['size']
-                                              ? Colors.blue
-                                              : Colors.grey,
-                                    ),
-                                    child: Text(
-                                      '${size['size']} (\$${size['price'].toStringAsFixed(2)})',
-                                    ),
-                                  );
-                                }).toList(),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      // Row 2 - Add-ins
-                      if (isLoadingAddIns)
-                        Center(child: CircularProgressIndicator())
-                      else
-                        _buildAddIns(product),
-                      SizedBox(height: 20),
-                      // Row 3 - Add Price Calculation
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Total: \$${_calculateTotalPrice(productId).toStringAsFixed(2)}',
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              // Handle add to cart
-                            },
-                            child: Text('Add to Cart'),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                    ],
+                                          // Update quantity controller to show selected size quantity
+                                          String key =
+                                              '${productId}_${size['size']}';
+                                          int qty = quantities[key] ?? 0;
+                                          quantityControllers[productId]?.text =
+                                              qty.toString();
+                                        });
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            selectedSizes[productId] ==
+                                                    size['size']
+                                                ? Colors.blue
+                                                : Colors.grey,
+                                      ),
+                                      child: Text(
+                                        '${size['size']} (\$${size['price'].toStringAsFixed(2)})',
+                                      ),
+                                    );
+                                  }).toList(),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 20),
+                        // Row 2 - Add-ins
+                        if (isLoadingAddIns)
+                          Center(child: CircularProgressIndicator())
+                        else
+                          _buildAddIns(product),
+                        SizedBox(height: 20),
+                        // Row 3 - Add Price Calculation
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total: \$${_calculateTotalPrice(productId).toStringAsFixed(2)}',
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                widget.onAddToCart(
+                                  product['id'],
+                                ); // Call callback
+                                widget.updateTotalPrice();
+                              },
+                              child: Text('Add to Cart'),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 20),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+        ),
       ),
     );
   }
 }
 
 void main() {
-  runApp(MaterialApp(home: CashierDashboard(username: 'cashier1')));
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+        // Add other providers here if needed
+      ],
+      child: MaterialApp(home: CashierDashboard(username: 'cashier1')),
+    ),
+  );
 }
