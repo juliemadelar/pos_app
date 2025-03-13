@@ -717,7 +717,10 @@ void main() {
         ChangeNotifierProvider(create: (_) => CartProvider()),
         // Add other providers here if needed
       ],
-      child: MaterialApp(home: CashierDashboard(username: 'cashier1')),
+      child: MaterialApp(
+        home: CashierDashboard(username: 'cashier1'),
+        // ...existing code...
+      ),
     ),
   );
 }

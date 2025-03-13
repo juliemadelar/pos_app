@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:provider/provider.dart'; // Import provider package
 import 'admin_dashboard.dart';
 import 'login_page.dart';
 import 'db_helper.dart';
 import 'package:pos_app/cashier_dashboard.dart'; // Import the CashierDashboard page
-// Import the image_picker package
+import 'cart_provider.dart'; // Import the CartProvider
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +22,15 @@ void main() async {
     await dbHelper.addUser('Admin', 'admin', 'password123', 'admin');
   }
 
-  runApp(MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+        // Add other providers here if needed
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
