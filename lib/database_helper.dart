@@ -16,7 +16,12 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'product_database.db');
-    return await openDatabase(path, version: 1, onCreate: _onCreate);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   Future _onCreate(Database db, int version) async {
@@ -69,6 +74,42 @@ class DatabaseHelper {
         FOREIGN KEY (product_id) REFERENCES products (id)
       )
     ''');
+    await db.execute('''
+      CREATE TABLE cashiers (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE users (
+        id INTEGER PRIMARY KEY,
+        username TEXT UNIQUE,
+        password TEXT,
+        email TEXT UNIQUE
+      )
+    ''');
+    await _insertInitialCashierData(db);
+  }
+
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE users (
+          id INTEGER PRIMARY KEY,
+          username TEXT UNIQUE,
+          password TEXT,
+          email TEXT UNIQUE
+        )
+      ''');
+    }
+  }
+
+  Future<void> _insertInitialCashierData(Database db) async {
+    await db.insert(
+      'cashiers',
+      {'id': 1, 'name': 'Default Cashier Name'}, // Replace with actual name
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<List<Map<String, dynamic>>> getCategoryList() async {
@@ -173,5 +214,35 @@ class DatabaseHelper {
       addInsMap[products[i]['id']] = results[i] as List<Map<String, dynamic>>;
     }
     return addInsMap;
+  }
+
+  Future<String?> getCashierName() async {
+    final db = await database;
+    final result = await db.query(
+      'cashiers',
+      where: 'id = ?',
+      whereArgs: [1], // Assuming you have a cashier with ID 1
+    );
+    return result.isNotEmpty ? result.first['name'] as String? : null;
+  }
+
+  Future<List<Map<String, dynamic>>> getUserDetails(int userId) async {
+    Database db = await database;
+    return await db.query('users', where: 'id = ?', whereArgs: [userId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllUsers() async {
+    Database db = await database;
+    return await db.query('users');
+  }
+
+  Future<Map<String, dynamic>?> getUserByUsername(String username) async {
+    final db = await database;
+    final result = await db.query(
+      'users',
+      where: 'username = ?',
+      whereArgs: [username],
+    );
+    return result.isNotEmpty ? result.first : null;
   }
 }

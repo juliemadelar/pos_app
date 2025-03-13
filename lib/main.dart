@@ -37,7 +37,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => AdminDashboard(),
         '/login': (context) => LoginPage(),
         '/cashier_dashboard':
-            (context) => CashierDashboard(), // Define the routehe route
+            (context) => CashierDashboard(cashierId: 1), // Define the route
       },
       builder: (context, child) {
         return child != null

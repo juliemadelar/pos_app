@@ -5,7 +5,9 @@ import 'package:logging/logging.dart';
 final _log = Logger('CashierDashboard');
 
 class CashierDashboard extends StatefulWidget {
-  const CashierDashboard({super.key}); //
+  final int cashierId; // Add cashierId to identify the cashier
+
+  const CashierDashboard({super.key, required this.cashierId});
 
   @override
   CashierDashboardState createState() => CashierDashboardState();
@@ -17,10 +19,13 @@ class CashierDashboardState extends State<CashierDashboard> {
   Map<String, List<String>> subCategories = {};
   List<Map<String, dynamic>> products = [];
   List<Map<String, dynamic>> sizes = [];
+  String? cashierName; // Add cashierName variable
+  bool _isLoadingCashierName = true; // Add loading indicator
 
   @override
   void initState() {
     super.initState();
+    _fetchCashierName(widget.cashierId); // Fetch cashier name on init
     _fetchCategoriesAndSubCategories();
   }
 
@@ -77,17 +82,34 @@ class CashierDashboardState extends State<CashierDashboard> {
     await Future.delayed(Duration(seconds: 1));
   }
 
+  Future<void> _fetchCashierName(int cashierId) async {
+    final dbHelper = DatabaseHelper();
+    try {
+      final userDetails = await dbHelper.getUserDetails(cashierId);
+      setState(() {
+        cashierName = userDetails.isNotEmpty ? userDetails.first['name'] : null;
+        _isLoadingCashierName = false; // Update loading state
+      });
+    } catch (e) {
+      _log.severe('Error fetching cashier name: $e');
+      setState(() {
+        _isLoadingCashierName = false; // Update loading state even on error
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error loading cashier name.')),
+        );
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Mock data for demonstration
-    final String businessLogo = 'assets/logo.png'; // Replace with database call
-    final String businessName =
-        'Demo Business Name'; // Replace with database call
-    final String cashierName = 'John Doe'; // Replace with user login data
+    // Mock data for demonstration - REMOVED as cashierName is now fetched
+    final String businessLogo = 'assets/logo.png';
+    final String businessName = 'Demo Business Name';
 
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false, // Remove back button
+        automaticallyImplyLeading: false,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -110,7 +132,12 @@ class CashierDashboardState extends State<CashierDashboard> {
               ],
             ),
             // Right Corner
-            Text('Cashier: $cashierName', style: TextStyle(fontSize: 20)),
+            // Use the fetched cashierName here
+            _isLoadingCashierName
+                ? CircularProgressIndicator()
+                : cashierName == null
+                ? Text('Cashier: Not Found', style: TextStyle(fontSize: 20))
+                : Text('Cashier: $cashierName', style: TextStyle(fontSize: 20)),
           ],
         ),
       ),
@@ -569,5 +596,5 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
 }
 
 void main() {
-  runApp(MaterialApp(home: CashierDashboard()));
+  runApp(MaterialApp(home: CashierDashboard(cashierId: 1)));
 }
