@@ -11,10 +11,6 @@ class CashierDashboard extends StatefulWidget {
 
   const CashierDashboard({super.key, required this.username});
 
-  // Add this getter
-  Map<int, List<Map<String, dynamic>>> get addInsList =>
-      _dashboardState.addInsList;
-
   @override
   CashierDashboardState createState() => CashierDashboardState();
 }
@@ -36,6 +32,8 @@ class CashierDashboardState extends State<CashierDashboard> {
   final Map<int, Set<int>> selectedAddIns = {}; // Add this line
   Map<int, List<Map<String, dynamic>>> addInsList = {}; // Add this line
   bool isLoadingAddIns = true; // Add this line
+  List<Map<String, dynamic>> orderDetails =
+      []; // Create a list to store the order details
 
   CashierDashboardState() {
     _dashboardState = this;
@@ -151,33 +149,39 @@ class CashierDashboardState extends State<CashierDashboard> {
     }
   }
 
-  double _calculateTotalPrice(int productId) {
+  double _calculateTotalPrice() {
     double totalPrice = 0;
-    final selectedSize = selectedSizes[productId] ?? 'Regular';
-    final key = '${productId}_$selectedSize';
-    final quantity = quantities[key] ?? 0;
-
-    // Find the price for the selected size
-    final sizePrice =
-        sizes.firstWhere(
-          (size) =>
-              size['product_id'] == productId && size['size'] == selectedSize,
-          orElse: () => {'price': 0},
-        )['price'];
-
-    totalPrice += (sizePrice ?? 0) * quantity;
-
-    // Add add-in prices
-    final selectedProductAddIns = selectedAddIns[productId] ?? {};
-    for (final addInId in selectedProductAddIns) {
-      final addIn = widget.addInsList[productId]?.firstWhere(
-        (addIn) => addIn['id'] == addInId,
-        orElse: () => {'price': 0},
-      );
-      totalPrice += (addIn?['price'] ?? 0);
+    for (final order in orderDetails) {
+      totalPrice += order['price'];
     }
-
     return totalPrice;
+  }
+
+  void _addToCart(
+    int productId,
+    String size,
+    int quantity,
+    double price,
+    String productName,
+    Set<int> selectedAddIns,
+    List<String> addInNames, // Add this line
+  ) {
+    // Calculate total price excluding add-ins
+    double totalPrice = price * quantity; // Calculate total price
+
+    setState(() {
+      //Added product_id to the orderDetails map
+      orderDetails.add({
+        'product': productName,
+        'size': size,
+        'quantity': quantity,
+        'price': totalPrice,
+        'addIns':
+            selectedAddIns.toList(), // Add selected addIns to the order details
+        'product_id': productId,
+        'addInNames': addInNames, // Add this line
+      });
+    });
   }
 
   @override
@@ -389,61 +393,55 @@ class CashierDashboardState extends State<CashierDashboard> {
                         // Order Details
                         Expanded(
                           child: ListView.builder(
-                            itemCount: products.length,
+                            itemCount:
+                                orderDetails.length, // Use orderDetails length
                             itemBuilder: (context, index) {
-                              final product = products[index];
-                              final productId = product['id'];
-                              final selectedSize =
-                                  selectedSizes[productId] ?? 'Regular';
-                              final quantity =
-                                  quantities['${productId}_$selectedSize'] ?? 0;
-                              if (quantity > 0) {
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ListTile(
-                                      title: Text(
-                                        '$selectedSize ${product['name']} x$quantity',
-                                      ),
-                                      trailing: Text(
-                                        '\$${_calculateTotalPrice(productId).toStringAsFixed(2)}',
-                                      ),
+                              final orderItem =
+                                  orderDetails[index]; // Get Item from list
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ListTile(
+                                    title: Text(
+                                      '${orderItem['size']} ${orderItem['product']} x ${orderItem['quantity']}',
                                     ),
-                                    // Add-ins
-                                    ...selectedAddIns[productId]?.map((
-                                          addInId,
-                                        ) {
-                                          final addIn = widget
-                                              .addInsList[productId]
-                                              ?.firstWhere(
-                                                (addIn) =>
-                                                    addIn['id'] == addInId,
-                                                orElse:
-                                                    () => {
-                                                      'name': 'Unknown',
-                                                      'price': 0,
-                                                    },
-                                              );
-                                          return Padding(
-                                            padding: const EdgeInsets.only(
-                                              left: 16.0,
-                                            ),
-                                            child: ListTile(
+                                    trailing: Text(
+                                      '\$${(orderItem['price'] - orderItem['addIns'].fold(0, (sum, addInId) {
+                                            final addIn = addInsList[orderItem['product_id']]?.firstWhere((addIn) => addIn['id'] == addInId, orElse: () => {'price': 0});
+                                            return sum + (addIn?['price'] ?? 0);
+                                          })).toStringAsFixed(2)}',
+                                    ),
+                                  ),
+                                  if (orderItem['addInNames'] != null &&
+                                      orderItem['addInNames'].isNotEmpty)
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children:
+                                          orderItem['addInNames'].map<Widget>((
+                                            addInName,
+                                          ) {
+                                            final addIn =
+                                                addInsList[orderItem['product_id']]
+                                                    ?.firstWhere(
+                                                      (addIn) =>
+                                                          addIn['name'] ==
+                                                          addInName,
+                                                      orElse:
+                                                          () => {'price': 0},
+                                                    );
+                                            return ListTile(
                                               title: Text(
-                                                'Add-In: ${addIn?['name']}',
+                                                'Add-Ins: $addInName',
                                               ),
                                               trailing: Text(
-                                                '\$${(addIn?['price'] ?? 0).toStringAsFixed(2)}',
+                                                '\$${addIn?['price'].toStringAsFixed(2)}',
                                               ),
-                                            ),
-                                          );
-                                        }).toList() ??
-                                        [],
-                                  ],
-                                );
-                              } else {
-                                return SizedBox.shrink();
-                              }
+                                            );
+                                          }).toList(),
+                                    ),
+                                ],
+                              );
                             },
                           ),
                         ),
@@ -484,7 +482,7 @@ class CashierDashboardState extends State<CashierDashboard> {
                               ),
                             ),
                             Text(
-                              '\$0.00',
+                              '\$${_calculateTotalPrice().toStringAsFixed(2)}', // Calculate total here
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -623,9 +621,10 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
           (size) =>
               size['product_id'] == productId && size['size'] == selectedSize,
           orElse: () => {'price': 0},
-        )['price'];
+        )['price'] ??
+        0; // Using ?? here
 
-    totalPrice += (sizePrice ?? 0) * quantity;
+    totalPrice += sizePrice * quantity;
 
     // Add add-in prices
     final selectedProductAddIns = selectedAddIns[productId] ?? {};
@@ -634,7 +633,7 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
         (addIn) => addIn['id'] == addInId,
         orElse: () => {'price': 0},
       );
-      totalPrice += (addIn?['price'] ?? 0);
+      totalPrice += (addIn?['price'] ?? 0); // Using ?? here
     }
 
     return totalPrice;
@@ -646,12 +645,44 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
     final quantity = quantities[key] ?? 0;
 
     if (quantity > 0) {
+      final product = widget.products.firstWhere(
+        (product) => product['id'] == productId,
+      );
+      // Find the price for the selected size
+      final sizePrice =
+          widget.sizes.firstWhere(
+            (size) =>
+                size['product_id'] == productId && size['size'] == selectedSize,
+            orElse: () => {'price': 0},
+          )['price'] ??
+          0.0;
+
+      // Calculate total price including add-ins
+      double totalPrice = sizePrice * quantity;
+      final selectedProductAddIns = selectedAddIns[productId] ?? {};
+      List<String> addInNames = []; // Add this line
+      // ...existing code...
+      for (final addInId in selectedProductAddIns) {
+        final addIn = widget.addInsList[productId]?.firstWhere(
+          (addIn) => addIn['id'] == addInId,
+          orElse: () => {'name': 'Unknown', 'price': 0},
+        );
+        totalPrice += (addIn?['price'] ?? 0);
+        addInNames.add(addIn?['name'] ?? 'Unknown'); // Collect add-in names
+      }
+
+      _dashboardState._addToCart(
+        productId,
+        selectedSize,
+        quantity,
+        totalPrice, // Use the properly handled total price
+        product['name'],
+        selectedAddIns[productId]!,
+        addInNames, // Pass add-in names to the parent's _addToCart method
+      ); // Call the parent's _addToCart method
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${widget.products.firstWhere((product) => product['id'] == productId)['name']} added to cart',
-          ),
-        ),
+        SnackBar(content: Text('${product['name']} added to cart')),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -724,6 +755,8 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                     widget.sizes
                         .where((size) => size['product_id'] == productId)
                         .toList();
+                final selectedProductAddIns = selectedAddIns[productId] ?? {};
+
                 return Container(
                   margin: EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
@@ -766,6 +799,33 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                                     ],
                                   ),
                                 ),
+                                // Display selected add-ins below the product name
+                                if (selectedProductAddIns.isNotEmpty)
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children:
+                                        selectedProductAddIns.map((addInId) {
+                                          final addIn = widget
+                                              .addInsList[productId]
+                                              ?.firstWhere(
+                                                (addIn) =>
+                                                    addIn['id'] == addInId,
+                                                orElse:
+                                                    () => {
+                                                      'name': 'Unknown',
+                                                      'price': 0,
+                                                    },
+                                              );
+                                          return Text(
+                                            '${addIn?['name']} (\$${addIn?['price'].toStringAsFixed(2)})',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[700],
+                                            ),
+                                          );
+                                        }).toList(),
+                                  ),
                                 Row(
                                   children: [
                                     IconButton(
