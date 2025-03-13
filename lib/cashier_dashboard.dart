@@ -446,7 +446,7 @@ class CashierDashboardState extends State<CashierDashboard> {
                                                     );
                                             return ListTile(
                                               title: Text(
-                                                'Add-Ins: $addInName',
+                                                '   Add-Ins: $addInName',
                                               ),
                                               trailing: Text(
                                                 '\$${addIn?['price'].toStringAsFixed(2)}',
