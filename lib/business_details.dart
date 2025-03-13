@@ -29,6 +29,9 @@ class BusinessDetailsFormState extends State<BusinessDetailsForm> {
   final TextEditingController _otherController = TextEditingController(
     text: '2',
   );
+  final TextEditingController _taxController = TextEditingController(
+    text: '10',
+  ); // Add this line
   final DBHelper _dbHelper =
       DBHelper(); // Ensure using the same DBHelper instance
   String? _businessLogo;
@@ -59,6 +62,8 @@ class BusinessDetailsFormState extends State<BusinessDetailsForm> {
           await _dbHelper.getBusinessDetail('pwd_discount') ?? '5';
       _otherController.text =
           await _dbHelper.getBusinessDetail('other_discount') ?? '2';
+      _taxController.text =
+          await _dbHelper.getBusinessDetail('tax') ?? '12'; // Update this line
       _selectedCurrency =
           await _dbHelper.getBusinessDetail('currency') ?? 'PHP';
       setState(() {});
@@ -106,6 +111,10 @@ class BusinessDetailsFormState extends State<BusinessDetailsForm> {
         ),
         _dbHelper.updateBusinessDetail('pwd_discount', _pwdController.text),
         _dbHelper.updateBusinessDetail('other_discount', _otherController.text),
+        _dbHelper.updateBusinessDetail(
+          'tax',
+          _taxController.text,
+        ), // Add this line
         _dbHelper.updateBusinessDetail('currency', _selectedCurrency),
       ]);
 
@@ -225,6 +234,12 @@ class BusinessDetailsFormState extends State<BusinessDetailsForm> {
                       TextField(
                         controller: _otherController,
                         decoration: InputDecoration(labelText: 'Other (%)'),
+                      ),
+                      TextField(
+                        controller: _taxController, // Add this line
+                        decoration: InputDecoration(
+                          labelText: 'Tax (%)',
+                        ), // Add this line
                       ),
                       SizedBox(height: 16.0),
                       DropdownButton<String>(
