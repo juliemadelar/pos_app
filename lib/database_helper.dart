@@ -243,20 +243,34 @@ class DatabaseHelper {
     return result.isNotEmpty ? result.first['name'] as String? : null;
   }
 
-  Future<String?> getBusinessName() async {
+  Future<String?> getBusinessDetail(int id) async {
     final db = await database;
-    try {
-      final result = await db.query(
-        'business_details',
-        columns: ['value'], // Specify the column to fetch
-        where: 'id = ?',
-        whereArgs: [1], // Assuming you have a business with ID 1
-      );
-      return result.isNotEmpty ? result.first['value'] as String? : null;
-    } catch (e) {
-      developer.log('Error fetching business name: $e');
-      return null;
+    final result = await db.query(
+      'business_details',
+      columns: ['value'],
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (result.isNotEmpty) {
+      return result.first['value'] as String?;
     }
+    return null;
+  }
+
+  Future<String?> getBusinessName() async {
+    return getBusinessDetail(1);
+  }
+
+  Future<String?> getBusinessAddress() async {
+    return getBusinessDetail(2);
+  }
+
+  Future<String?> getContactNumber() async {
+    return getBusinessDetail(3);
+  }
+
+  Future<String?> getTaxId() async {
+    return getBusinessDetail(4);
   }
 
   Future<String?> getBusinessLogoLocation() async {

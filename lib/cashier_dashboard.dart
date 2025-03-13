@@ -28,7 +28,11 @@ class CashierDashboardState extends State<CashierDashboard> {
   String? cashierName; // Add cashierName variable
   bool _isLoadingCashierName = true; // Add loading indicator
   String? businessName; // Add businessName variable
-  bool _isLoadingBusinessName = true; // Add loading indicator for business name
+  String? businessAddress; // Add businessAddress variable
+  String? contactNumber; // Add contactNumber variable
+  String? taxId; // Add taxId variable
+  bool _isLoadingBusinessDetails =
+      true; // Add loading indicator for business details
   final Map<int, Set<int>> selectedAddIns = {}; // Add this line
   Map<int, List<Map<String, dynamic>>> addInsList = {}; // Add this line
   bool isLoadingAddIns = true; // Add this line
@@ -43,7 +47,7 @@ class CashierDashboardState extends State<CashierDashboard> {
   void initState() {
     super.initState();
     _fetchCashierName(widget.username); // Fetch cashier name on init
-    _fetchBusinessName(); // Fetch business name on init
+    _fetchBusinessDetails(); // Fetch business details on init
     _fetchCategoriesAndSubCategories();
     _fetchAddInsForProducts(); // Initialize addInsList
   }
@@ -130,20 +134,26 @@ class CashierDashboardState extends State<CashierDashboard> {
     }
   }
 
-  Future<void> _fetchBusinessName() async {
+  Future<void> _fetchBusinessDetails() async {
     final dbHelper = DatabaseHelper();
     try {
       final name = await dbHelper.getBusinessName();
+      final address = await dbHelper.getBusinessAddress();
+      final contact = await dbHelper.getContactNumber();
+      final tax = await dbHelper.getTaxId();
       setState(() {
         businessName = name;
-        _isLoadingBusinessName = false; // Update loading state
+        businessAddress = address;
+        contactNumber = contact;
+        taxId = tax;
+        _isLoadingBusinessDetails = false; // Update loading state
       });
     } catch (e) {
-      _log.severe('Error fetching business name: $e');
+      _log.severe('Error fetching business details: $e');
       setState(() {
-        _isLoadingBusinessName = false; // Update loading state even on error
+        _isLoadingBusinessDetails = false; // Update loading state even on error
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error loading business name.')),
+          const SnackBar(content: Text('Error loading business details.')),
         );
       });
     }
@@ -199,9 +209,8 @@ class CashierDashboardState extends State<CashierDashboard> {
               children: [
                 Image.asset(businessLogo, height: 100),
                 SizedBox(width: 10),
-                _isLoadingBusinessName
-                    ? CircularProgressIndicator()
-                    : businessName == null || businessName?.isEmpty == true
+                // Remove the loading indicator for business name
+                businessName == null || businessName?.isEmpty == true
                     ? Text(
                       'Business Name Not Found',
                       style: TextStyle(fontSize: 20),
@@ -354,20 +363,25 @@ class CashierDashboardState extends State<CashierDashboard> {
                         Image.asset(businessLogo, height: 100),
                         SizedBox(height: 10),
                         // Business Name
-                        Text(
-                          businessName ?? 'Business Name',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 5),
-                        // Business Address
-                        Text('Business Address'),
-                        // Business Contact Number
-                        Text('Contact Number: 123-456-7890'),
-                        // VAT Reg TIN
-                        Text('VAT Reg TIN: 123456789'),
+                        _isLoadingBusinessDetails
+                            ? CircularProgressIndicator()
+                            : Column(
+                              children: [
+                                Text(
+                                  businessName ?? 'Business Name',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 5),
+                                Text(businessAddress ?? 'Business Address'),
+                                Text(
+                                  'Contact Number: ${contactNumber ?? 'N/A'}',
+                                ),
+                                Text('VAT Reg TIN: ${taxId ?? 'N/A'}'),
+                              ],
+                            ),
                         Divider(),
                         // Date and Time
                         Row(
