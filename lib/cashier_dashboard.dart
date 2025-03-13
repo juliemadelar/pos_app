@@ -339,94 +339,180 @@ class CashierDashboardState extends State<CashierDashboard> {
                 Container(
                   width: MediaQuery.of(context).size.width * 0.25,
                   color: Colors.grey[300],
-                  child: Column(
-                    children: [
-                      // Business Logo
-                      Image.asset(businessLogo, height: 100),
-                      SizedBox(height: 10),
-                      // Business Name
-                      Text(
-                        businessName ?? 'Business Name',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 5),
-                      // Business Address
-                      Text('Business Address'),
-                      // Business Contact Number
-                      Text('Contact Number: 123-456-7890'),
-                      // VAT Reg TIN
-                      Text('VAT Reg TIN: 123456789'),
-                      Divider(),
-                      // Date and Time
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Date: ${DateTime.now().toLocal().toString().split(' ')[0]}',
-                            style: TextStyle(fontSize: 16),
+                  child: Container(
+                    color: Colors.white, // Add white background
+                    padding: EdgeInsets.all(
+                      10,
+                    ), // Add padding for better appearance
+                    child: Column(
+                      children: [
+                        // Business Logo
+                        Image.asset(businessLogo, height: 100),
+                        SizedBox(height: 10),
+                        // Business Name
+                        Text(
+                          businessName ?? 'Business Name',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
-                          Text(
-                            'Time: ${TimeOfDay.now().format(context)}',
-                            style: TextStyle(fontSize: 16),
+                        ),
+                        SizedBox(height: 5),
+                        // Business Address
+                        Text('Business Address'),
+                        // Business Contact Number
+                        Text('Contact Number: 123-456-7890'),
+                        // VAT Reg TIN
+                        Text('VAT Reg TIN: 123456789'),
+                        Divider(),
+                        // Date and Time
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Date: ${DateTime.now().toLocal().toString().split(' ')[0]}',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                            Text(
+                              'Time: ${TimeOfDay.now().format(context)}',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 5),
+                        // Order Number
+                        Text(
+                          'Order Number: 12345',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        Divider(),
+                        // Order Details
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: products.length,
+                            itemBuilder: (context, index) {
+                              final product = products[index];
+                              final productId = product['id'];
+                              final selectedSize =
+                                  selectedSizes[productId] ?? 'Regular';
+                              final quantity =
+                                  quantities['${productId}_$selectedSize'] ?? 0;
+                              if (quantity > 0) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ListTile(
+                                      title: Text(
+                                        '$selectedSize ${product['name']} x$quantity',
+                                      ),
+                                      trailing: Text(
+                                        '\$${_calculateTotalPrice(productId).toStringAsFixed(2)}',
+                                      ),
+                                    ),
+                                    // Add-ins
+                                    ...selectedAddIns[productId]?.map((
+                                          addInId,
+                                        ) {
+                                          final addIn = widget
+                                              .addInsList[productId]
+                                              ?.firstWhere(
+                                                (addIn) =>
+                                                    addIn['id'] == addInId,
+                                                orElse:
+                                                    () => {
+                                                      'name': 'Unknown',
+                                                      'price': 0,
+                                                    },
+                                              );
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                              left: 16.0,
+                                            ),
+                                            child: ListTile(
+                                              title: Text(
+                                                'Add-In: ${addIn?['name']}',
+                                              ),
+                                              trailing: Text(
+                                                '\$${(addIn?['price'] ?? 0).toStringAsFixed(2)}',
+                                              ),
+                                            ),
+                                          );
+                                        }).toList() ??
+                                        [],
+                                  ],
+                                );
+                              } else {
+                                return SizedBox.shrink();
+                              }
+                            },
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 5),
-                      // Order Number
-                      Text(
-                        'Order Number: 12345',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      Divider(),
-                      // Order Details
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: products.length,
-                          itemBuilder: (context, index) {
-                            final product = products[index];
-                            final productId = product['id'];
-                            final quantity =
-                                quantities['${productId}_${selectedSizes[productId]}'] ??
-                                0;
-                            if (quantity > 0) {
-                              return ListTile(
-                                title: Text('${product['name']} x$quantity'),
-                                trailing: Text(
-                                  '\$${_calculateTotalPrice(productId).toStringAsFixed(2)}',
-                                ),
-                              );
-                            } else {
-                              return SizedBox.shrink();
-                            }
-                          },
                         ),
-                      ),
-                      Divider(),
-                      // Subtotal
-                      Text('Subtotal: \$0.00', style: TextStyle(fontSize: 16)),
-                      // Tax
-                      Text('Tax: \$0.00', style: TextStyle(fontSize: 16)),
-                      // Discount
-                      Text('Discount: \$0.00', style: TextStyle(fontSize: 16)),
-                      // Total
-                      Text(
-                        'Total: \$0.00',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        Divider(),
+                        // Subtotal
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Subtotal:', style: TextStyle(fontSize: 16)),
+                            Text('\$0.00', style: TextStyle(fontSize: 16)),
+                          ],
                         ),
-                      ),
-                      // Amount Paid
-                      Text(
-                        'Amount Paid: \$0.00',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      // Change
-                      Text('Change: \$0.00', style: TextStyle(fontSize: 16)),
-                    ],
+                        // Tax
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Tax:', style: TextStyle(fontSize: 16)),
+                            Text('\$0.00', style: TextStyle(fontSize: 16)),
+                          ],
+                        ),
+                        // Discount
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Discount:', style: TextStyle(fontSize: 16)),
+                            Text('\$0.00', style: TextStyle(fontSize: 16)),
+                          ],
+                        ),
+                        // Total
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total:',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '\$0.00',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Amount Paid
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Amount Paid:',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                            Text('\$0.00', style: TextStyle(fontSize: 16)),
+                          ],
+                        ),
+                        // Change
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Change:', style: TextStyle(fontSize: 16)),
+                            Text('\$0.00', style: TextStyle(fontSize: 16)),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -554,6 +640,26 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
     return totalPrice;
   }
 
+  void _addToCart(int productId) {
+    final selectedSize = selectedSizes[productId] ?? 'Regular';
+    final key = '${productId}_$selectedSize';
+    final quantity = quantities[key] ?? 0;
+
+    if (quantity > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${widget.products.firstWhere((product) => product['id'] == productId)['name']} added to cart',
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please select a quantity greater than 0')),
+      );
+    }
+  }
+
   Widget _buildAddIns(Map<String, dynamic> product) {
     final productId = product['id'];
     final productAddIns = widget.addInsList[productId] ?? [];
@@ -679,8 +785,13 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                                           ),
                                         ),
                                         textAlign: TextAlign.center,
-                                        controller:
-                                            quantityControllers[productId],
+                                        controller: quantityControllers
+                                            .putIfAbsent(
+                                              productId,
+                                              () => TextEditingController(
+                                                text: '0',
+                                              ),
+                                            ), // Ensure controller is initialized
                                         onChanged: (value) {
                                           // Update quantity in the map
                                           String size =
@@ -694,7 +805,7 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                                         inputFormatters: [
                                           FilteringTextInputFormatter
                                               .digitsOnly,
-                                        ], // Add this line
+                                        ], // Ensure only digits are allowed
                                       ),
                                     ),
                                     IconButton(
@@ -757,16 +868,7 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                               'Total: \$${_calculateTotalPrice(productId).toStringAsFixed(2)}',
                             ),
                             ElevatedButton(
-                              onPressed: () {
-                                // Add to cart logic here
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      '${product['name']} added to cart',
-                                    ),
-                                  ),
-                                );
-                              },
+                              onPressed: () => _addToCart(product['id']),
                               child: Text('Add to Cart'),
                             ),
                           ],
