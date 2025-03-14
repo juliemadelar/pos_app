@@ -51,10 +51,23 @@ class DBHelper {
           'CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, password TEXT, role TEXT, name TEXT)',
         );
         await db.execute(
-          'CREATE TABLE login_details(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, login_time TEXT, name TEXT)',
+          'CREATE TABLE login_details(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, login_time TEXT, name TEXT, logout_time TEXT)', // Add this line
         );
       },
-      version: 1,
+      version: 2, // Update the version number
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            ALTER TABLE login_details ADD COLUMN logout_time TEXT
+          ''');
+        }
+        if (oldVersion < 3) {
+          // Add this block
+          await db.execute('''
+            ALTER TABLE users ADD COLUMN logout_time TEXT
+          ''');
+        }
+      },
     );
   }
 
@@ -187,6 +200,15 @@ class DBHelper {
         size TEXT,
         price REAL,
         FOREIGN KEY (product_id) REFERENCES products(id)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS login_details (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT,
+        login_time TEXT,
+        name TEXT,
+        logout_time TEXT // Add this line
       )
     ''');
 
@@ -1421,6 +1443,21 @@ class DBHelper {
     return null;
   }
 
+  Future<void> updateLogoutTime(String username, String logoutTime) async {
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
+      await db.update(
+        'login_details',
+        {'logout_time': logoutTime},
+        where: 'username = ? AND logout_time IS NULL',
+        whereArgs: [username],
+      );
+    } finally {
+      _dbMutex.release();
+    }
+  }
+
   Future<void> insertLoginDetail(String username, String loginTime) async {
     await _dbMutex.acquire();
     try {
@@ -1438,6 +1475,7 @@ class DBHelper {
         'username': username,
         'login_time': loginTime,
         'name': name, // Include the name in the login_details table
+        'logout_time': null, // Initialize logout_time as null
       });
     } finally {
       _dbMutex.release();

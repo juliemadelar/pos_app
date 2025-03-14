@@ -249,6 +249,12 @@ class CashierDashboardState extends State<CashierDashboard> {
     );
   }
 
+  void _recordLogoutTime(String username) async {
+    final dbHelper = DatabaseHelper();
+    final logoutTime = DateTime.now().toIso8601String();
+    await dbHelper.updateLogoutTime(username, logoutTime);
+  }
+
   @override
   Widget build(BuildContext context) {
     final String businessLogo = 'assets/logo.png';
@@ -368,8 +374,10 @@ class CashierDashboardState extends State<CashierDashboard> {
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Navigate back to login page
+                      onPressed: () async {
+                        _recordLogoutTime(
+                          widget.username,
+                        ); // Record logout time
                         Navigator.of(context).pushReplacementNamed('/login');
                       },
                       child: Text('Log Out'),

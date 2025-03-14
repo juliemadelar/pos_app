@@ -19,7 +19,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'product_database.db');
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -86,13 +86,23 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY,
         username TEXT UNIQUE,
         password TEXT,
-        email TEXT UNIQUE
+        email TEXT UNIQUE,
+        logout_time TEXT
       )
     ''');
     await db.execute('''
       CREATE TABLE business_details (
         id INTEGER PRIMARY KEY,
         value TEXT
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE login_details (
+        id INTEGER PRIMARY KEY,
+        username TEXT,
+        login_time TEXT,
+        name TEXT,
+        logout_time TEXT
       )
     ''');
     await _insertInitialCashierData(db);
@@ -106,8 +116,19 @@ class DatabaseHelper {
           id INTEGER PRIMARY KEY,
           username TEXT UNIQUE,
           password TEXT,
-          email TEXT UNIQUE
+          email TEXT UNIQUE,
+          logout_time TEXT
         )
+      ''');
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+        ALTER TABLE login_details ADD COLUMN logout_time TEXT
+      ''');
+    }
+    if (oldVersion < 4) {
+      await db.execute('''
+        ALTER TABLE users ADD COLUMN logout_time TEXT
       ''');
     }
   }
@@ -307,5 +328,13 @@ class DatabaseHelper {
       whereArgs: [username],
     );
     return result.isNotEmpty ? result.first : null;
+  }
+
+  Future<void> updateLogoutTime(String username, String logoutTime) async {
+    final db = await database;
+    await db.rawUpdate('UPDATE users SET logout_time = ? WHERE username = ?', [
+      logoutTime,
+      username,
+    ]);
   }
 }
