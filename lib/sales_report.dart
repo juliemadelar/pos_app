@@ -79,14 +79,38 @@ class _SalesReportState extends State<SalesReport> {
       join(await getDatabasesPath(), 'sales.db'),
     );
 
+    // Check if the order_details table exists
+    final tableExists =
+        Sqflite.firstIntValue(
+          await database.rawQuery(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='order_details';",
+          ),
+        ) ==
+        1;
+
+    if (!tableExists) {
+      // Create the order_details table if it doesn't exist
+      await database.execute('''
+        CREATE TABLE order_details (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          orderNumber TEXT,
+          product TEXT,
+          quantity INTEGER,
+          price REAL
+        )
+      ''');
+    }
+
     final orderDetails = await database.query(
       'order_details',
       where: 'orderNumber = ?',
       whereArgs: [orderNumber],
     );
 
+    if (!mounted) return; // Check if the widget is still mounted
+
     showModalBottomSheet(
-      context: context as BuildContext,
+      context: this.context,
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.all(16.0),
