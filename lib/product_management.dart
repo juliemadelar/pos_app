@@ -732,226 +732,257 @@ class ProductManagementState extends State<ProductManagement>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Product Management'),
-        automaticallyImplyLeading: false, // Remove the back button
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(text: 'Categories'),
-            Tab(text: 'Sub-Categories'),
-            Tab(text: 'Products'),
-            Tab(text: 'Add-Ins'),
-            Tab(text: 'Sizes'), // Add Sizes tab
-          ],
-        ),
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return TabBarView(
+      body: Column(
+        children: [
+          TabBar(
             controller: _tabController,
-            children: [
-              SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min, // Add this line
-                    children: [
-                      CategoryList(
-                        categories: _categories,
-                        onEdit: (item) => _showEditDialog(item, 'category'),
-                        onDelete: _deleteCategory,
-                        itemBuilder:
-                            (context, item) => ListTile(
-                              title: Text(item['name']),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.edit),
-                                    onPressed:
-                                        () => _showEditDialog(item, 'category'),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(Icons.delete),
-                                    onPressed:
-                                        () => _deleteCategory(item['id']),
-                                  ),
-                                ],
-                              ),
-                            ),
-                      ),
-                      ElevatedButton(
-                        onPressed: _addCategory,
-                        child: Text('Add Category'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min, // Add this line
-                    children: [
-                      SubCategoryList(
-                        subCategories: _subCategories,
-                        onEdit: (item) => _showEditDialog(item, 'subcategory'),
-                        onDelete: _deleteSubCategory,
-                        itemBuilder:
-                            (context, item) => ListTile(
-                              title: Text(item['name']),
-                              subtitle: Text(
-                                'Parent Category: ${item['parent_category']}',
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.edit),
-                                    onPressed:
-                                        () => _showEditDialog(
-                                          item,
-                                          'subcategory',
+            tabs: [
+              Tab(text: 'Categories'),
+              Tab(text: 'Sub-Categories'),
+              Tab(text: 'Products'),
+              Tab(text: 'Add-Ins'),
+              Tab(text: 'Sizes'), // Add Sizes tab
+            ],
+          ),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return TabBarView(
+                  controller: _tabController,
+                  children: [
+                    SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min, // Add this line
+                          children: [
+                            CategoryList(
+                              categories: _categories,
+                              onEdit:
+                                  (item) => _showEditDialog(item, 'category'),
+                              onDelete: _deleteCategory,
+                              itemBuilder:
+                                  (context, item) => ListTile(
+                                    title: Text(item['name']),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(Icons.edit),
+                                          onPressed:
+                                              () => _showEditDialog(
+                                                item,
+                                                'category',
+                                              ),
                                         ),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(Icons.delete),
-                                    onPressed:
-                                        () => _deleteSubCategory(item['id']),
-                                  ),
-                                ],
-                              ),
-                            ),
-                      ),
-                      ElevatedButton(
-                        onPressed: _addSubCategory,
-                        child: Text('Add Sub-Category'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min, // Add this line
-                    children: [
-                      ProductList(
-                        products: _products,
-                        onEdit: (item, _) async {
-                          _showEditDialog(item, 'product');
-                          _fetchData(); // Ensure data is fetched after editing
-                        },
-                        onDelete: _deleteProduct,
-                        onViewDetails:
-                            _showProductDetails, // Add onViewDetails callback
-                        itemBuilder:
-                            (context, item) => ListTile(
-                              key: ValueKey(
-                                item['id'],
-                              ), // Use a unique key here!
-                              title: Text(item['name']),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Sub-Category: ${item['sub_category']}'),
-                                  Image.file(
-                                    File(
-                                      item['image'] ?? 'assets/placeholder.png',
+                                        IconButton(
+                                          icon: Icon(Icons.delete),
+                                          onPressed:
+                                              () => _deleteCategory(item['id']),
+                                        ),
+                                      ],
                                     ),
-                                    width: 50,
-                                    height: 50,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Image.asset(
-                                        'assets/placeholder.png',
-                                        width: 50,
-                                        height: 50,
-                                      );
-                                    },
                                   ),
-                                ],
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.edit),
-                                    onPressed:
-                                        () => _showEditDialog(item, 'product'),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(Icons.delete),
-                                    onPressed: () => _deleteProduct(item['id']),
-                                  ),
-                                ],
-                              ),
-                              onTap: () => _showProductDetails(item),
                             ),
-                      ),
-                      ElevatedButton(
-                        onPressed: _addProduct,
-                        child: Text('Add Product'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              ListView.builder(
-                itemCount: _addIns.length,
-                itemBuilder: (context, index) {
-                  final addIn = _addIns[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    elevation: 4, // Add elevation for shadow
-                    child: ListTile(
-                      title: Text(addIn['name']),
-                      subtitle: Text('Price: \$${addIn['price']}'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.edit),
-                            onPressed: () => _showEditDialog(addIn, 'add-in'),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed:
-                                () => _dbHelper
-                                    .deleteAddIn(addIn['id'])
-                                    .then((_) => _fetchData()),
-                          ),
-                        ],
+                            ElevatedButton(
+                              onPressed: _addCategory,
+                              child: Text('Add Category'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  );
-                },
-              ),
-              SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min, // Add this line
-                    children: [
-                      SizesList(
-                        // productId: 1, // Provide a valid productId
-                        sizesList: _sizes,
-                        productNames: {
-                          for (var product in _products)
-                            product['id']: product['name'],
-                        },
-                        onEdit: (item) => _showEditDialog(item, 'size'),
-                        onDelete: (id) => _deleteSize(id),
+                    SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min, // Add this line
+                          children: [
+                            SubCategoryList(
+                              subCategories: _subCategories,
+                              onEdit:
+                                  (item) =>
+                                      _showEditDialog(item, 'subcategory'),
+                              onDelete: _deleteSubCategory,
+                              itemBuilder:
+                                  (context, item) => ListTile(
+                                    title: Text(item['name']),
+                                    subtitle: Text(
+                                      'Parent Category: ${item['parent_category']}',
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(Icons.edit),
+                                          onPressed:
+                                              () => _showEditDialog(
+                                                item,
+                                                'subcategory',
+                                              ),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(Icons.delete),
+                                          onPressed:
+                                              () => _deleteSubCategory(
+                                                item['id'],
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                            ),
+                            ElevatedButton(
+                              onPressed: _addSubCategory,
+                              child: Text('Add Sub-Category'),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+                    ),
+                    SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min, // Add this line
+                          children: [
+                            ProductList(
+                              products: _products,
+                              onEdit: (item, _) async {
+                                _showEditDialog(item, 'product');
+                                _fetchData(); // Ensure data is fetched after editing
+                              },
+                              onDelete: _deleteProduct,
+                              onViewDetails:
+                                  _showProductDetails, // Add onViewDetails callback
+                              itemBuilder:
+                                  (context, item) => ListTile(
+                                    key: ValueKey(
+                                      item['id'],
+                                    ), // Use a unique key here!
+                                    title: Text(item['name']),
+                                    subtitle: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Sub-Category: ${item['sub_category']}',
+                                        ),
+                                        Image.file(
+                                          File(
+                                            item['image'] ??
+                                                'assets/placeholder.png',
+                                          ),
+                                          width: 50,
+                                          height: 50,
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return Image.asset(
+                                              'assets/placeholder.png',
+                                              width: 50,
+                                              height: 50,
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(Icons.edit),
+                                          onPressed:
+                                              () => _showEditDialog(
+                                                item,
+                                                'product',
+                                              ),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(Icons.delete),
+                                          onPressed:
+                                              () => _deleteProduct(item['id']),
+                                        ),
+                                      ],
+                                    ),
+                                    onTap: () => _showProductDetails(item),
+                                  ),
+                            ),
+                            ElevatedButton(
+                              onPressed: _addProduct,
+                              child: Text('Add Product'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    ListView.builder(
+                      itemCount: _addIns.length,
+                      itemBuilder: (context, index) {
+                        final addIn = _addIns[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          elevation: 4, // Add elevation for shadow
+                          child: ListTile(
+                            title: Text(addIn['name']),
+                            subtitle: Text('Price: \$${addIn['price']}'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.edit),
+                                  onPressed:
+                                      () => _showEditDialog(addIn, 'add-in'),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete),
+                                  onPressed:
+                                      () => _dbHelper
+                                          .deleteAddIn(addIn['id'])
+                                          .then((_) => _fetchData()),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min, // Add this line
+                          children: [
+                            SizesList(
+                              // productId: 1, // Provide a valid productId
+                              sizesList: _sizes,
+                              productNames: {
+                                for (var product in _products)
+                                  product['id']: product['name'],
+                              },
+                              onEdit: (item) => _showEditDialog(item, 'size'),
+                              onDelete: (id) => _deleteSize(id),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
