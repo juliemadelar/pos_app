@@ -5,6 +5,8 @@ import 'business_details.dart';
 import 'user_management.dart';
 import 'sales_report.dart' as sr;
 import 'login_page.dart';
+// Add this import
+import 'login_report.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -69,6 +71,12 @@ class AdminDashboardState extends State<AdminDashboard> {
                   leading: Icon(Icons.bar_chart),
                   title: Text('Sales Report'),
                   onTap: () => _selectPage(sr.SalesReport()),
+                ),
+                // Add this ListTile
+                ListTile(
+                  leading: Icon(Icons.login),
+                  title: Text('Login Report'),
+                  onTap: () => _selectPage(LoginReport()),
                 ),
                 Divider(),
                 ListTile(
@@ -196,6 +204,8 @@ class AdminDashboardState extends State<AdminDashboard> {
       return 'User Management';
     } else if (page is sr.SalesReport) {
       return 'Sales Report';
+    } else if (page is LoginReport) {
+      return 'Login Report';
     } else {
       return 'Dashboard';
     }

@@ -51,7 +51,7 @@ class DBHelper {
           'CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, password TEXT, role TEXT, name TEXT)',
         );
         await db.execute(
-          'CREATE TABLE login_details(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, login_time TEXT)',
+          'CREATE TABLE login_details(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, login_time TEXT, name TEXT)',
         );
       },
       version: 1,
@@ -1425,9 +1425,19 @@ class DBHelper {
     await _dbMutex.acquire();
     try {
       Database db = await database;
+      // Fetch the user's name from the users table
+      final user = await db.query(
+        'users',
+        columns: ['name'],
+        where: 'username = ?',
+        whereArgs: [username],
+      );
+      final name = user.isNotEmpty ? user.first['name'] : 'N/A';
+
       await db.insert('login_details', {
         'username': username,
         'login_time': loginTime,
+        'name': name, // Include the name in the login_details table
       });
     } finally {
       _dbMutex.release();
@@ -1593,6 +1603,16 @@ class DBHelper {
         'size': size,
         'price': price,
       });
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getLoginDetails() async {
+    await _dbMutex.acquire();
+    try {
+      final db = await database;
+      return await db.query('login_details');
+    } finally {
+      _dbMutex.release();
     }
   }
 }
