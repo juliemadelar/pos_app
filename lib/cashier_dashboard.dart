@@ -47,6 +47,7 @@ class CashierDashboardState extends State<CashierDashboard> {
   final dbHelper = DatabaseHelper(); // Add this line to define dbHelper
   String _currentOrderNumber =
       ''; // Add this line to store the current order number
+  double taxValue = 0.0; // Add this line to store the tax value
 
   CashierDashboardState() {
     _dashboardState = this;
@@ -59,6 +60,7 @@ class CashierDashboardState extends State<CashierDashboard> {
     _fetchBusinessDetails(); // Fetch business details on init
     _fetchCategoriesAndSubCategories();
     _fetchAddInsForProducts(); // Initialize addInsList
+    _fetchTaxValue(); // Fetch tax value on init
   }
 
   Future<void> _fetchCategoriesAndSubCategories() async {
@@ -173,6 +175,19 @@ class CashierDashboardState extends State<CashierDashboard> {
     }
   }
 
+  Future<void> _fetchTaxValue() async {
+    final dbHelper = DatabaseHelper();
+    try {
+      final tax = await dbHelper.getTaxValue();
+      if (!mounted) return; // Add this line
+      setState(() {
+        taxValue = tax;
+      });
+    } catch (e) {
+      _log.severe('Error fetching tax value: $e');
+    }
+  }
+
   double _calculateSubtotal() {
     double subtotal = 0;
     for (final order in orderDetails) {
@@ -183,9 +198,10 @@ class CashierDashboardState extends State<CashierDashboard> {
 
   double _calculateTotal() {
     double subtotal = _calculateSubtotal();
-    double tax = 0; // Add tax calculation logic if needed
+    double tax =
+        subtotal * (taxValue / 100); // Calculate tax based on tax value
     double discount = 0; // Add discount calculation logic if needed
-    return subtotal - tax - discount;
+    return subtotal + tax - discount;
   }
 
   String _generateOrderNumber() {
@@ -655,7 +671,12 @@ class CashierDashboardState extends State<CashierDashboard> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('Tax:', style: TextStyle(fontSize: 16)),
-                            Text('\$0.00', style: TextStyle(fontSize: 16)),
+                            Text(
+                              taxValue > 0
+                                  ? '\$${(_calculateSubtotal() * (taxValue / 100)).toStringAsFixed(2)}'
+                                  : '\$0.00',
+                              style: TextStyle(fontSize: 16),
+                            ),
                           ],
                         ),
                         // Discount

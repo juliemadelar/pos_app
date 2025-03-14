@@ -342,4 +342,20 @@ class DatabaseHelper {
       whereArgs: [username],
     );
   }
+
+  Future<double> getTaxValue() async {
+    final db = await database;
+    final result = await db.query(
+      'business_details',
+      columns: ['value'],
+      where: 'id = ?',
+      whereArgs: [9],
+    );
+
+    if (result.isNotEmpty) {
+      return double.tryParse(result.first['value'] as String) ?? 0.0;
+    } else {
+      return 0.0;
+    }
+  }
 }
