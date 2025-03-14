@@ -51,6 +51,7 @@ class _SalesReportState extends State<SalesReport> {
     final List<Map<String, dynamic>> salesData = await database.query(
       'sales',
       columns: ['date', 'time', 'username', 'orderNumber', 'total'],
+      orderBy: 'orderNumber ASC', // Add this line to sort by order number
     );
     return salesData;
   }
@@ -120,18 +121,15 @@ class _SalesReportState extends State<SalesReport> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Date', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('Time', style: TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Name', style: TextStyle(fontWeight: FontWeight.bold)),
                   Text(
-                    'Order Number',
+                    'Product',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
+                  Text(
+                    'Quantity',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text('Price', style: TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
               Divider(),
@@ -139,7 +137,8 @@ class _SalesReportState extends State<SalesReport> {
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('${detail['product']} x${detail['quantity']}'),
+                    Text('${detail['product']}'),
+                    Text('${detail['quantity']}'),
                     Text('\$${detail['price']}'),
                   ],
                 );

@@ -1049,7 +1049,7 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
         quantity,
         totalPrice, // Use the properly handled total price
         product['name'],
-        selectedAddIns[productId]!,
+        selectedAddIns[productId] ?? <int>{}, // Ensure selectedAddIns is not null
         addInNames, // Pass add-in names to the parent's _addToCart method
       ); // Call the parent's _addToCart method
 

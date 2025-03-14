@@ -68,6 +68,16 @@ class SalesDatabase {
       logout_time $textType
     )
     ''');
+
+    await db.execute('''
+    CREATE TABLE order_details (
+      id $idType,
+      orderNumber $textType,
+      product $textType,
+      quantity $integerType,
+      price $realType
+    )
+    ''');
   }
 
   Future<void> create({
@@ -157,5 +167,57 @@ class SalesDatabase {
     } else {
       throw Exception('User not found');
     }
+  }
+
+  Future<List<Map<String, dynamic>>> getOrderDetailsWithAddIns(
+    String orderNumber,
+  ) async {
+    final db = await instance.database;
+    final orderDetails = await db.query(
+      'order_details',
+      where: 'orderNumber = ?',
+      whereArgs: [orderNumber],
+    );
+
+    final batch = db.batch();
+    for (final detail in orderDetails) {
+      final productId = detail['productId'];
+      batch.query('add_ins', where: 'product_id = ?', whereArgs: [productId]);
+    }
+
+    final addInsResults = await batch.commit();
+    for (int i = 0; i < orderDetails.length; i++) {
+      orderDetails[i]['addIns'] = addInsResults[i];
+    }
+
+    return orderDetails;
+  }
+
+  static Future<Database> openSalesDatabase() async {
+    return openDatabase(
+      join(await getDatabasesPath(), 'sales.db'),
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE sales (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT,
+            time TEXT,
+            orderNumber TEXT,
+            username TEXT,
+            total REAL
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE order_details (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            orderNumber TEXT,
+            product TEXT,
+            quantity INTEGER,
+            price REAL
+          )
+        ''');
+      },
+      version: 1,
+    );
   }
 }
