@@ -1,8 +1,12 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'database_helper.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart'; // Add this line for input formatter
+import 'package:intl/intl.dart';
+import 'sales_database.dart'; // Add this line to import SalesDatabase
 
 final _log = Logger('CashierDashboard');
 
@@ -40,6 +44,9 @@ class CashierDashboardState extends State<CashierDashboard> {
       []; // Create a list to store the order details
   double amountPaid = 0.0; // Add this line to store the amount paid
   double change = 0.0; // Add this line to store the change
+  final dbHelper = DatabaseHelper(); // Add this line to define dbHelper
+  String _currentOrderNumber =
+      ''; // Add this line to store the current order number
 
   CashierDashboardState() {
     _dashboardState = this;
@@ -55,7 +62,6 @@ class CashierDashboardState extends State<CashierDashboard> {
   }
 
   Future<void> _fetchCategoriesAndSubCategories() async {
-    final dbHelper = DatabaseHelper();
     final categoryList = await dbHelper.getCategoryList();
     final subCategoryMap = <String, List<String>>{};
 
@@ -82,7 +88,6 @@ class CashierDashboardState extends State<CashierDashboard> {
   }
 
   Future<void> _fetchProducts(String subCategory) async {
-    final dbHelper = DatabaseHelper();
     final productList = await dbHelper.getProductListBySubCategory(subCategory);
     final sizeList = <Map<String, dynamic>>[];
 
@@ -104,7 +109,6 @@ class CashierDashboardState extends State<CashierDashboard> {
   }
 
   Future<void> _fetchAddInsForProducts() async {
-    final dbHelper = DatabaseHelper();
     try {
       final fetchedAddIns = await dbHelper.fetchAddInsForProducts(products);
       setState(() {
@@ -121,18 +125,22 @@ class CashierDashboardState extends State<CashierDashboard> {
     final dbHelper = DatabaseHelper();
     try {
       final userDetails = await dbHelper.getUserByUsername(username);
+      if (!mounted) return; // Add this line
       setState(() {
         cashierName = userDetails != null ? userDetails['name'] : null;
         _isLoadingCashierName = false; // Update loading state
       });
     } catch (e) {
       _log.severe('Error fetching cashier name: $e');
+      if (!mounted) return; // Add this line
       setState(() {
         _isLoadingCashierName = false; // Update loading state even on error
+      });
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Error loading cashier name.')),
         );
-      });
+      }
     }
   }
 
@@ -143,6 +151,7 @@ class CashierDashboardState extends State<CashierDashboard> {
       final address = await dbHelper.getBusinessAddress();
       final contact = await dbHelper.getContactNumber();
       final tax = await dbHelper.getTaxId();
+      if (!mounted) return; // Add this line
       setState(() {
         businessName = name;
         businessAddress = address;
@@ -152,12 +161,15 @@ class CashierDashboardState extends State<CashierDashboard> {
       });
     } catch (e) {
       _log.severe('Error fetching business details: $e');
+      if (!mounted) return; // Add this line
       setState(() {
         _isLoadingBusinessDetails = false; // Update loading state even on error
+      });
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Error loading business details.')),
         );
-      });
+      }
     }
   }
 
@@ -174,6 +186,125 @@ class CashierDashboardState extends State<CashierDashboard> {
     double tax = 0; // Add tax calculation logic if needed
     double discount = 0; // Add discount calculation logic if needed
     return subtotal - tax - discount;
+  }
+
+  String _generateOrderNumber() {
+    // Generate a unique order number (you can use a more sophisticated method)
+    return DateTime.now().millisecondsSinceEpoch.toString();
+  }
+
+  void _showCashDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        TextEditingController amountPaidController = TextEditingController();
+
+        return AlertDialog(
+          title: Text('Enter Amount Paid'),
+          content: TextField(
+            controller: amountPaidController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(hintText: 'Amount Paid'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                setState(() {
+                  amountPaid =
+                      double.tryParse(amountPaidController.text) ?? 0.0;
+                  double total = _calculateTotal();
+                  change = amountPaid - total;
+                });
+
+                // Record the sale
+                String orderNumber = _generateOrderNumber();
+                final success = await _recordSale(orderNumber, 'Cash');
+
+                if (!mounted) return;
+                if (success) {
+                  setState(() {
+                    _currentOrderNumber =
+                        orderNumber; // Update the order number
+                  });
+                  Navigator.of(context).pop();
+                }
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<bool> _recordSale(String orderNumber, String paymentMode) async {
+    final now = DateTime.now();
+    final dateFormat = DateFormat('yyyy-MM-dd');
+    final timeFormat = DateFormat('HH:mm:ss');
+    final date = dateFormat.format(now);
+    final time = timeFormat.format(now);
+
+    for (final order in orderDetails) {
+      final productId = order['product_id'];
+      final productName = '${order['size']} ${order['product']}';
+      final quantity = order['quantity'];
+      final price = order['price'];
+
+      // Calculate subtotal, tax, and discount (replace with your logic if needed)
+      final subtotal = price;
+      const tax = 0.0;
+      const discount = 0.0;
+      final total = _calculateTotal();
+
+      try {
+        await SalesDatabase.instance.create(
+          date: date,
+          time: time,
+          username: widget.username,
+          orderNumber: orderNumber,
+          productId: productId,
+          productName: productName,
+          quantity: quantity,
+          price: price,
+          subtotal: subtotal,
+          tax: tax,
+          discount: discount,
+          total: total,
+          amountPaid: amountPaid,
+          change: change,
+          modeOfPayment: paymentMode,
+        );
+        _log.info('Sale recorded successfully for order: $orderNumber');
+      } catch (e) {
+        _log.severe('Error recording sale: $e');
+        return false; // Exit the function if there's an error
+      }
+    }
+
+    // Clear the order details after recording the sale only if payment mode is "Print"
+    if (paymentMode == 'Print') {
+      setState(() {
+        orderDetails.clear();
+        amountPaid = 0.0;
+        change = 0.0;
+      });
+    }
+
+    // Show a success message
+    if (!mounted) return false; // Check if the widget is still in the tree
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sale recorded successfully.')),
+      );
+    }
+    return true;
   }
 
   void _addToCart(
@@ -207,46 +338,6 @@ class CashierDashboardState extends State<CashierDashboard> {
     setState(() {
       orderDetails.removeAt(index);
     });
-  }
-
-  void _showCashDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        TextEditingController amountPaidController = TextEditingController();
-
-        return AlertDialog(
-          title: Text('Enter Amount Paid'),
-          content: TextField(
-            controller: amountPaidController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(hintText: 'Amount Paid'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  amountPaid =
-                      double.tryParse(amountPaidController.text) ?? 0.0;
-                  double total = _calculateTotal();
-                  change = amountPaid - total;
-                });
-
-                Navigator.of(context).pop();
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void _recordLogoutTime(String username) async {
@@ -465,7 +556,7 @@ class CashierDashboardState extends State<CashierDashboard> {
                         SizedBox(height: 5),
                         // Order Number
                         Text(
-                          'Order Number: 12345',
+                          'Order Number: $_currentOrderNumber', // Display the current order number
                           style: TextStyle(fontSize: 16),
                         ),
                         Divider(),
@@ -639,8 +730,19 @@ class CashierDashboardState extends State<CashierDashboard> {
                                 child: Text('Card'),
                               ),
                               ElevatedButton(
-                                onPressed: () {
-                                  // Handle Print button press
+                                onPressed: () async {
+                                  // Record the sale
+                                  String orderNumber = _generateOrderNumber();
+                                  final success = await _recordSale(
+                                    orderNumber,
+                                    'Print',
+                                  );
+                                  if (success) {
+                                    setState(() {
+                                      _currentOrderNumber =
+                                          orderNumber; // Update the order number
+                                    });
+                                  }
                                 },
                                 child: Text('Print'),
                               ),
@@ -820,13 +922,17 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
         addInNames, // Pass add-in names to the parent's _addToCart method
       ); // Call the parent's _addToCart method
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${product['name']} added to cart')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${product['name']} added to cart')),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select a quantity greater than 0')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please select a quantity greater than 0')),
+        );
+      }
     }
   }
 

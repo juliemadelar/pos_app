@@ -19,7 +19,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'product_database.db');
     return await openDatabase(
       path,
-      version: 3,
+      version: 5, // Increment the version number
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -130,6 +130,9 @@ class DatabaseHelper {
       await db.execute('''
         ALTER TABLE users ADD COLUMN logout_time TEXT
       ''');
+    }
+    if (oldVersion < 5) {
+      // No action needed, but keep the condition to avoid future issues
     }
   }
 
@@ -332,9 +335,11 @@ class DatabaseHelper {
 
   Future<void> updateLogoutTime(String username, String logoutTime) async {
     final db = await database;
-    await db.rawUpdate('UPDATE users SET logout_time = ? WHERE username = ?', [
-      logoutTime,
-      username,
-    ]);
+    await db.update(
+      'users',
+      {'logout_time': logoutTime},
+      where: 'username = ?',
+      whereArgs: [username],
+    );
   }
 }
