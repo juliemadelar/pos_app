@@ -11,7 +11,7 @@ class SalesDatabase {
   Future<Database> get database async {
     if (_database != null) return _database!;
 
-    _database = await _initDB('sales.db');
+    _database = await _initDB('product_database.db');
     return _database!;
   }
 
@@ -22,7 +22,7 @@ class SalesDatabase {
     return await openDatabase(path, version: 1, onCreate: _createDB);
   }
 
-  Future _createDB(Database db, int version) async {
+  Future<void> _createDB(Database db, int version) async {
     const idType = 'INTEGER PRIMARY KEY AUTOINCREMENT';
     const textType = 'TEXT NOT NULL';
     const integerType = 'INTEGER NOT NULL';
@@ -76,6 +76,67 @@ class SalesDatabase {
       product $textType,
       quantity $integerType,
       price $realType
+    )
+    ''');
+
+    await db.execute('''
+    CREATE TABLE products (
+      product_id $idType,
+      product_name $textType,
+      base_price $realType
+    )
+    ''');
+
+    await db.execute('''
+    CREATE TABLE add_ins (
+      add_in_id $idType,
+      add_in_name $textType,
+      add_in_price $realType
+    )
+    ''');
+
+    await db.execute('''
+    CREATE TABLE product_add_ins (
+      product_add_in_id $idType,
+      product_id $integerType,
+      add_in_id $integerType,
+      FOREIGN KEY (product_id) REFERENCES products (product_id),
+      FOREIGN KEY (add_in_id) REFERENCES add_ins (add_in_id)
+    )
+    ''');
+
+    await db.execute('''
+    CREATE TABLE orders (
+      order_id $idType,
+      order_number $textType,
+      order_date $textType,
+      order_time $textType,
+      name $textType,
+      subtotal $realType,
+      tax $realType,
+      discount $realType,
+      total $realType
+    )
+    ''');
+
+    await db.execute('''
+    CREATE TABLE order_items (
+      order_item_id $idType,
+      order_id $integerType,
+      product_id $integerType,
+      quantity $integerType,
+      FOREIGN KEY (order_id) REFERENCES orders (order_id),
+      FOREIGN KEY (product_id) REFERENCES products (product_id)
+    )
+    ''');
+
+    await db.execute('''
+    CREATE TABLE order_item_add_ins (
+      order_item_add_in_id $idType,
+      order_item_id $integerType,
+      add_in_id $integerType,
+      FOREIGN KEY (order_item_id) REFERENCES order_items (order_item_id),
+      FOREIGN KEY (add_in_id) REFERENCES add_ins (add_in_id)
     )
     ''');
   }
@@ -193,9 +254,58 @@ class SalesDatabase {
     return orderDetails;
   }
 
+  Future<int> createOrder({
+    required String orderNumber,
+    required String orderDate,
+    required String orderTime,
+    required String name,
+    required double subtotal,
+    required double tax,
+    required double discount,
+    required double total,
+  }) async {
+    final db = await instance.database;
+    final orderId = await db.insert('orders', {
+      'order_number': orderNumber,
+      'order_date': orderDate,
+      'order_time': orderTime,
+      'name': name,
+      'subtotal': subtotal,
+      'tax': tax,
+      'discount': discount,
+      'total': total,
+    });
+    return orderId;
+  }
+
+  Future<int> createOrderItem({
+    required int orderId,
+    required int productId,
+    required int quantity,
+  }) async {
+    final db = await instance.database;
+    final orderItemId = await db.insert('order_items', {
+      'order_id': orderId,
+      'product_id': productId,
+      'quantity': quantity,
+    });
+    return orderItemId;
+  }
+
+  Future<void> createOrderItemAddIn({
+    required int orderItemId,
+    required int addInId,
+  }) async {
+    final db = await instance.database;
+    await db.insert('order_item_add_ins', {
+      'order_item_id': orderItemId,
+      'add_in_id': addInId,
+    });
+  }
+
   static Future<Database> openSalesDatabase() async {
     return openDatabase(
-      join(await getDatabasesPath(), 'sales.db'),
+      join(await getDatabasesPath(), 'product_database.db'),
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE sales (

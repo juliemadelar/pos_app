@@ -369,44 +369,49 @@ class CashierDashboardState extends State<CashierDashboard> {
     final date = dateFormat.format(now);
     final time = timeFormat.format(now);
 
-    for (final order in orderDetails) {
-      final productId = order['product_id'];
-      final productName = '${order['size']} ${order['product']}';
-      final quantity = order['quantity'];
-      final price = order['price'];
+    double subtotal = _calculateSubtotal();
+    double tax = subtotal * (taxValue / 100);
+    double discount = 0.0; // Add discount calculation logic if needed
+    double total = _calculateTotal();
 
-      // Calculate subtotal, tax, and discount (replace with your logic if needed)
-      final subtotal = price;
-      const tax = 0.0;
-      const discount = 0.0;
-      final total = _calculateTotal();
-      final addInNames =
-          order['addInNames'] as List<String>? ?? []; // Retrieve add-in names
+    try {
+      // Insert order into Orders table
+      final orderId = await SalesDatabase.instance.createOrder(
+        orderNumber: orderNumber,
+        orderDate: date,
+        orderTime: time,
+        name: widget.username,
+        subtotal: subtotal,
+        tax: tax,
+        discount: discount,
+        total: total,
+      );
 
-      try {
-        await SalesDatabase.instance.create(
-          date: date,
-          time: time,
-          username: widget.username,
-          orderNumber: orderNumber,
+      // Insert order items into Order Items table
+      for (final order in orderDetails) {
+        final productId = order['product_id'];
+        final quantity = order['quantity'];
+
+        final orderItemId = await SalesDatabase.instance.createOrderItem(
+          orderId: orderId,
           productId: productId,
-          productName: productName,
           quantity: quantity,
-          price: price,
-          subtotal: subtotal,
-          tax: tax,
-          discount: discount,
-          total: total,
-          amountPaid: amountPaid,
-          change: change,
-          modeOfPayment: paymentMode,
-          addInNames: addInNames, // Pass add-in names to the database
         );
-        _log.info('Sale recorded successfully for order: $orderNumber');
-      } catch (e) {
-        _log.severe('Error recording sale: $e');
-        return false; // Exit the function if there's an error
+
+        // Insert add-ins into Order Item Add-ins table
+        final addInIds = order['addIns'] as List<int>;
+        for (final addInId in addInIds) {
+          await SalesDatabase.instance.createOrderItemAddIn(
+            orderItemId: orderItemId,
+            addInId: addInId,
+          );
+        }
       }
+
+      _log.info('Sale recorded successfully for order: $orderNumber');
+    } catch (e) {
+      _log.severe('Error recording sale: $e');
+      return false; // Exit the function if there's an error
     }
 
     // Clear the order details after recording the sale only if payment mode is "Print"
@@ -861,21 +866,17 @@ class CashierDashboardState extends State<CashierDashboard> {
                                 child: Text('Card'),
                               ),
                               ElevatedButton(
-                                onPressed: () async {
-                                  // Record the sale
-                                  String orderNumber = _generateOrderNumber();
-                                  final success = await _recordSale(
-                                    orderNumber,
-                                    'Print',
-                                  );
-                                  if (success) {
-                                    setState(() {
-                                      _currentOrderNumber =
-                                          orderNumber; // Update the order number
-                                    });
-                                  }
+                                onPressed: () {
+                                  setState(() {
+                                    _currentOrderNumber =
+                                        _generateOrderNumber(); // Generate a new order number
+                                    orderDetails
+                                        .clear(); // Clear the order details
+                                    amountPaid = 0.0; // Reset amount paid
+                                    change = 0.0; // Reset change
+                                  });
                                 },
-                                child: Text('Print'),
+                                child: Text('Next'),
                               ),
                             ],
                           ),

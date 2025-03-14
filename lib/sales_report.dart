@@ -20,7 +20,7 @@ class _SalesReportState extends State<SalesReport> {
 
   Future<List<Map<String, dynamic>>> _getSalesData() async {
     final database = await openDatabase(
-      join(await getDatabasesPath(), 'sales.db'),
+      join(await getDatabasesPath(), 'product_database.db'),
     );
 
     // Check if the sales table exists
@@ -77,7 +77,7 @@ class _SalesReportState extends State<SalesReport> {
 
   Future<void> _showOrderDetails(String orderNumber) async {
     final database = await openDatabase(
-      join(await getDatabasesPath(), 'sales.db'),
+      join(await getDatabasesPath(), 'product_databae.db'),
     );
 
     // Check if the order_details table exists
