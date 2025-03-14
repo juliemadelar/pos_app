@@ -38,6 +38,8 @@ class CashierDashboardState extends State<CashierDashboard> {
   bool isLoadingAddIns = true; // Add this line
   List<Map<String, dynamic>> orderDetails =
       []; // Create a list to store the order details
+  double amountPaid = 0.0; // Add this line to store the amount paid
+  double change = 0.0; // Add this line to store the change
 
   CashierDashboardState() {
     _dashboardState = this;
@@ -205,6 +207,46 @@ class CashierDashboardState extends State<CashierDashboard> {
     setState(() {
       orderDetails.removeAt(index);
     });
+  }
+
+  void _showCashDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        TextEditingController amountPaidController = TextEditingController();
+
+        return AlertDialog(
+          title: Text('Enter Amount Paid'),
+          content: TextField(
+            controller: amountPaidController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(hintText: 'Amount Paid'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  amountPaid =
+                      double.tryParse(amountPaidController.text) ?? 0.0;
+                  double total = _calculateTotal();
+                  change = amountPaid - total;
+                });
+
+                Navigator.of(context).pop();
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -480,7 +522,7 @@ class CashierDashboardState extends State<CashierDashboard> {
                                                 dense: true, // Reduce spacing
                                                 contentPadding:
                                                     EdgeInsets.symmetric(
-                                                      vertical: 2.0,
+                                                      vertical: 0.5,
                                                     ), // Reduce padding
                                                 title: Text(
                                                   'Add-Ins: $addInName',
@@ -553,7 +595,10 @@ class CashierDashboardState extends State<CashierDashboard> {
                               'Amount Paid:',
                               style: TextStyle(fontSize: 16),
                             ),
-                            Text('\$0.00', style: TextStyle(fontSize: 16)),
+                            Text(
+                              '\$${amountPaid.toStringAsFixed(2)}',
+                              style: TextStyle(fontSize: 16),
+                            ), // Update this line
                           ],
                         ),
                         // Change
@@ -561,7 +606,10 @@ class CashierDashboardState extends State<CashierDashboard> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('Change:', style: TextStyle(fontSize: 16)),
-                            Text('\$0.00', style: TextStyle(fontSize: 16)),
+                            Text(
+                              '\$${change.toStringAsFixed(2)}',
+                              style: TextStyle(fontSize: 16),
+                            ), // Update this line
                           ],
                         ),
                         Divider(),
@@ -572,9 +620,8 @@ class CashierDashboardState extends State<CashierDashboard> {
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               ElevatedButton(
-                                onPressed: () {
-                                  // Handle Cash button press
-                                },
+                                onPressed:
+                                    _showCashDialog, // Show cash dialog on button press
                                 child: Text('Cash'),
                               ),
                               ElevatedButton(
