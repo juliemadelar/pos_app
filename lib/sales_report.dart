@@ -1,119 +1,343 @@
 import 'package:flutter/material.dart';
-import 'package:logging/logging.dart';
-import 'sales_database.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 
 class SalesReport extends StatefulWidget {
   const SalesReport({super.key});
+
   @override
-  SalesReportState createState() => SalesReportState();
+  State<SalesReport> createState() => _SalesReportState();
 }
 
-class SalesReportState extends State<SalesReport> {
-  final Logger _logger = Logger('SalesReport');
-  List<Map<String, dynamic>> _sales = [];
+class _SalesReportState extends State<SalesReport> {
+  late Future<List<Map<String, dynamic>>> _salesData;
 
   @override
   void initState() {
     super.initState();
-    _logger.info('SalesReport initialized');
-    _fetchSales();
+    _salesData = _getSalesData();
   }
 
-  Future<void> _fetchSales() async {
-    try {
-      final sales = await SalesDatabase.instance.readAllSales();
-      setState(() {
-        _sales = sales;
-      });
-    } catch (e) {
-      _logger.severe('Error fetching sales: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error loading sales data.')),
-        );
-      }
+  Future<List<Map<String, dynamic>>> _getSalesData() async {
+    final database = await openDatabase(
+      join(await getDatabasesPath(), 'sales.db'),
+    );
+
+    // Check if the sales table exists
+    final tableExists =
+        Sqflite.firstIntValue(
+          await database.rawQuery(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='sales';",
+          ),
+        ) ==
+        1;
+
+    if (!tableExists) {
+      // Create the sales table if it doesn't exist
+      await database.execute('''
+        CREATE TABLE sales (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT,
+          date TEXT,
+          time TEXT,
+          orderNumber TEXT,
+          username TEXT,
+          total REAL
+        )
+      ''');
     }
+
+    // Query the sales data
+    final List<Map<String, dynamic>> salesData = await database.query(
+      'sales',
+      columns: ['date', 'time', 'username', 'orderNumber', 'total'],
+    );
+    return salesData;
+  }
+
+  Future<String> _getUsername(String username) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'product_database.db');
+    final database = await openDatabase(path);
+
+    final result = await database.query(
+      'users',
+      columns: ['name'],
+      where: 'username = ?',
+      whereArgs: [username],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first['name'] as String;
+    } else {
+      return username; // Return username if name not found
+    }
+  }
+
+  Future<void> _showOrderDetails(String orderNumber) async {
+    final database = await openDatabase(
+      join(await getDatabasesPath(), 'sales.db'),
+    );
+
+    final orderDetails = await database.query(
+      'order_details',
+      where: 'orderNumber = ?',
+      whereArgs: [orderNumber],
+    );
+
+    showModalBottomSheet(
+      context: context as BuildContext,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Date', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('Time', style: TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Name', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Order Number',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              Divider(),
+              ...orderDetails.map((detail) {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${detail['product']} x${detail['quantity']}'),
+                    Text('\$${detail['price']}'),
+                  ],
+                );
+              }),
+              Divider(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Subtotal',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text('0.00'),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Tax', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('0.00'),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Discount',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text('0.00'),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('0.00'),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Amount Paid',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text('0.00'),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Change', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('0.00'),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (_sales.isEmpty)
-                const CircularProgressIndicator()
-              else
-                Column(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _salesData,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No sales data available.'));
+          } else {
+            final salesData =
+                snapshot.data!; // Use the non-null assertion operator
+
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text(
+                        'Date',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18, // Increase font size
+                        ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: const [
-                          Text('Order Number'),
-                          Text('Date'),
-                          Text('Username'),
-                          Text('Product ID'),
-                          Text('Product Name'),
-                          Text('Quantity'),
-                          Text('Price'),
-                          Text('Subtotal'),
-                          Text('Tax'),
-                          Text('Discount'),
-                          Text('Total'),
-                          Text('Amount Paid'),
-                          Text('Change'),
-                          Text('Mode of Payment'),
-                        ],
+                      Text(
+                        'Time',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18, // Increase font size
+                        ),
                       ),
-                    ),
-                    SizedBox(
-                      height: 400, // Define a fixed height for the ListView
-                      child: ListView.builder(
-                        itemCount: _sales.length,
-                        itemBuilder: (context, index) {
-                          final sale = _sales[index];
-                          return ListTile(
-                            title: Text('Order Number: ${sale['orderNumber']}'),
-                            subtitle: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  Text('Date: ${sale['date']}  '),
-                                  Text('Username: ${sale['username']}  '),
-                                  Text('Product ID: ${sale['productId']}  '),
-                                  Text(
-                                    'Product Name: ${sale['productName']}  ',
-                                  ),
-                                  Text('Quantity: ${sale['quantity']}  '),
-                                  Text('Price: ${sale['price']}  '),
-                                  Text('Subtotal: ${sale['subtotal']}  '),
-                                  Text('Tax: ${sale['tax']}  '),
-                                  Text('Discount: ${sale['discount']}  '),
-                                  Text('Total: ${sale['total']}  '),
-                                  Text('Amount Paid: ${sale['amountPaid']}  '),
-                                  Text('Change: ${sale['change']}  '),
-                                  Text(
-                                    'Mode of Payment: ${sale['modeOfPayment']}',
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                      Text(
+                        'Name',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18, // Increase font size
+                        ),
                       ),
-                    ),
-                  ],
+                      Text(
+                        'Order Number',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18, // Increase font size
+                        ),
+                      ),
+                      Text(
+                        'Total',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18, // Increase font size
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-            ],
-          ),
-        ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: salesData.length,
+                    itemBuilder: (context, index) {
+                      return FutureBuilder<String>(
+                        future: _getUsername(
+                          salesData[index]['username'] as String,
+                        ),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          } else if (snapshot.hasError) {
+                            return Center(
+                              child: Text('Error: ${snapshot.error}'),
+                            );
+                          } else {
+                            final sale = salesData[index];
+                            final date = sale['date'] as String?;
+                            final time = sale['time'] as String?;
+                            if (date == null || time == null) {
+                              return const SizedBox.shrink(); // Skip if date or time is null
+                            }
+                            final username = sale['username'] as String;
+                            final name =
+                                snapshot.data ??
+                                username; // Use fetched name or username
+                            final orderNumber = sale['orderNumber'] as String;
+                            final totalAmount = sale['total'] as num? ?? 0;
+
+                            return Card(
+                              margin: const EdgeInsets.symmetric(
+                                vertical: 4,
+                                horizontal: 8,
+                              ), // Add margin
+                              elevation: 4, // Add elevation for shadow
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(12.0),
+                                title: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      date,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16, // Default font size
+                                      ),
+                                    ),
+                                    Text(
+                                      time,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16, // Default font size
+                                      ),
+                                    ),
+                                    Text(
+                                      name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16, // Default font size
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap:
+                                          () => _showOrderDetails(orderNumber),
+                                      child: Text(
+                                        orderNumber,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '\$${totalAmount.toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16, // Default font size
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          }
+        },
       ),
     );
   }

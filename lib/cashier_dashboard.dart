@@ -263,6 +263,28 @@ class CashierDashboardState extends State<CashierDashboard> {
     );
   }
 
+  Future<void> _saveDiscountDetails(
+    String orderNumber,
+    String discountType,
+    String referenceNumber,
+  ) async {
+    final now = DateTime.now();
+    final dateFormat = DateFormat('yyyy-MM-dd');
+    final date = dateFormat.format(now);
+
+    try {
+      await SalesDatabase.instance.createDiscount(
+        date: date,
+        orderNumber: orderNumber,
+        discountType: discountType,
+        referenceNumber: referenceNumber,
+      );
+      _log.info('Discount details saved successfully for order: $orderNumber');
+    } catch (e) {
+      _log.severe('Error saving discount details: $e');
+    }
+  }
+
   void _showDiscountDialog() {
     showDialog(
       context: context,
@@ -313,9 +335,24 @@ class CashierDashboardState extends State<CashierDashboard> {
               child: Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                // Handle save action
-                Navigator.of(context).pop();
+              onPressed: () async {
+                if (selectedDiscountType != null &&
+                    referenceNumberController.text.isNotEmpty) {
+                  await _saveDiscountDetails(
+                    _currentOrderNumber,
+                    selectedDiscountType!,
+                    referenceNumberController.text,
+                  );
+                  Navigator.of(context).pop();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Please select a discount type and enter a reference number',
+                      ),
+                    ),
+                  );
+                }
               },
               child: Text('Save'),
             ),
@@ -343,6 +380,8 @@ class CashierDashboardState extends State<CashierDashboard> {
       const tax = 0.0;
       const discount = 0.0;
       final total = _calculateTotal();
+      final addInNames =
+          order['addInNames'] as List<String>? ?? []; // Retrieve add-in names
 
       try {
         await SalesDatabase.instance.create(
@@ -361,6 +400,7 @@ class CashierDashboardState extends State<CashierDashboard> {
           amountPaid: amountPaid,
           change: change,
           modeOfPayment: paymentMode,
+          addInNames: addInNames, // Pass add-in names to the database
         );
         _log.info('Sale recorded successfully for order: $orderNumber');
       } catch (e) {
@@ -705,7 +745,7 @@ class CashierDashboardState extends State<CashierDashboard> {
                                                       vertical: 0.5,
                                                     ), // Reduce padding
                                                 title: Text(
-                                                  'Add-Ins: $addInName',
+                                                  'Add-Ins: $addInName (\$${addIn?['price'].toStringAsFixed(2)})',
                                                 ),
                                                 trailing: Text(
                                                   '\$${addIn?['price'].toStringAsFixed(2)}',
