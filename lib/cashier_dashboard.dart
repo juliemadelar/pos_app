@@ -697,7 +697,8 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
     totalPrice += sizePrice * quantity;
 
     // Add add-in prices
-    final selectedProductAddIns = selectedAddIns[productId] ?? {};
+    final selectedProductAddIns =
+        selectedAddIns[productId] ?? {}; // Define selectedProductAddIns
     for (final addInId in selectedProductAddIns) {
       final addIn = widget.addInsList[productId]?.firstWhere(
         (addIn) => addIn['id'] == addInId,
@@ -729,9 +730,9 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
 
       // Calculate total price including add-ins
       double totalPrice = sizePrice * quantity;
-      final selectedProductAddIns = selectedAddIns[productId] ?? {};
       List<String> addInNames = []; // Add this line
-      // ...existing code...
+      final selectedProductAddIns =
+          selectedAddIns[productId] ?? {}; // Define selectedProductAddIns
       for (final addInId in selectedProductAddIns) {
         final addIn = widget.addInsList[productId]?.firstWhere(
           (addIn) => addIn['id'] == addInId,
@@ -825,7 +826,6 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                     widget.sizes
                         .where((size) => size['product_id'] == productId)
                         .toList();
-                final selectedProductAddIns = selectedAddIns[productId] ?? {};
 
                 return Container(
                   margin: EdgeInsets.symmetric(vertical: 10),
@@ -869,33 +869,6 @@ class ProductSelectionAreaState extends State<ProductSelectionArea> {
                                     ],
                                   ),
                                 ),
-                                // Display selected add-ins below the product name
-                                if (selectedProductAddIns.isNotEmpty)
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children:
-                                        selectedProductAddIns.map((addInId) {
-                                          final addIn = widget
-                                              .addInsList[productId]
-                                              ?.firstWhere(
-                                                (addIn) =>
-                                                    addIn['id'] == addInId,
-                                                orElse:
-                                                    () => {
-                                                      'name': 'Unknown',
-                                                      'price': 0,
-                                                    },
-                                              );
-                                          return Text(
-                                            '${addIn?['name']} (\$${addIn?['price'].toStringAsFixed(2)})',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey[700],
-                                            ),
-                                          );
-                                        }).toList(),
-                                  ),
                                 Row(
                                   children: [
                                     IconButton(

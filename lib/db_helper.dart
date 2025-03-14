@@ -230,6 +230,10 @@ class DBHelper {
     await _insertAddInIfNotExists(db, 'Cinnamon', 5.00, cappuccinoProductId);
     await _insertAddInIfNotExists(db, 'Brown Sugar', 5.00, cappuccinoProductId);
 
+    await _insertSizeIfNotExists(db, 'Regular', 40.00, cappuccinoProductId);
+    await _insertSizeIfNotExists(db, 'Medium', 60.00, cappuccinoProductId);
+    await _insertSizeIfNotExists(db, 'Large', 80.00, cappuccinoProductId);
+
     final int cafeLatteProductId = await _insertProductIfNotExists(
       db,
       'Cafe Latte',
@@ -248,6 +252,10 @@ class DBHelper {
       10.00,
       cafeLatteProductId,
     );
+
+    await _insertSizeIfNotExists(db, 'Regular', 40.00, cafeLatteProductId);
+    await _insertSizeIfNotExists(db, 'Medium', 60.00, cafeLatteProductId);
+    await _insertSizeIfNotExists(db, 'Large', 80.00, cafeLatteProductId);
 
     // Add products for Cold Coffee
     final int icedAmericanoProductId = await _insertProductIfNotExists(
@@ -269,6 +277,10 @@ class DBHelper {
       icedAmericanoProductId,
     );
 
+    await _insertSizeIfNotExists(db, 'Regular', 40.00, icedAmericanoProductId);
+    await _insertSizeIfNotExists(db, 'Medium', 60.00, icedAmericanoProductId);
+    await _insertSizeIfNotExists(db, 'Large', 80.00, icedAmericanoProductId);
+
     final int icedMochaProductId = await _insertProductIfNotExists(
       db,
       'Iced Mocha',
@@ -288,6 +300,10 @@ class DBHelper {
       icedMochaProductId,
     );
 
+    await _insertSizeIfNotExists(db, 'Regular', 40.00, icedMochaProductId);
+    await _insertSizeIfNotExists(db, 'Medium', 60.00, icedMochaProductId);
+    await _insertSizeIfNotExists(db, 'Large', 80.00, icedMochaProductId);
+
     // Add products for Milk Tea
     final int classicMilkTeaProductId = await _insertProductIfNotExists(
       db,
@@ -302,6 +318,10 @@ class DBHelper {
       15.00,
       classicMilkTeaProductId,
     );
+
+    await _insertSizeIfNotExists(db, 'Regular', 40.00, classicMilkTeaProductId);
+    await _insertSizeIfNotExists(db, 'Medium', 60.00, classicMilkTeaProductId);
+    await _insertSizeIfNotExists(db, 'Large', 80.00, classicMilkTeaProductId);
 
     final int wintermelonMilkTeaProductId = await _insertProductIfNotExists(
       db,
@@ -322,6 +342,25 @@ class DBHelper {
       wintermelonMilkTeaProductId,
     );
 
+    await _insertSizeIfNotExists(
+      db,
+      'Regular',
+      40.00,
+      wintermelonMilkTeaProductId,
+    );
+    await _insertSizeIfNotExists(
+      db,
+      'Medium',
+      60.00,
+      wintermelonMilkTeaProductId,
+    );
+    await _insertSizeIfNotExists(
+      db,
+      'Large',
+      80.00,
+      wintermelonMilkTeaProductId,
+    );
+
     // Add sub-categories for Food
     final int pastrySubCategoryId = await _insertSubCategoryIfNotExists(
       db,
@@ -337,27 +376,33 @@ class DBHelper {
     );
 
     // Add products for Pastry
-    await _insertProductIfNotExists(
+    final int chocomuffinProductID = await _insertProductIfNotExists(
       db,
       'Choco Muffin',
       'assets/choco_muffin_image.png', // Corrected image path
       pastrySubCategoryId,
     );
 
+    await _insertSizeIfNotExists(db, 'Regular', 50.00, chocomuffinProductID);
+
     // Add products for Sandwiches
-    await _insertProductIfNotExists(
+    final int hamandcheeseProductID = await _insertProductIfNotExists(
       db,
       'Ham and Cheese',
       'assets/ham_cheese_image.png', // Ensure this path is correct
       sandwichesSubCategoryId,
     );
 
-    await _insertProductIfNotExists(
+    await _insertSizeIfNotExists(db, 'Regular', 50.00, hamandcheeseProductID);
+
+    final int tunameltProductID = await _insertProductIfNotExists(
       db,
       'Tuna Melt',
       'assets/tuna_melt.jpg',
       sandwichesSubCategoryId,
     );
+
+    await _insertSizeIfNotExists(db, 'Regular', 50.00, tunameltProductID);
 
     // Add sub-categories for Other
     final int merchandiseSubCategoryId = await _insertSubCategoryIfNotExists(
@@ -368,12 +413,14 @@ class DBHelper {
     );
 
     // Add products for Merchandise
-    await _insertProductIfNotExists(
+    final int mugProductID = await _insertProductIfNotExists(
       db,
       'Mug',
       'assets/mug.jpg',
       merchandiseSubCategoryId,
     );
+
+    await _insertSizeIfNotExists(db, 'Regular', 40.00, mugProductID);
   }
 
   Future<int> insertCategory(Map<String, dynamic> row) async {
@@ -759,213 +806,299 @@ class DBHelper {
   }
 
   Future<void> createAndSaveProductTables() async {
-    Database db = await database;
+    await _dbMutex.acquire();
+    try {
+      Database db = await database;
 
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS sizes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        product_id INTEGER,
-        size TEXT,
-        price REAL,
-        FOREIGN KEY (product_id) REFERENCES products(id)
-      )
-    ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS sizes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          product_id INTEGER,
+          size TEXT,
+          price REAL,
+          FOREIGN KEY (product_id) REFERENCES products(id)
+        )
+      ''');
 
-    // Clear existing data
-    await db.delete('add_ins');
-    await db.delete('products');
-    await db.delete('sub_categories');
-    await db.delete('categories');
+      // Clear existing data
+      await db.delete('add_ins');
+      await db.delete('products');
+      await db.delete('sub_categories');
+      await db.delete('categories');
 
-    // Add categories
-    final int drinksCategoryId = await _insertCategoryIfNotExists(db, 'Drinks');
-    final int foodCategoryId = await _insertCategoryIfNotExists(db, 'Food');
-    final int otherCategoryId = await _insertCategoryIfNotExists(db, 'Other');
+      // Add categories
+      final int drinksCategoryId = await _insertCategoryIfNotExists(
+        db,
+        'Drinks',
+      );
+      final int foodCategoryId = await _insertCategoryIfNotExists(db, 'Food');
+      final int otherCategoryId = await _insertCategoryIfNotExists(db, 'Other');
 
-    // Add sub-categories for Drinks
-    final int hotCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(
-      db,
-      'Hot Coffee',
-      'assets/hotcoffee_default.png',
-      drinksCategoryId,
-    );
-    final int coldCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(
-      db,
-      'Cold Coffee',
-      'assets/cold_brew.jpg',
-      drinksCategoryId,
-    );
-    final int milkTeaSubCategoryId = await _insertSubCategoryIfNotExists(
-      db,
-      'Milk Tea',
-      'assets/milktea_default.png',
-      drinksCategoryId,
-    );
+      // Add sub-categories for Drinks
+      final int hotCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(
+        db,
+        'Hot Coffee',
+        'assets/hotcoffee_default.png',
+        drinksCategoryId,
+      );
+      final int coldCoffeeSubCategoryId = await _insertSubCategoryIfNotExists(
+        db,
+        'Cold Coffee',
+        'assets/cold_brew.jpg',
+        drinksCategoryId,
+      );
+      final int milkTeaSubCategoryId = await _insertSubCategoryIfNotExists(
+        db,
+        'Milk Tea',
+        'assets/milktea_default.png',
+        drinksCategoryId,
+      );
 
-    // Add products for Hot Coffee
-    final int cappuccinoProductId = await _insertProductIfNotExists(
-      db,
-      'Cappuccino',
-      'assets/cappuccino.png',
-      hotCoffeeSubCategoryId,
-    );
-    await _insertAddInIfNotExists(db, 'Cinnamon', 5.00, cappuccinoProductId);
-    await _insertAddInIfNotExists(db, 'Brown Sugar', 5.00, cappuccinoProductId);
+      // Add products for Hot Coffee
+      final int cappuccinoProductId = await _insertProductIfNotExists(
+        db,
+        'Cappuccino',
+        'assets/cappuccino.png',
+        hotCoffeeSubCategoryId,
+      );
+      await _insertAddInIfNotExists(db, 'Cinnamon', 5.00, cappuccinoProductId);
+      await _insertAddInIfNotExists(
+        db,
+        'Brown Sugar',
+        5.00,
+        cappuccinoProductId,
+      );
 
-    final int cafeLatteProductId = await _insertProductIfNotExists(
-      db,
-      'Cafe Latte',
-      'assets/hot_cafe_latte.png',
-      hotCoffeeSubCategoryId,
-    );
-    await _insertAddInIfNotExists(
-      db,
-      'Vanilla Syrup',
-      10.00,
-      cafeLatteProductId,
-    );
-    await _insertAddInIfNotExists(
-      db,
-      'Caramel Syrup',
-      10.00,
-      cafeLatteProductId,
-    );
+      await _insertSizeIfNotExists(db, 'Regular', 40.00, cappuccinoProductId);
+      await _insertSizeIfNotExists(db, 'Medium', 60.00, cappuccinoProductId);
+      await _insertSizeIfNotExists(db, 'Large', 80.00, cappuccinoProductId);
 
-    // Add products for Cold Coffee
-    final int icedAmericanoProductId = await _insertProductIfNotExists(
-      db,
-      'Iced Americano',
-      'assets/iced_coffee.jpg',
-      coldCoffeeSubCategoryId,
-    );
-    await _insertAddInIfNotExists(
-      db,
-      'Extra Shot',
-      15.00,
-      icedAmericanoProductId,
-    );
-    await _insertAddInIfNotExists(
-      db,
-      'Sweet Cream',
-      10.00,
-      icedAmericanoProductId,
-    );
+      final int cafeLatteProductId = await _insertProductIfNotExists(
+        db,
+        'Cafe Latte',
+        'assets/hot_cafe_latte.png',
+        hotCoffeeSubCategoryId,
+      );
+      await _insertAddInIfNotExists(
+        db,
+        'Vanilla Syrup',
+        10.00,
+        cafeLatteProductId,
+      );
+      await _insertAddInIfNotExists(
+        db,
+        'Caramel Syrup',
+        10.00,
+        cafeLatteProductId,
+      );
 
-    final int icedMochaProductId = await _insertProductIfNotExists(
-      db,
-      'Iced Mocha',
-      'assets/iced_mocha.png',
-      coldCoffeeSubCategoryId,
-    );
-    await _insertAddInIfNotExists(
-      db,
-      'Chocolate Drizzle',
-      8.00,
-      icedMochaProductId,
-    );
-    await _insertAddInIfNotExists(
-      db,
-      'Whipped Cream',
-      10.00,
-      icedMochaProductId,
-    );
+      await _insertSizeIfNotExists(db, 'Regular', 40.00, cafeLatteProductId);
+      await _insertSizeIfNotExists(db, 'Medium', 60.00, cafeLatteProductId);
+      await _insertSizeIfNotExists(db, 'Large', 80.00, cafeLatteProductId);
 
-    // Add products for Milk Tea
-    final int classicMilkTeaProductId = await _insertProductIfNotExists(
-      db,
-      'Classic Milk Tea',
-      'assets/classic_milktea.jpg',
-      milkTeaSubCategoryId,
-    );
-    await _insertAddInIfNotExists(db, 'Pearls', 10.00, classicMilkTeaProductId);
-    await _insertAddInIfNotExists(
-      db,
-      'Pudding',
-      15.00,
-      classicMilkTeaProductId,
-    );
+      // Add products for Cold Coffee
+      final int icedAmericanoProductId = await _insertProductIfNotExists(
+        db,
+        'Iced Americano',
+        'assets/iced_coffee.jpg',
+        coldCoffeeSubCategoryId,
+      );
+      await _insertAddInIfNotExists(
+        db,
+        'Extra Shot',
+        15.00,
+        icedAmericanoProductId,
+      );
+      await _insertAddInIfNotExists(
+        db,
+        'Sweet Cream',
+        10.00,
+        icedAmericanoProductId,
+      );
 
-    final int wintermelonMilkTeaProductId = await _insertProductIfNotExists(
-      db,
-      'Wintermelon Milk Tea',
-      'assets/cold_milktea_wintermelon.png',
-      milkTeaSubCategoryId,
-    );
-    await _insertAddInIfNotExists(
-      db,
-      'Grass Jelly',
-      12.00,
-      wintermelonMilkTeaProductId,
-    );
-    await _insertAddInIfNotExists(
-      db,
-      'Oreo Crumbs',
-      18.00,
-      wintermelonMilkTeaProductId,
-    );
+      await _insertSizeIfNotExists(
+        db,
+        'Regular',
+        40.00,
+        icedAmericanoProductId,
+      );
+      await _insertSizeIfNotExists(db, 'Medium', 60.00, icedAmericanoProductId);
+      await _insertSizeIfNotExists(db, 'Large', 80.00, icedAmericanoProductId);
 
-    // Add sub-categories for Food
-    final int pastrySubCategoryId = await _insertSubCategoryIfNotExists(
-      db,
-      'Pastry',
-      'assets/pastry_default.png',
-      foodCategoryId,
-    );
-    final int sandwichesSubCategoryId = await _insertSubCategoryIfNotExists(
-      db,
-      'Sandwiches',
-      'assets/sandwich_default.jpg',
-      foodCategoryId,
-    );
+      final int icedMochaProductId = await _insertProductIfNotExists(
+        db,
+        'Iced Mocha',
+        'assets/iced_mocha.png',
+        coldCoffeeSubCategoryId,
+      );
+      await _insertAddInIfNotExists(
+        db,
+        'Chocolate Drizzle',
+        8.00,
+        icedMochaProductId,
+      );
+      await _insertAddInIfNotExists(
+        db,
+        'Whipped Cream',
+        10.00,
+        icedMochaProductId,
+      );
 
-    // Add products for Pastry
-    await _insertProductIfNotExists(
-      db,
-      'Choco Muffin',
-      'assets/choco_muffin_image.png', // Corrected image path
-      pastrySubCategoryId,
-    );
+      await _insertSizeIfNotExists(db, 'Regular', 40.00, icedMochaProductId);
+      await _insertSizeIfNotExists(db, 'Medium', 60.00, icedMochaProductId);
+      await _insertSizeIfNotExists(db, 'Large', 80.00, icedMochaProductId);
 
-    // Add products for Sandwiches
-    await _insertProductIfNotExists(
-      db,
-      'Ham and Cheese',
-      'assets/ham_cheese_image.png', // Ensure this path is correct
-      sandwichesSubCategoryId,
-    );
+      // Add products for Milk Tea
+      final int classicMilkTeaProductId = await _insertProductIfNotExists(
+        db,
+        'Classic Milk Tea',
+        'assets/classic_milktea.jpg',
+        milkTeaSubCategoryId,
+      );
+      await _insertAddInIfNotExists(
+        db,
+        'Pearls',
+        10.00,
+        classicMilkTeaProductId,
+      );
+      await _insertAddInIfNotExists(
+        db,
+        'Pudding',
+        15.00,
+        classicMilkTeaProductId,
+      );
 
-    await _insertProductIfNotExists(
-      db,
-      'Tuna Melt',
-      'assets/tuna_melt.jpg',
-      sandwichesSubCategoryId,
-    );
+      await _insertSizeIfNotExists(
+        db,
+        'Regular',
+        40.00,
+        classicMilkTeaProductId,
+      );
+      await _insertSizeIfNotExists(
+        db,
+        'Medium',
+        60.00,
+        classicMilkTeaProductId,
+      );
+      await _insertSizeIfNotExists(db, 'Large', 80.00, classicMilkTeaProductId);
 
-    // Add sub-categories for Other
-    final int merchandiseSubCategoryId = await _insertSubCategoryIfNotExists(
-      db,
-      'Merchandise',
-      'assets/keychain.jpg',
-      otherCategoryId,
-    );
+      final int wintermelonMilkTeaProductId = await _insertProductIfNotExists(
+        db,
+        'Wintermelon Milk Tea',
+        'assets/cold_milktea_wintermelon.png',
+        milkTeaSubCategoryId,
+      );
+      await _insertAddInIfNotExists(
+        db,
+        'Grass Jelly',
+        12.00,
+        wintermelonMilkTeaProductId,
+      );
+      await _insertAddInIfNotExists(
+        db,
+        'Oreo Crumbs',
+        18.00,
+        wintermelonMilkTeaProductId,
+      );
 
-    // Add products for Merchandise
-    await _insertProductIfNotExists(
-      db,
-      'Mug',
-      'assets/mug.jpg',
-      merchandiseSubCategoryId,
-    );
+      await _insertSizeIfNotExists(
+        db,
+        'Regular',
+        40.00,
+        wintermelonMilkTeaProductId,
+      );
+      await _insertSizeIfNotExists(
+        db,
+        'Medium',
+        60.00,
+        wintermelonMilkTeaProductId,
+      );
+      await _insertSizeIfNotExists(
+        db,
+        'Large',
+        80.00,
+        wintermelonMilkTeaProductId,
+      );
 
-    // Add users
-    await _insertUserIfNotExists(
-      db,
-      'cashier1',
-      'password123',
-      'cashier',
-      'Julie',
-    );
-    await _insertUserIfNotExists(db, 'admin', 'password123', 'admin', 'Admin');
+      // Add sub-categories for Food
+      final int pastrySubCategoryId = await _insertSubCategoryIfNotExists(
+        db,
+        'Pastry',
+        'assets/pastry_default.png',
+        foodCategoryId,
+      );
+      final int sandwichesSubCategoryId = await _insertSubCategoryIfNotExists(
+        db,
+        'Sandwiches',
+        'assets/sandwich_default.jpg',
+        foodCategoryId,
+      );
+
+      // Add products for Pastry
+      final int chocomuffinProductID = await _insertProductIfNotExists(
+        db,
+        'Choco Muffin',
+        'assets/choco_muffin_image.png', // Corrected image path
+        pastrySubCategoryId,
+      );
+
+      await _insertSizeIfNotExists(db, 'Regular', 50.00, chocomuffinProductID);
+
+      // Add products for Sandwiches
+      final int hamandcheeseProductID = await _insertProductIfNotExists(
+        db,
+        'Ham and Cheese',
+        'assets/ham_cheese_image.png', // Ensure this path is correct
+        sandwichesSubCategoryId,
+      );
+
+      await _insertSizeIfNotExists(db, 'Regular', 50.00, hamandcheeseProductID);
+
+      final int tunameltProductID = await _insertProductIfNotExists(
+        db,
+        'Tuna Melt',
+        'assets/tuna_melt.jpg',
+        sandwichesSubCategoryId,
+      );
+
+      await _insertSizeIfNotExists(db, 'Regular', 50.00, tunameltProductID);
+
+      // Add sub-categories for Other
+      final int merchandiseSubCategoryId = await _insertSubCategoryIfNotExists(
+        db,
+        'Merchandise',
+        'assets/keychain.jpg',
+        otherCategoryId,
+      );
+
+      // Add products for Merchandise
+      final int mugProductID = await _insertProductIfNotExists(
+        db,
+        'Mug',
+        'assets/mug.jpg',
+        merchandiseSubCategoryId,
+      );
+
+      await _insertSizeIfNotExists(db, 'Regular', 40.00, mugProductID);
+
+      // Add users
+      await _insertUserIfNotExists(
+        db,
+        'cashier1',
+        'password123',
+        'cashier',
+        'Julie',
+      );
+      await _insertUserIfNotExists(
+        db,
+        'admin',
+        'password123',
+        'admin',
+        'Admin',
+      );
+    } finally {
+      _dbMutex.release();
+    }
   }
 
   Future<int> _insertCategoryIfNotExists(Database db, String name) async {
@@ -1441,5 +1574,25 @@ class DBHelper {
   Future<void> insertSize(Map<String, dynamic> size) async {
     final db = await database;
     await db.insert('sizes', size);
+  }
+
+  Future<void> _insertSizeIfNotExists(
+    Database db,
+    String size,
+    double price,
+    int productId,
+  ) async {
+    var result = await db.query(
+      'sizes',
+      where: 'product_id = ? AND size = ?',
+      whereArgs: [productId, size],
+    );
+    if (result.isEmpty) {
+      await db.insert('sizes', {
+        'product_id': productId,
+        'size': size,
+        'price': price,
+      });
+    }
   }
 }
