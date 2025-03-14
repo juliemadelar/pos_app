@@ -431,6 +431,9 @@ class CashierDashboardState extends State<CashierDashboard> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   ListTile(
+                                    contentPadding: EdgeInsets.symmetric(
+                                      vertical: 1.0,
+                                    ), // Reduce padding
                                     title: Text(
                                       '${orderItem['size']} ${orderItem['product']} x ${orderItem['quantity']}',
                                     ),
@@ -453,31 +456,41 @@ class CashierDashboardState extends State<CashierDashboard> {
                                   ),
                                   if (orderItem['addInNames'] != null &&
                                       orderItem['addInNames'].isNotEmpty)
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children:
-                                          orderItem['addInNames'].map<Widget>((
-                                            addInName,
-                                          ) {
-                                            final addIn =
-                                                addInsList[orderItem['product_id']]
-                                                    ?.firstWhere(
-                                                      (addIn) =>
-                                                          addIn['name'] ==
-                                                          addInName,
-                                                      orElse:
-                                                          () => {'price': 0},
-                                                    );
-                                            return ListTile(
-                                              title: Text(
-                                                '   Add-Ins: $addInName',
-                                              ),
-                                              trailing: Text(
-                                                '\$${addIn?['price'].toStringAsFixed(2)}',
-                                              ),
-                                            );
-                                          }).toList(),
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: 14.0,
+                                      ), // Adjust padding
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children:
+                                            orderItem['addInNames'].map<
+                                              Widget
+                                            >((addInName) {
+                                              final addIn =
+                                                  addInsList[orderItem['product_id']]
+                                                      ?.firstWhere(
+                                                        (addIn) =>
+                                                            addIn['name'] ==
+                                                            addInName,
+                                                        orElse:
+                                                            () => {'price': 0},
+                                                      );
+                                              return ListTile(
+                                                dense: true, // Reduce spacing
+                                                contentPadding:
+                                                    EdgeInsets.symmetric(
+                                                      vertical: 2.0,
+                                                    ), // Reduce padding
+                                                title: Text(
+                                                  'Add-Ins: $addInName',
+                                                ),
+                                                trailing: Text(
+                                                  '\$${addIn?['price'].toStringAsFixed(2)}',
+                                                ),
+                                              );
+                                            }).toList(),
+                                      ),
                                     ),
                                 ],
                               );
