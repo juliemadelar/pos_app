@@ -48,6 +48,9 @@ class CashierDashboardState extends State<CashierDashboard> {
   String _currentOrderNumber =
       ''; // Add this line to store the current order number
   double taxValue = 0.0; // Add this line to store the tax value
+  String? selectedDiscountType; // Add this line
+  TextEditingController referenceNumberController =
+      TextEditingController(); // Add this line
 
   CashierDashboardState() {
     _dashboardState = this;
@@ -253,6 +256,68 @@ class CashierDashboardState extends State<CashierDashboard> {
                 }
               },
               child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDiscountDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Apply Discount'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: selectedDiscountType,
+                items: [
+                  DropdownMenuItem(
+                    value: 'Senior Citizen Discount',
+                    child: Text('Senior Citizen Discount'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'PWD Discount',
+                    child: Text('PWD Discount'),
+                  ),
+                  DropdownMenuItem(value: 'Other', child: Text('Other')),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    selectedDiscountType = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  labelText: 'Select Discount Type',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: referenceNumberController,
+                decoration: InputDecoration(
+                  labelText: 'Reference Number',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Handle save action
+                Navigator.of(context).pop();
+              },
+              child: Text('Save'),
             ),
           ],
         );
@@ -739,6 +804,11 @@ class CashierDashboardState extends State<CashierDashboard> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
+                              ElevatedButton(
+                                onPressed:
+                                    _showDiscountDialog, // Show discount dialog on button press
+                                child: Text('Discount'),
+                              ),
                               ElevatedButton(
                                 onPressed:
                                     _showCashDialog, // Show cash dialog on button press
