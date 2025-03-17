@@ -59,11 +59,39 @@ class CashierDashboardState extends State<CashierDashboard> {
   @override
   void initState() {
     super.initState();
+    _createSalesTableIfNotExists(); // Ensure sales table is created
     _fetchCashierName(widget.username); // Fetch cashier name on init
     _fetchBusinessDetails(); // Fetch business details on init
     _fetchCategoriesAndSubCategories();
     _fetchAddInsForProducts(); // Initialize addInsList
     _fetchTaxValue(); // Fetch tax value on init
+  }
+
+  Future<void> _createSalesTableIfNotExists() async {
+    final db = await SalesDatabase.instance.database;
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sales (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_number TEXT,
+        order_date TEXT,
+        order_time TEXT,
+        name TEXT,
+        subtotal REAL,
+        tax REAL,
+        discount REAL,
+        total REAL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS order_items (
+        order_item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER,
+        product_id INTEGER,
+        quantity INTEGER,
+        FOREIGN KEY (order_id) REFERENCES sales (id),
+        FOREIGN KEY (product_id) REFERENCES products (product_id)
+      )
+    ''');
   }
 
   Future<void> _fetchCategoriesAndSubCategories() async {
@@ -375,43 +403,60 @@ class CashierDashboardState extends State<CashierDashboard> {
     double total = _calculateTotal();
 
     try {
-      // Insert order into Orders table
-      final orderId = await SalesDatabase.instance.createOrder(
-        orderNumber: orderNumber,
-        orderDate: date,
-        orderTime: time,
-        name: widget.username,
-        subtotal: subtotal,
-        tax: tax,
-        discount: discount,
-        total: total,
-      );
+      final db = await SalesDatabase.instance.database;
+      await db.transaction((txn) async {
+        // Insert order into sales table
+        final orderId = await txn.insert('sales', {
+          'order_number': orderNumber,
+          'order_date': date,
+          'order_time': time,
+          'name': widget.username,
+          'subtotal': subtotal,
+          'tax': tax,
+          'discount': discount,
+          'total': total,
+        });
 
-      // Insert order items into Order Items table
-      for (final order in orderDetails) {
-        final productId = order['product_id'];
-        final quantity = order['quantity'];
+        // Insert order items into Order Items table
+        for (final order in orderDetails) {
+          final productId = order['product_id'];
+          final quantity = order['quantity'];
 
-        final orderItemId = await SalesDatabase.instance.createOrderItem(
-          orderId: orderId,
-          productId: productId,
-          quantity: quantity,
-        );
+          final orderItemId = await txn.insert('order_items', {
+            'order_id': orderId,
+            'product_id': productId,
+            'quantity': quantity,
+          });
 
-        // Insert add-ins into Order Item Add-ins table
-        final addInIds = order['addIns'] as List<int>;
-        for (final addInId in addInIds) {
-          await SalesDatabase.instance.createOrderItemAddIn(
-            orderItemId: orderItemId,
-            addInId: addInId,
-          );
+          // Insert add-ins into Order Item Add-ins table
+          final addInIds = order['addIns'] as List<int>;
+          for (final addInId in addInIds) {
+            await txn.insert('order_item_add_ins', {
+              'order_item_id': orderItemId,
+              'add_in_id': addInId,
+            });
+          }
         }
-      }
-
+      });
       _log.info('Sale recorded successfully for order: $orderNumber');
+    } on Exception catch (e) {
+      _log.severe(
+        'Database error recording sale: $e',
+      ); // Log the specific exception
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error recording sale: ${e.toString()}')),
+        );
+      }
+      return false;
     } catch (e) {
       _log.severe('Error recording sale: $e');
-      return false; // Exit the function if there's an error
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error recording sale: ${e.toString()}')),
+        );
+      }
+      return false;
     }
 
     // Clear the order details after recording the sale only if payment mode is "Print"

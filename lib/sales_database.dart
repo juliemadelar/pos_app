@@ -1,12 +1,26 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:developer'; // Import for logging
+
+void main() {
+  // Initialize FFI
+  sqfliteFfiInit();
+  // Set the database factory
+  databaseFactory = databaseFactoryFfi;
+  // ...existing code...
+}
 
 class SalesDatabase {
   static final SalesDatabase instance = SalesDatabase._init();
 
   static Database? _database;
 
-  SalesDatabase._init();
+  SalesDatabase._init() {
+    // Initialize FFI and set the database factory
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -19,7 +33,18 @@ class SalesDatabase {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    try {
+      log('Initializing database at $path'); // Log database path
+      return await openDatabase(
+        path,
+        version: 3, // Increment version to 3
+        onCreate: _createDB,
+        onUpgrade: _upgradeDB,
+      );
+    } catch (e) {
+      log('Error initializing database: $e'); // Log any errors
+      rethrow;
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -28,117 +53,140 @@ class SalesDatabase {
     const integerType = 'INTEGER NOT NULL';
     const realType = 'REAL NOT NULL';
 
-    await db.execute('''
-    CREATE TABLE sales (
-      id $idType,
-      date $textType,
-      time $textType,
-      username $textType,
-      orderNumber $textType,
-      productId $integerType,
-      productName $textType,
-      quantity $integerType,
-      price $realType,
-      subtotal $realType,
-      tax $realType,
-      discount $realType,
-      total $realType,
-      amountPaid $realType,
-      change $realType,
-      modeOfPayment $textType,
-      addInNames TEXT 
-    )
-    ''');
+    try {
+      log('Creating tables'); // Log table creation start
+      // Corrected table creation order. Products and Add-ins must exist before linking tables
+      await db.execute('''
+      CREATE TABLE products (
+        product_id $idType,
+        product_name $textType,
+        base_price $realType
+      )
+      ''');
 
-    await db.execute('''
-    CREATE TABLE discounts (
-      id $idType,
-      date $textType,
-      orderNumber $textType,
-      discountType $textType,
-      referenceNumber $textType
-    )
-    ''');
+      await db.execute('''
+      CREATE TABLE add_ins (
+        add_in_id $idType,
+        add_in_name $textType,
+        add_in_price $realType
+      )
+      ''');
 
-    await db.execute('''
-    CREATE TABLE users (
-      id $idType,
-      username $textType,
-      name $textType,
-      logout_time $textType
-    )
-    ''');
+      await db.execute('''
+      CREATE TABLE order_item_add_ins (
+        order_item_add_in_id $idType,
+        order_item_id $integerType,
+        add_in_id $integerType,
+        FOREIGN KEY (order_item_id) REFERENCES order_items (order_item_id),
+        FOREIGN KEY (add_in_id) REFERENCES add_ins (add_in_id)
+      )
+      ''');
 
-    await db.execute('''
-    CREATE TABLE order_details (
-      id $idType,
-      orderNumber $textType,
-      product $textType,
-      quantity $integerType,
-      price $realType
-    )
-    ''');
+      await db.execute('''
+      CREATE TABLE orders (
+        order_id $idType,
+        order_number $textType,
+        order_date $textType,
+        order_time $textType,
+        name $textType,
+        subtotal $realType,
+        tax $realType,
+        discount $realType,
+        total $realType
+      )
+      ''');
 
-    await db.execute('''
-    CREATE TABLE products (
-      product_id $idType,
-      product_name $textType,
-      base_price $realType
-    )
-    ''');
+      await db.execute('''
+      CREATE TABLE order_items (
+        order_item_id $idType,
+        order_id $integerType,
+        product_id $integerType,
+        quantity $integerType,
+        FOREIGN KEY (order_id) REFERENCES orders (order_id),
+        FOREIGN KEY (product_id) REFERENCES products (product_id)
+      )
+      ''');
 
-    await db.execute('''
-    CREATE TABLE add_ins (
-      add_in_id $idType,
-      add_in_name $textType,
-      add_in_price $realType
-    )
-    ''');
+      await db.execute('''
+      CREATE TABLE product_add_ins (
+        product_add_in_id $idType,
+        product_id $integerType,
+        add_in_id $integerType,
+        FOREIGN KEY (product_id) REFERENCES products (product_id),
+        FOREIGN KEY (add_in_id) REFERENCES add_ins (add_in_id)
+      )
+      ''');
 
-    await db.execute('''
-    CREATE TABLE product_add_ins (
-      product_add_in_id $idType,
-      product_id $integerType,
-      add_in_id $integerType,
-      FOREIGN KEY (product_id) REFERENCES products (product_id),
-      FOREIGN KEY (add_in_id) REFERENCES add_ins (add_in_id)
-    )
-    ''');
+      await db.execute('''
+      CREATE TABLE sales (
+        id $idType,
+        date $textType,
+        time $textType,
+        username $textType,
+        orderNumber $textType,
+        productId $integerType,
+        productName $textType,
+        quantity $integerType,
+        price $realType,
+        subtotal $realType,
+        tax $realType,
+        discount $realType,
+        total $realType,
+        amountPaid $realType,
+        change $realType,
+        modeOfPayment $textType,
+        addInNames TEXT 
+      )
+      ''');
 
-    await db.execute('''
-    CREATE TABLE orders (
-      order_id $idType,
-      order_number $textType,
-      order_date $textType,
-      order_time $textType,
-      name $textType,
-      subtotal $realType,
-      tax $realType,
-      discount $realType,
-      total $realType
-    )
-    ''');
+      await db.execute('''
+      CREATE TABLE discounts (
+        id $idType,
+        date $textType,
+        orderNumber $textType,
+        discountType $textType,
+        referenceNumber $textType
+      )
+      ''');
 
-    await db.execute('''
-    CREATE TABLE order_items (
-      order_item_id $idType,
-      order_id $integerType,
-      product_id $integerType,
-      quantity $integerType,
-      FOREIGN KEY (order_id) REFERENCES orders (order_id),
-      FOREIGN KEY (product_id) REFERENCES products (product_id)
-    )
-    ''');
+      await db.execute('''
+      CREATE TABLE users (
+        id $idType,
+        username $textType,
+        name $textType,
+        logout_time $textType
+      )
+      ''');
 
-    await db.execute('''
-    CREATE TABLE order_item_add_ins (
-      order_item_add_in_id $idType,
-      order_item_id $integerType,
-      add_in_id $integerType,
-      FOREIGN KEY (order_item_id) REFERENCES order_items (order_item_id),
-      FOREIGN KEY (add_in_id) REFERENCES add_ins (add_in_id)
-    )
-    ''');
+      await db.execute('''
+      CREATE TABLE order_details (
+        id $idType,
+        orderNumber $textType,
+        product $textType,
+        quantity $integerType,
+        price $realType
+      )
+      ''');
+      log('Tables created successfully'); // Log successful table creation
+    } catch (e) {
+      log('Error creating tables: $e'); // Log any errors during table creation
+      rethrow;
+    }
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 3) {
+      // Ensure the table is created in case of an update
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS order_item_add_ins (
+          order_item_add_in_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          order_item_id INTEGER NOT NULL,
+          add_in_id INTEGER NOT NULL,
+          FOREIGN KEY (order_item_id) REFERENCES order_items (order_item_id),
+          FOREIGN KEY (add_in_id) REFERENCES add_ins (add_in_id)
+        )
+      ''');
+    }
   }
 
   Future<void> create({
@@ -303,6 +351,28 @@ class SalesDatabase {
     });
   }
 
+  Future<void> deleteOrder(int orderId) async {
+    final db = await instance.database;
+
+    // Delete order item add-ins
+    await db.delete(
+      'order_item_add_ins',
+      where:
+          'order_item_id IN (SELECT order_item_id FROM order_items WHERE order_id = ?)',
+      whereArgs: [orderId],
+    );
+
+    // Delete order items
+    await db.delete('order_items', where: 'order_id = ?', whereArgs: [orderId]);
+
+    // Delete the order
+    await db.delete('orders', where: 'order_id = ?', whereArgs: [orderId]);
+  }
+
+  Future<void> deleteDatabase() async {
+    await deleteDatabase();
+  }
+
   static Future<Database> openSalesDatabase() async {
     return openDatabase(
       join(await getDatabasesPath(), 'product_database.db'),
@@ -327,7 +397,12 @@ class SalesDatabase {
           )
         ''');
       },
-      version: 1,
+      version: 3,
     );
+  }
+
+  Future<void> deleteAndReinitializeDatabase() async {
+    await deleteDatabase();
+    _database = await _initDB('product_database.db');
   }
 }
