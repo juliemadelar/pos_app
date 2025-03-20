@@ -59,39 +59,11 @@ class CashierDashboardState extends State<CashierDashboard> {
   @override
   void initState() {
     super.initState();
-    _createSalesTableIfNotExists(); // Ensure sales table is created
     _fetchCashierName(widget.username); // Fetch cashier name on init
     _fetchBusinessDetails(); // Fetch business details on init
     _fetchCategoriesAndSubCategories();
     _fetchAddInsForProducts(); // Initialize addInsList
     _fetchTaxValue(); // Fetch tax value on init
-  }
-
-  Future<void> _createSalesTableIfNotExists() async {
-    final db = await SalesDatabase.instance.database;
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS sales (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        order_number TEXT,
-        order_date TEXT,
-        order_time TEXT,
-        name TEXT,
-        subtotal REAL,
-        tax REAL,
-        discount REAL,
-        total REAL
-      )
-    ''');
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS order_items (
-        order_item_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        order_id INTEGER,
-        product_id INTEGER,
-        quantity INTEGER,
-        FOREIGN KEY (order_id) REFERENCES sales (id),
-        FOREIGN KEY (product_id) REFERENCES products (product_id)
-      )
-    ''');
   }
 
   Future<void> _fetchCategoriesAndSubCategories() async {
@@ -406,19 +378,28 @@ class CashierDashboardState extends State<CashierDashboard> {
       final db = await SalesDatabase.instance.database;
       await db.transaction((txn) async {
         // Insert order into sales table
-        final orderId = await txn.insert('sales', {
-          'order_number': orderNumber,
-          'order_date': date,
-          'order_time': time,
-          'name': widget.username,
-          'subtotal': subtotal,
-          'tax': tax,
-          'discount': discount,
-          'total': total,
-        });
-
-        // Insert order items into Order Items table
+        int orderId;
         for (final order in orderDetails) {
+          orderId = await txn.insert('sales', {
+            'date': date,
+            'time': time,
+            'username': widget.username,
+            'orderNumber': orderNumber,
+            'productId': order['product_id'],
+            'productName': order['product'],
+            'quantity': order['quantity'],
+            'price': order['price'],
+            'subtotal': subtotal,
+            'tax': tax,
+            'discount': discount,
+            'total': total,
+            'amountPaid': amountPaid,
+            'change': change,
+            'modeOfPayment': paymentMode,
+            'addInNames': order['addInNames']?.join(','),
+          });
+
+          // Insert order items into Order Items table
           final productId = order['product_id'];
           final quantity = order['quantity'];
 
@@ -427,6 +408,7 @@ class CashierDashboardState extends State<CashierDashboard> {
             'product_id': productId,
             'quantity': quantity,
           });
+          _log.info('Order item inserted with ID: $orderItemId');
 
           // Insert add-ins into Order Item Add-ins table
           final addInIds = order['addIns'] as List<int>;
@@ -435,6 +417,9 @@ class CashierDashboardState extends State<CashierDashboard> {
               'order_item_id': orderItemId,
               'add_in_id': addInId,
             });
+            _log.info(
+              'Order item add-in inserted for order item ID: $orderItemId and add-in ID: $addInId',
+            );
           }
         }
       });
@@ -511,10 +496,16 @@ class CashierDashboardState extends State<CashierDashboard> {
     });
   }
 
-  void _recordLogoutTime(String username) async {
+  Future<void> _recordLogoutTime() async {
     final dbHelper = DatabaseHelper();
-    final logoutTime = DateTime.now().toIso8601String();
-    await dbHelper.updateLogoutTime(username, logoutTime);
+    try {
+      await dbHelper.recordLogoutTime(widget.username);
+      _log.info(
+        'Logout time recorded successfully for user: ${widget.username}',
+      );
+    } catch (e) {
+      _log.severe('Error recording logout time: $e');
+    }
   }
 
   @override
@@ -637,9 +628,7 @@ class CashierDashboardState extends State<CashierDashboard> {
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton(
                       onPressed: () async {
-                        _recordLogoutTime(
-                          widget.username,
-                        ); // Record logout time
+                        await _recordLogoutTime(); // Record logout time
                         Navigator.of(context).pushReplacementNamed('/login');
                       },
                       child: Text('Log Out'),
@@ -725,6 +714,11 @@ class CashierDashboardState extends State<CashierDashboard> {
                           ],
                         ),
                         SizedBox(height: 5),
+                        // Add cashier name below the date
+                        Text(
+                          'Cashier: ${cashierName ?? 'Not Found'}',
+                          style: TextStyle(fontSize: 16),
+                        ),
                         // Order Number
                         Text(
                           'Order Number: $_currentOrderNumber', // Display the current order number

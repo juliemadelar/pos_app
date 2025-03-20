@@ -3,7 +3,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:provider/provider.dart'; // Import provider package
 import 'admin_dashboard.dart';
 import 'login_page.dart';
-import 'db_helper.dart';
+import 'db_helper.dart' as db_helper; // Update import statement
+import 'database_helper.dart'; // Import DatabaseHelper
 import 'package:pos_app/cashier_dashboard.dart'; // Import the CashierDashboard page
 
 void main() async {
@@ -11,8 +12,15 @@ void main() async {
   sqfliteFfiInit();
   databaseFactory =
       databaseFactoryFfi; // Ensure this is called before using openDatabase
-  final dbHelper = DBHelper();
-  await dbHelper.initializeDatabase(); // Ensure the database is initialized
+  final dbHelper = db_helper.DBHelper();
+  await dbHelper.initializeDatabase();
+  final databaseHelper = DatabaseHelper(); // Initialize DatabaseHelper
+  await databaseHelper.database; // Ensure the database is initialized
+
+  // Record login time
+  await databaseHelper.recordLoginTime(
+    'Admin',
+  ); // Replace 'Admin' with actual username
 
   // Check if users table is empty and insert default users if necessary
   bool hasUsers = await dbHelper.hasUsers();

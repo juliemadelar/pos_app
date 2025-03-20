@@ -5,8 +5,9 @@ import 'business_details.dart';
 import 'user_management.dart';
 import 'sales_report.dart' as sr;
 import 'login_page.dart';
-// Add this import
 import 'login_report.dart';
+import 'database_helper.dart'; // Add this import
+import 'package:logging/logging.dart'; // Add this import
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -19,6 +20,47 @@ class AdminDashboardState extends State<AdminDashboard> {
   Widget _selectedPage = pm.ProductManagement();
   final List<Map<String, dynamic>> _orderItems = [];
   final List<String> _selectedAddIns = [];
+  String? adminUsername; // Added to store admin username
+  final Logger _logger = Logger('AdminDashboard'); // Add this line
+
+  @override
+  void initState() {
+    super.initState();
+    _getAdminUsername(); // Get admin username on initialization
+    _recordLoginTime('Admin'); // Record login time on initialization
+  }
+
+  Future<void> _getAdminUsername() async {
+    final dbHelper = DatabaseHelper();
+    final user = await dbHelper.getUserByUsername('Admin');
+    if (user != null) {
+      _logger.info(
+        'Fetched admin username: ${user['username']}',
+      ); // Replace print with logger
+      setState(() {
+        adminUsername = user['username'];
+      });
+    } else {
+      _logger.warning('Admin user not found'); // Replace print with logger
+    }
+  }
+
+  Future<void> _recordLoginTime(String username) async {
+    final dbHelper = DatabaseHelper();
+    await dbHelper.recordLoginTime(username);
+  }
+
+  Future<void> _recordLogoutTime() async {
+    final dbHelper = DatabaseHelper();
+    if (adminUsername != null) {
+      _logger.info(
+        'Recording logout time for $adminUsername at ${DateTime.now().toIso8601String()}',
+      ); // Replace print with logger
+      await dbHelper.recordLogoutTime(adminUsername!);
+    } else {
+      _logger.warning('adminUsername is null'); // Replace print with logger
+    }
+  }
 
   void _selectPage(Widget page) {
     if (mounted) {
@@ -82,11 +124,14 @@ class AdminDashboardState extends State<AdminDashboard> {
                 ListTile(
                   leading: Icon(Icons.logout),
                   title: Text('Log Out'),
-                  onTap: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => LoginPage()),
-                    );
+                  onTap: () async {
+                    await _recordLogoutTime();
+                    if (context.mounted) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginPage()),
+                      );
+                    }
                   },
                 ),
               ],

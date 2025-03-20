@@ -19,7 +19,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'product_database.db');
     return await openDatabase(
       path,
-      version: 5, // Increment the version number
+      version: 6, // Increased version number to trigger upgrade
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -109,31 +109,26 @@ class DatabaseHelper {
     await _insertInitialBusinessData(db);
   }
 
-  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await db.execute('''
-        CREATE TABLE users (
-          id INTEGER PRIMARY KEY,
-          username TEXT UNIQUE,
-          password TEXT,
-          email TEXT UNIQUE,
-          logout_time TEXT
-        )
-      ''');
+  Future<void> _updateDatabaseSchema(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    try {
+      if (oldVersion < 5) {
+        await db.execute('''
+          ALTER TABLE users ADD COLUMN logout_time TEXT;
+        ''');
+      }
+      // Add other upgrade logic as needed for future versions
+    } catch (e) {
+      developer.log('Error upgrading database schema: $e');
     }
-    if (oldVersion < 3) {
-      await db.execute('''
-        ALTER TABLE login_details ADD COLUMN logout_time TEXT
-      ''');
-    }
-    if (oldVersion < 4) {
-      await db.execute('''
-        ALTER TABLE users ADD COLUMN logout_time TEXT
-      ''');
-    }
-    if (oldVersion < 5) {
-      // No action needed, but keep the condition to avoid future issues
-    }
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    developer.log('Upgrading database from $oldVersion to $newVersion');
+    await _updateDatabaseSchema(db, oldVersion, newVersion);
   }
 
   Future<void> _insertInitialCashierData(Database db) async {
@@ -330,16 +325,65 @@ class DatabaseHelper {
       where: 'username = ?',
       whereArgs: [username],
     );
-    return result.isNotEmpty ? result.first : null;
+    developer.log('Query result for username $username: $result'); // Debug log
+    if (result.isNotEmpty) {
+      developer.log('User found: ${result.first}'); // Debug log
+      return result.first;
+    } else {
+      developer.log('User not found for username: $username'); // Debug log
+      return null;
+    }
   }
 
-  Future<void> updateLogoutTime(String username, String logoutTime) async {
+  Future<void> updateLogoutTime(String username) async {
+    final db = await database;
+    final now = DateTime.now().toIso8601String();
+    await db.update(
+      'login_details',
+      {'logout_time': now},
+      where: 'username = ? AND logout_time IS NULL',
+      whereArgs: [username],
+    );
+  }
+
+  Future<void> updateLogoutTimeWithCustomTime(
+    String username,
+    String logoutTime,
+  ) async {
     final db = await database;
     await db.update(
-      'users',
+      'login_details',
       {'logout_time': logoutTime},
       where: 'username = ?',
       whereArgs: [username],
+    );
+    developer.log('Logout time updated for $username'); // Debug log
+  }
+
+  Future<void> recordLoginTime(String username) async {
+    final db = await database;
+    final user = await getUserByUsername(username);
+    if (user != null) {
+      await db.insert('login_details', {
+        'username': username,
+        'login_time': DateTime.now().toIso8601String(),
+        'name': user['name'],
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+  }
+
+  Future<void> recordLogoutTime(String username) async {
+    final db = await database;
+    final now = DateTime.now().toIso8601String();
+    developer.log('Updating logout time for $username at $now');
+    final rowsAffected = await db.update(
+      'login_details',
+      {'logout_time': now},
+      where: 'username = ? AND logout_time IS NULL',
+      whereArgs: [username],
+    );
+    developer.log(
+      'Logout time recorded for $username, rows affected: $rowsAffected',
     );
   }
 

@@ -1,9 +1,8 @@
-import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:developer'; // Import for logging
 
-void main() {
+void main() async {
   // Initialize FFI
   sqfliteFfiInit();
   // Set the database factory
@@ -32,18 +31,25 @@ class SalesDatabase {
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
+    log('Database path: $path'); // Log the calculated path
 
     try {
-      log('Initializing database at $path'); // Log database path
-      return await openDatabase(
+      log('Attempting to open database...');
+      final db = await openDatabase(
         path,
-        version: 3, // Increment version to 3
+        version: 5, // Ensure version is incremented to reflect schema changes
         onCreate: _createDB,
         onUpgrade: _upgradeDB,
+        onDowngrade: _onDowngrade, //Added onDowngrade
+        onOpen: (db) {
+          log('Database opened successfully.');
+        },
       );
-    } catch (e) {
-      log('Error initializing database: $e'); // Log any errors
-      rethrow;
+      log('Database opened successfully.');
+      return db;
+    } catch (e, stack) {
+      log('Critical error initializing database: $e', stackTrace: stack);
+      rethrow; // Rethrow so the error propagates
     }
   }
 
@@ -54,8 +60,7 @@ class SalesDatabase {
     const realType = 'REAL NOT NULL';
 
     try {
-      log('Creating tables'); // Log table creation start
-      // Corrected table creation order. Products and Add-ins must exist before linking tables
+      log('Creating table: products');
       await db.execute('''
       CREATE TABLE products (
         product_id $idType,
@@ -63,7 +68,14 @@ class SalesDatabase {
         base_price $realType
       )
       ''');
+      log('Table created: products');
+    } catch (e, stack) {
+      log('Error creating table products: $e', stackTrace: stack);
+      rethrow;
+    }
 
+    try {
+      log('Creating table: add_ins');
       await db.execute('''
       CREATE TABLE add_ins (
         add_in_id $idType,
@@ -71,7 +83,14 @@ class SalesDatabase {
         add_in_price $realType
       )
       ''');
+      log('Table created: add_ins');
+    } catch (e, stack) {
+      log('Error creating table add_ins: $e', stackTrace: stack);
+      rethrow;
+    }
 
+    try {
+      log('Creating table: order_item_add_ins');
       await db.execute('''
       CREATE TABLE order_item_add_ins (
         order_item_add_in_id $idType,
@@ -81,7 +100,14 @@ class SalesDatabase {
         FOREIGN KEY (add_in_id) REFERENCES add_ins (add_in_id)
       )
       ''');
+      log('Table created: order_item_add_ins');
+    } catch (e, stack) {
+      log('Error creating table order_item_add_ins: $e', stackTrace: stack);
+      rethrow;
+    }
 
+    try {
+      log('Creating table: orders');
       await db.execute('''
       CREATE TABLE orders (
         order_id $idType,
@@ -95,7 +121,14 @@ class SalesDatabase {
         total $realType
       )
       ''');
+      log('Table created: orders');
+    } catch (e, stack) {
+      log('Error creating table orders: $e', stackTrace: stack);
+      rethrow;
+    }
 
+    try {
+      log('Creating table: order_items');
       await db.execute('''
       CREATE TABLE order_items (
         order_item_id $idType,
@@ -106,7 +139,14 @@ class SalesDatabase {
         FOREIGN KEY (product_id) REFERENCES products (product_id)
       )
       ''');
+      log('Table created: order_items');
+    } catch (e, stack) {
+      log('Error creating table order_items: $e', stackTrace: stack);
+      rethrow;
+    }
 
+    try {
+      log('Creating table: product_add_ins');
       await db.execute('''
       CREATE TABLE product_add_ins (
         product_add_in_id $idType,
@@ -116,7 +156,14 @@ class SalesDatabase {
         FOREIGN KEY (add_in_id) REFERENCES add_ins (add_in_id)
       )
       ''');
+      log('Table created: product_add_ins');
+    } catch (e, stack) {
+      log('Error creating table product_add_ins: $e', stackTrace: stack);
+      rethrow;
+    }
 
+    try {
+      log('Creating table: sales');
       await db.execute('''
       CREATE TABLE sales (
         id $idType,
@@ -135,10 +182,17 @@ class SalesDatabase {
         amountPaid $realType,
         change $realType,
         modeOfPayment $textType,
-        addInNames TEXT 
+        addInNames $textType
       )
       ''');
+      log('Table created: sales');
+    } catch (e, stack) {
+      log('Error creating table sales: $e', stackTrace: stack);
+      rethrow;
+    }
 
+    try {
+      log('Creating table: discounts');
       await db.execute('''
       CREATE TABLE discounts (
         id $idType,
@@ -148,7 +202,14 @@ class SalesDatabase {
         referenceNumber $textType
       )
       ''');
+      log('Table created: discounts');
+    } catch (e, stack) {
+      log('Error creating table discounts: $e', stackTrace: stack);
+      rethrow;
+    }
 
+    try {
+      log('Creating table: users');
       await db.execute('''
       CREATE TABLE users (
         id $idType,
@@ -157,7 +218,14 @@ class SalesDatabase {
         logout_time $textType
       )
       ''');
+      log('Table created: users');
+    } catch (e, stack) {
+      log('Error creating table users: $e', stackTrace: stack);
+      rethrow;
+    }
 
+    try {
+      log('Creating table: order_details');
       await db.execute('''
       CREATE TABLE order_details (
         id $idType,
@@ -167,26 +235,51 @@ class SalesDatabase {
         price $realType
       )
       ''');
-      log('Tables created successfully'); // Log successful table creation
-    } catch (e) {
-      log('Error creating tables: $e'); // Log any errors during table creation
+      log('Table created: order_details');
+    } catch (e, stack) {
+      log('Error creating table order_details: $e', stackTrace: stack);
       rethrow;
     }
   }
 
   Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 3) {
-      // Ensure the table is created in case of an update
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS order_item_add_ins (
-          order_item_add_in_id INTEGER PRIMARY KEY AUTOINCREMENT,
-          order_item_id INTEGER NOT NULL,
-          add_in_id INTEGER NOT NULL,
-          FOREIGN KEY (order_item_id) REFERENCES order_items (order_item_id),
-          FOREIGN KEY (add_in_id) REFERENCES add_ins (add_in_id)
-        )
-      ''');
+    if (oldVersion < 4) {
+      // This condition should check whether the oldVersion supports the sales table. If it doesn't, it should create it.
+      try {
+        log('Upgrading database from version $oldVersion to $newVersion');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS sales (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            time TEXT NOT NULL,
+            username TEXT NOT NULL,
+            orderNumber TEXT NOT NULL,
+            productId INTEGER NOT NULL,
+            productName TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            price REAL NOT NULL,
+            subtotal REAL NOT NULL,
+            tax REAL NOT NULL,
+            discount REAL NOT NULL,
+            total REAL NOT NULL,
+            amountPaid REAL NOT NULL,
+            change REAL NOT NULL,
+            modeOfPayment TEXT NOT NULL,
+            addInNames TEXT
+          )
+        ''');
+        log('Database upgraded successfully');
+      } catch (e) {
+        log('Error upgrading database: $e');
+        rethrow;
+      }
     }
+  }
+
+  Future<void> _onDowngrade(Database db, int oldVersion, int newVersion) async {
+    log('Downgrading database from version $oldVersion to $newVersion');
+    // Instead of deleting, handle the downgrade gracefully. You might need to create a migration script. For a simple fix try:
+    await _createDB(db, newVersion); // Recreate the database. Use with caution.
   }
 
   Future<void> create({
@@ -207,7 +300,7 @@ class SalesDatabase {
     required String modeOfPayment,
     List<String>? addInNames,
   }) async {
-    final db = await instance.database;
+    final db = await SalesDatabase.instance.database; // Await here!
     await db.insert('sales', {
       'date': date,
       'time': time,
@@ -369,40 +462,10 @@ class SalesDatabase {
     await db.delete('orders', where: 'order_id = ?', whereArgs: [orderId]);
   }
 
-  Future<void> deleteDatabase() async {
-    await deleteDatabase();
-  }
-
-  static Future<Database> openSalesDatabase() async {
-    return openDatabase(
-      join(await getDatabasesPath(), 'product_database.db'),
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE sales (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT,
-            time TEXT,
-            orderNumber TEXT,
-            username TEXT,
-            total REAL
-          )
-        ''');
-        await db.execute('''
-          CREATE TABLE order_details (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            orderNumber TEXT,
-            product TEXT,
-            quantity INTEGER,
-            price REAL
-          )
-        ''');
-      },
-      version: 3,
-    );
-  }
-
   Future<void> deleteAndReinitializeDatabase() async {
-    await deleteDatabase();
+    if (_database != null) {
+      await _database!.close();
+    }
     _database = await _initDB('product_database.db');
   }
 }
