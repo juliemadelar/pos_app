@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:developer' as developer;
+import 'package:intl/intl.dart'; // Import the intl package
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -337,10 +338,12 @@ class DatabaseHelper {
 
   Future<void> updateLogoutTime(String username) async {
     final db = await database;
-    final now = DateTime.now().toIso8601String();
+    final now = DateTime.now();
+    final formattedNow =
+        '${now.toLocal().toString().split(' ')[0]} ${now.toLocal().toString().split(' ')[1].split('.')[0]}';
     await db.update(
       'login_details',
-      {'logout_time': now},
+      {'logout_time': formattedNow},
       where: 'username = ? AND logout_time IS NULL',
       whereArgs: [username],
     );
@@ -351,9 +354,12 @@ class DatabaseHelper {
     String logoutTime,
   ) async {
     final db = await database;
+    final parsedLogoutTime = DateTime.parse(logoutTime);
+    final formattedLogoutTime =
+        '${parsedLogoutTime.toLocal().toString().split(' ')[0]} ${parsedLogoutTime.toLocal().toString().split(' ')[1].split('.')[0]}';
     await db.update(
       'login_details',
-      {'logout_time': logoutTime},
+      {'logout_time': formattedLogoutTime},
       where: 'username = ?',
       whereArgs: [username],
     );
@@ -364,9 +370,12 @@ class DatabaseHelper {
     final db = await database;
     final user = await getUserByUsername(username);
     if (user != null) {
+      final now = DateTime.now();
+      final formatter = DateFormat('yyyy-MM-dd HH:mm:ss');
+      final formattedNow = formatter.format(now);
       await db.insert('login_details', {
         'username': username,
-        'login_time': DateTime.now().toIso8601String(),
+        'login_time': formattedNow,
         'name': user['name'],
       }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
@@ -374,11 +383,13 @@ class DatabaseHelper {
 
   Future<void> recordLogoutTime(String username) async {
     final db = await database;
-    final now = DateTime.now().toIso8601String();
-    developer.log('Updating logout time for $username at $now');
+    final now = DateTime.now();
+    final formatter = DateFormat('yyyy-MM-dd HH:mm:ss');
+    final formattedNow = formatter.format(now);
+    developer.log('Updating logout time for $username at $formattedNow');
     final rowsAffected = await db.update(
       'login_details',
-      {'logout_time': now},
+      {'logout_time': formattedNow},
       where: 'username = ? AND logout_time IS NULL',
       whereArgs: [username],
     );
